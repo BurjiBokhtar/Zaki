@@ -493,9 +493,9 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
       <div class="login-footer">
         <span id="lt-reset" style="cursor:pointer;color:var(--a);font-weight:600;" onclick="resetConfig()">Изменить настройки Supabase</span>
       </div>
-      <div class="lang-toggle">
-        <div class="lt-btn on" onclick="setLang('ru')" id="ll-ru">🇷🇺 RU</div>
-        <div class="lt-btn" onclick="setLang('tj')" id="ll-tj">🇹🇯 TJ</div>
+      <div style="display:flex;gap:6px;justify-content:center;margin-top:10px;">
+        <button onclick="setLang('ru')" id="ll-ru" style="padding:5px 14px;border-radius:20px;border:1px solid var(--bd);background:var(--a);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">RU</button>
+        <button onclick="setLang('tj')" id="ll-tj" style="padding:5px 14px;border-radius:20px;border:1px solid var(--bd);background:var(--w);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">TJ</span>
       </div>
     </div>
   </div>
@@ -750,9 +750,9 @@ function closeModal(){document.getElementById('modal').style.display='none';}
 function fmtN(n){return Number(n||0).toLocaleString('ru',{maximumFractionDigits:0});}
 function today(){return new Date().toISOString().slice(0,10);}
 function isEditable(dateStr){
-  if(USER?.role==='supplier') return dateStr===today();
-  if(USER?.role==='director') return false;
-  return (new Date()-new Date(dateStr))/86400000<=2;
+  if(isSup()) return dateStr===today();  // снабженец — только сегодня
+  if(isDir()) return false;              // директор — никогда
+  return (new Date()-new Date(dateStr))/86400000<=2; // все остальные — 2 дня
 }
 function toTJS(a,c){return c==='USD'?a*(COMPANY.usd_rate||10.92):a;}
 function toUSD(a,c){return c==='TJS'?a/(COMPANY.usd_rate||10.92):a;}
@@ -882,6 +882,7 @@ const SECS={fin:{ru:'Финансы',tj:'Молия'},an:{ru:'Аналитика
 
 function buildNav(){
   const role=USER?.role;
+  // supplier -> снабженец, director -> только просмотр, все остальные (accountant, admin, manager, owner и т.д.) -> полный доступ
   const navDef=role==='supplier'?SUP_NAV:role==='director'?DIR_NAV:BUH_NAV;
   const pages=navDef.filter(n=>n.id);
   // Sidebar nav
@@ -899,15 +900,17 @@ function buildNav(){
     `<div class="nb-fw"><div class="nb-fab" onclick="go('${fab}')"><svg width="19" height="19" viewBox="0 0 19 19" fill="none"><path d="M9.5 3v13M3 9.5h13" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>`+
     l2.map(p=>`<button class="nb ${p.id===CUR_PAGE?'on':''}" onclick="go('${p.id}')">${NAV_ICO[p.id]||''}<span class="nb-l">${t(NAV_K[p.id])}</span></button>`).join('');
   // User info
-  const names={accountant:t('acc'),supplier:USER?.name||t('sup'),director:t('dir')};
-  const bgs={accountant:'var(--al)',supplier:'var(--bluel)',director:'var(--purl)'};
-  const clrs={accountant:'var(--adk)',supplier:'var(--blue)',director:'var(--pur)'};
+  // Поддержка любой роли: admin, manager, owner и т.д. -> полный доступ как бухгалтер
+  const roleLabel={accountant:t('acc'),supplier:t('sup'),director:t('dir'),admin:'Администратор',manager:'Менеджер',owner:'Владелец'};
+  const names={...roleLabel, [role]: roleLabel[role]||USER?.name||role};
+  const bgs={supplier:'var(--bluel)',director:'var(--purl)'};
+  const clrs={supplier:'var(--blue)',director:'var(--pur)'};
   const ini=(USER?.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2);
   const ava=document.getElementById('sb-ava');
   ava.style.background=bgs[role]||'var(--al)';ava.style.color=clrs[role]||'var(--adk)';ava.textContent=ini;
   document.getElementById('sb-uname').textContent=USER?.name||'—';
   document.getElementById('sb-urole').textContent=names[role]||'—';
-  const bd=document.getElementById('sb-badge');bd.textContent=names[role]||'—';bd.style.background=bgs[role];bd.style.color=clrs[role];
+  const bd=document.getElementById('sb-badge');bd.textContent=names[role]||role||'—';bd.style.background=bgs[role]||'var(--al)';bd.style.color=clrs[role]||'var(--adk)';
   document.getElementById('sb-logout').textContent=t('logout');
   document.getElementById('tb-online').textContent=t('online');
   document.getElementById('sb-sub').textContent=LANG==='tj'?'Системаи молия':'Строительные финансы';
@@ -1004,9 +1007,19 @@ async function loadBaseData(){
 
 function setLang(l){
   LANG=l;
-  ['lb-ru','lb-tj','ll-ru','ll-tj'].forEach(id=>{
+  // Sidebar lang buttons
+  ['lb-ru','lb-tj'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el)el.className=el.className.replace(' on','')+(id.includes(l==='ru'?'ru':'tj')?' on':'');
+    if(el)el.className='lb'+(id.includes(l==='ru'?'ru':'tj')?' on':'');
+  });
+  // Login lang buttons
+  ['ll-ru','ll-tj'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const isActive=id.includes(l==='ru'?'ru':'tj');
+    el.style.background=isActive?'var(--a)':'var(--w)';
+    el.style.color=isActive?'#fff':'var(--t3)';
+    el.style.borderColor=isActive?'var(--a)':'var(--bd)';
   });
   updateLoginTexts();updatePeriodBtns();
   if(USER){buildNav();renderPage(CUR_PAGE);}
@@ -1143,7 +1156,17 @@ function buildOpForm(container,isSupplier){
     });
   }
 }
-function setOpType(tp,el){OP_TYPE=tp;SEL_OBJ='';SEL_CUR='TJS';buildOpForm(document.getElementById('content'),false);}
+function setOpType(tp,el){
+  OP_TYPE=tp;SEL_OBJ='';SEL_CUR='TJS';
+  // Если вызвано с кнопки страницы ops — прокрутить к форме
+  const formWrap=document.getElementById('op-form-wrap');
+  if(formWrap){
+    buildOpForm(formWrap,false);
+    formWrap.scrollIntoView({behavior:'smooth',block:'start'});
+  } else {
+    buildOpForm(document.getElementById('content'),false);
+  }
+}
 function fSelObj(el,v){document.querySelectorAll('#fobj .chip').forEach(c=>c.classList.remove('sel','sel-r','sel-b'));el.classList.add('sel');SEL_OBJ=v;}
 function fSelCat(el,v){document.querySelectorAll('#fcat .chip').forEach(c=>c.classList.remove('sel','sel-r','sel-b'));el.classList.add('sel');SEL_CAT=v;}
 function fSetCur(c){SEL_CUR=c;document.getElementById('fcur-tjs').className='cur-btn'+(c==='TJS'?' on':'');document.getElementById('fcur-usd').className='cur-btn'+(c==='USD'?' on':'');fUpdTotal();}
@@ -1186,7 +1209,7 @@ async function fSubmit(isSupplier){
     amount_tjs:SEL_CUR==='USD'?amt*rate:amt,
     amount_usd:SEL_CUR==='TJS'?amt/rate:amt,
     usd_rate:rate,
-    worker_name:isSupplier?USER.name:(USER?.name||'Бухгалтер'),
+    worker_name:(isSupplier||isSup())?USER.name:(USER?.name||'Бухгалтер'),
     qty:parseFloat(document.getElementById('f-qty')?.value)||null,
     unit:document.getElementById('f-unit')?.value||null,
     price:parseFloat(document.getElementById('f-price')?.value)||null,
@@ -1201,6 +1224,145 @@ async function fSubmit(isSupplier){
 /* ══════════════════════════════════════════════
    PAGES
 ══════════════════════════════════════════════ */
+// Проверки прав: любая роль кроме director и supplier = полный доступ
+function canAdmin(){return USER?.role!=='director'&&USER?.role!=='supplier';}
+function canView(){return true;}
+function isDir(){return USER?.role==='director';}
+function isAcc(){return (USER?.role==='accountant'||USER?.role==='admin')||USER?.role==='admin';}
+function canWrite(){return !isDir();}
+function isSup(){return USER?.role==='supplier';}
+
+/* ══ ADD OP MODAL ══ */
+function openAddOpModal(type){
+  OP_TYPE=type;SEL_OBJ='';SEL_CUR='TJS';
+  const incCats=CATEGORIES.filter(c=>c.type==='income');
+  const expCats=CATEGORIES.filter(c=>c.type==='expense');
+  const cats=type==='income'?incCats:expCats;
+  SEL_CAT=cats[0]?.name||'';
+  const rate=COMPANY.usd_rate||10.92;
+  const typeLabel=type==='income'?'Новый приход':type==='advance'?'Аванс снабженцу':'Новый расход';
+  const typeColor=type==='income'?'var(--a)':type==='advance'?'var(--blue)':'var(--red)';
+
+  openModal(typeLabel,`
+    <div style="margin-bottom:12px;">
+      <div class="fld-l mb8">Объект</div>
+      <div class="chips" id="mo-obj">
+        <div class="chip sel" onclick="fSelObj(this,'')">Без объекта</div>
+        ${OBJECTS.map(o=>`<div class="chip" onclick="fSelObj(this,'${o.name}')">${o.name}</div>`).join('')}
+      </div>
+    </div>
+    ${type!=='advance'?`
+    <div style="margin-bottom:12px;">
+      <div class="fld-l mb8">Категория</div>
+      <div class="chips" id="mo-cat">
+        ${cats.map((c,i)=>`<div class="chip ${i===0?'sel':''}" onclick="fSelCat(this,'${c.name}')">${c.name}</div>`).join('')}
+      </div>
+    </div>`:''}
+    <div class="fg f2" style="margin-bottom:12px;">
+      <div class="fld"><div class="fld-l">Дата</div><input class="fi" type="date" id="mo-date" value="${today()}"></div>
+      <div class="fld"><div class="fld-l">Валюта</div>
+        <div class="cur-tog" style="margin-top:2px;">
+          <button class="cur-btn on" id="mo-tjs" onclick="moSetCur('TJS')">TJS</button>
+          <button class="cur-btn" id="mo-usd" onclick="moSetCur('USD')">USD</button>
+        </div>
+      </div>
+      ${type==='advance'?`
+      <div class="fld s2"><div class="fld-l">Снабженец</div><select class="fi fi-sel" id="mo-worker"><option value="">— выберите —</option></select></div>
+      `:`
+      <div class="fld s2"><div class="fld-l">Описание</div><input class="fi" id="mo-desc" placeholder="${type==='income'?'Клиент, квартира...':'Наименование...'}"></div>
+      `}
+      ${type==='expense'?`
+      <div class="fld"><div class="fld-l">Кол-во</div><input class="fi" id="mo-qty" type="number" placeholder="0" oninput="moCalc()"></div>
+      <div class="fld"><div class="fld-l">Ед. изм.</div><select class="fi fi-sel" id="mo-unit">${UNITS.map(u=>`<option>${u.name}</option>`).join('')}</select></div>
+      <div class="fld"><div class="fld-l">Цена за ед.</div><input class="fi" id="mo-price" type="number" placeholder="0" oninput="moCalc()"></div>
+      <div class="fld"><div class="fld-l">Итого</div><input class="fi fi-lg" id="mo-total" type="number" placeholder="0" oninput="moCalcT()"></div>
+      `:`
+      <div class="fld s2"><div class="fld-l">Сумма</div><input class="fi fi-lg" id="mo-amount" type="number" placeholder="0" oninput="moCalcD()"></div>
+      ${type==='income'?`<div class="fld s2"><div class="fld-l">Способ оплаты</div><select class="fi fi-sel" id="mo-method"><option value="cash">Наличные</option><option value="transfer">Перевод</option><option value="card">Карта</option></select></div>`:''}
+      `}
+      <div class="fld s2"><div class="fld-l">Примечание</div><input class="fi" id="mo-note" placeholder="Необязательно"></div>
+    </div>
+    <div style="background:var(--ap);border:1.5px solid var(--al);border-radius:var(--r2);padding:12px 14px;">
+      <div style="font-size:10px;color:var(--ad);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">${typeLabel}</div>
+      <div style="font-size:22px;font-weight:800;color:${typeColor};" id="mo-total-show">0 TJS</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:2px;" id="mo-total-hint"></div>
+    </div>`,
+    async()=>{
+      const rate=COMPANY.usd_rate||10.92;
+      const date=document.getElementById('mo-date')?.value||today();
+      let amt=0,desc='',method='cash';
+      if(OP_TYPE==='expense'){
+        const q=parseFloat(document.getElementById('mo-qty')?.value)||0;
+        const p=parseFloat(document.getElementById('mo-price')?.value)||0;
+        const tot=document.getElementById('mo-total');
+        amt=tot?.value?parseFloat(tot.value)||q*p:q*p;
+        desc=document.getElementById('mo-desc')?.value||'';
+        if(!amt){showToast('Введите сумму или кол-во × цену',true);return;}
+      } else if(OP_TYPE==='income'){
+        amt=parseFloat(document.getElementById('mo-amount')?.value)||0;
+        desc=document.getElementById('mo-desc')?.value||'';
+        method=document.getElementById('mo-method')?.value||'cash';
+        if(!amt){showToast('Введите сумму',true);return;}
+      } else {
+        amt=parseFloat(document.getElementById('mo-amount')?.value)||0;
+        const w=document.getElementById('mo-worker')?.value||'';
+        desc='Аванс → '+w;
+        if(!amt||!w){showToast('Укажите снабженца и сумму',true);return;}
+        await SB.from('advances').insert({worker_name:w,object_name:SEL_OBJ,task:SEL_CAT,amount:amt,currency:SEL_CUR});
+      }
+      const{error}=await SB.from('operations').insert({
+        type:OP_TYPE,date,object_name:SEL_OBJ,
+        category_name:SEL_CAT||'Прочее',
+        description:desc,amount:amt,currency:SEL_CUR,method,
+        amount_tjs:SEL_CUR==='USD'?amt*rate:amt,
+        amount_usd:SEL_CUR==='TJS'?amt/rate:amt,
+        usd_rate:rate,
+        worker_name:USER?.name||'',
+        qty:parseFloat(document.getElementById('mo-qty')?.value)||null,
+        unit:document.getElementById('mo-unit')?.value||null,
+        price:parseFloat(document.getElementById('mo-price')?.value)||null,
+        note:document.getElementById('mo-note')?.value||'',
+        created_by:USER?.id
+      });
+      if(error){showToast(error.message,true);return;}
+      closeModal();showToast('✓ '+typeLabel+' сохранён');
+      window._opsFilter={q:'',type:'all',date:''};
+      renderPage('ops');
+    },
+    typeLabel+' →'
+  );
+  // Fill workers
+  SB.from('profiles').select('name').in('role',['supplier','accountant','admin']).then(({data})=>{
+    const sel=document.getElementById('mo-worker');
+    if(sel&&data)sel.innerHTML='<option value="">— выберите —</option>'+data.map(u=>`<option>${u.name}</option>`).join('');
+  });
+}
+function moSetCur(c){
+  SEL_CUR=c;
+  document.getElementById('mo-tjs').className='cur-btn'+(c==='TJS'?' on':'');
+  document.getElementById('mo-usd').className='cur-btn'+(c==='USD'?' on':'');
+  moUpdTotal();
+}
+function moCalc(){
+  const q=parseFloat(document.getElementById('mo-qty')?.value)||0;
+  const p=parseFloat(document.getElementById('mo-price')?.value)||0;
+  const tot=document.getElementById('mo-total');
+  if(tot)tot.value=q*p||'';
+  moUpdTotal(q*p);
+}
+function moCalcT(){moUpdTotal(parseFloat(document.getElementById('mo-total')?.value)||0);}
+function moCalcD(){moUpdTotal(parseFloat(document.getElementById('mo-amount')?.value)||0);}
+function moUpdTotal(val){
+  const tv=document.getElementById('mo-total-show');
+  const th=document.getElementById('mo-total-hint');
+  if(!tv)return;
+  let a=val;
+  if(a===undefined){const tot=document.getElementById('mo-total'),am=document.getElementById('mo-amount');a=parseFloat((tot||am)?.value)||0;}
+  const rate=COMPANY.usd_rate||10.92;
+  tv.textContent=fmtN(a)+' '+SEL_CUR;
+  if(th)th.textContent=SEL_CUR==='TJS'?`≈ $${fmtN(a/rate)} USD`:`≈ ${fmtN(a*rate)} TJS`;
+}
+
 const PAGES={
 
 /* ── HOME ── */
@@ -1280,24 +1442,73 @@ home:async()=>{
 
 /* ── OPERATIONS ── */
 ops:async()=>{
-  const ops=await getOps();
-  window._ops=ops;
+  const allOps=await getOps();
+  window._ops=allOps;
   const rate=COMPANY.usd_rate||10.92;
-  const incTJS=ops.filter(o=>o.type==='income').reduce((a,o)=>a+(o.amount_tjs||0),0);
-  const expTJS=ops.filter(o=>o.type==='expense').reduce((a,o)=>a+(o.amount_tjs||0),0);
-  const canEdit=USER?.role!=='director';
+  const incTJS=allOps.filter(o=>o.type==='income').reduce((a,o)=>a+(o.amount_tjs||0),0);
+  const expTJS=allOps.filter(o=>o.type==='expense').reduce((a,o)=>a+(o.amount_tjs||0),0);
+  const canEdit=canWrite();
+  // Filter state stored on window
+  window._opsFilter=window._opsFilter||{q:'',type:'all',date:''};
+  const applyFilter=()=>{
+    const f=window._opsFilter;
+    let list=window._ops||[];
+    if(f.q) list=list.filter(o=>(o.description||'').toLowerCase().includes(f.q.toLowerCase())||(o.category_name||'').toLowerCase().includes(f.q.toLowerCase())||(o.worker_name||'').toLowerCase().includes(f.q.toLowerCase()));
+    if(f.type!=='all') list=list.filter(o=>o.type===f.type);
+    if(f.date) list=list.filter(o=>o.date===f.date);
+    document.getElementById('ops-list').innerHTML=list.length?list.map(o=>txRow(o,true)).join(''):`<div class="empty"><div class="empty-icon">🔍</div>Ничего не найдено</div>`;
+    document.getElementById('ops-count').textContent=list.length+' записей';
+  };
+  setTimeout(()=>{
+    const qi=document.getElementById('ops-q');
+    const ti=document.getElementById('ops-type');
+    const di=document.getElementById('ops-date');
+    if(qi){qi.value=window._opsFilter.q;qi.oninput=e=>{window._opsFilter.q=e.target.value;applyFilter();};}
+    if(ti){ti.value=window._opsFilter.type;ti.onchange=e=>{window._opsFilter.type=e.target.value;applyFilter();};}
+    if(di){di.value=window._opsFilter.date;di.onchange=e=>{window._opsFilter.date=e.target.value;applyFilter();};}
+  },80);
   return `
+  ${canEdit?`
+  <!-- ADD BUTTONS -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;">
+    <button class="btn btn-p btn-bl" onclick="openAddOpModal('income')" style="padding:14px 10px;border-radius:14px;flex-direction:column;gap:5px;">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M10 16V4M4 10l6-6 6 6"/></svg>
+      <span style="font-size:13px;">+ Приход</span>
+    </button>
+    <button class="btn btn-bl" onclick="openAddOpModal('expense')" style="padding:14px 10px;border-radius:14px;flex-direction:column;gap:5px;background:var(--redl);color:var(--red);border:1.5px solid var(--redb);">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><path d="M10 4v12M4 10l6 6 6-6"/></svg>
+      <span style="font-size:13px;">+ Расход</span>
+    </button>
+    <button class="btn btn-bl" onclick="openAddOpModal('advance')" style="padding:14px 10px;border-radius:14px;flex-direction:column;gap:5px;background:var(--bluel);color:var(--blue);border:1.5px solid var(--blueb);">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><path d="M3 10h14M10 4l6 6-6 6"/></svg>
+      <span style="font-size:13px;">→ Аванс</span>
+    </button>
+  </div>`:``}
   <div class="g2 mb20">
     <div class="sc g" style="animation-delay:.03s;"><div class="sc-lbl">${t('income')}</div><div class="sc-val" style="color:var(--ad);">${fmtN(incTJS)}</div><div class="sc-val2">TJS · $${fmtN(incTJS/rate)}</div></div>
     <div class="sc r" style="animation-delay:.06s;"><div class="sc-lbl">${t('expense')}</div><div class="sc-val" style="color:var(--red);">${fmtN(expTJS)}</div><div class="sc-val2">TJS · $${fmtN(expTJS/rate)}</div></div>
   </div>
-  ${canEdit?`<div id="op-form-wrap" class="mb20"></div>`:''}
   <div class="card" style="animation:fadeUp .3s ease .06s both;">
     <div class="sh"><div class="sh-t">Все операции (${ops.length})</div>
       <div class="exp-row"><button class="eb eb-xl" onclick="exportXL(window._ops||[],'ZAKI_ops')">${t('xl')}</button><button class="eb eb-pdf" onclick="exportPDF('${t('ops')}',window._ops||[])">${t('pdf')}</button></div>
     </div>
-    <div style="font-size:11px;color:var(--t4);margin-bottom:9px;">${USER?.role==='supplier'?t('ed_today'):t('ed_2d')}</div>
-    <div>${ops.length?ops.map(o=>txRow(o,true)).join(''):`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
+    <!-- FILTER BAR -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <div style="position:relative;flex:1;min-width:180px;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--t4)" stroke-width="1.4" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="6" cy="6" r="4"/><path d="M10 10l2.5 2.5" stroke-linecap="round"/></svg>
+        <input id="ops-q" class="fi" placeholder="Поиск по описанию, категории, сотруднику..." style="padding-left:30px;width:100%;">
+      </div>
+      <select id="ops-type" class="fi fi-sel" style="width:140px;">
+        <option value="all">Все типы</option>
+        <option value="income">↑ Приходы</option>
+        <option value="expense">↓ Расходы</option>
+        <option value="advance">→ Авансы</option>
+      </select>
+      <input id="ops-date" class="fi" type="date" style="width:150px;" title="Фильтр по дате">
+      <button class="btn btn-s btn-sm" onclick="window._opsFilter={q:'',type:'all',date:''};document.getElementById('ops-q').value='';document.getElementById('ops-type').value='all';document.getElementById('ops-date').value='';document.getElementById('ops-list').innerHTML=window._ops.map(o=>txRow(o,true)).join('');document.getElementById('ops-count').textContent=window._ops.length+' записей';">✕ Сброс</button>
+    </div>
+    <div style="font-size:11px;color:var(--t4);margin-bottom:9px;display:flex;justify-content:space-between;"><span>${USER?.role==='supplier'?t('ed_today'):t('ed_2d')}</span><span id="ops-count">${allOps.length} записей</span></div>
+    <div id="ops-list">${allOps.length?allOps.map(o=>txRow(o,true)).join(''):`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
   </div>`;
 },
 
@@ -1318,7 +1529,7 @@ snabs:async()=>{
     <div class="sc g" style="animation-delay:.03s;"><div class="sc-lbl">${t('adv_iss')}</div><div class="sc-val" style="color:var(--ad);">${fmtN(totalAdv)}</div><div class="sc-val2">TJS · $${fmtN(totalAdv/rate)}</div></div>
     <div class="sc r" style="animation-delay:.06s;"><div class="sc-lbl">${t('spent')}</div><div class="sc-val" style="color:var(--red);">${fmtN(totalSpent)}</div><div class="sc-val2">TJS · $${fmtN(totalSpent/rate)}</div></div>
   </div>
-  <div class="sh"><div class="sh-t">${t('snabs')}</div>${USER?.role==='accountant'?`<button class="btn btn-p btn-sm" onclick="openNewAdv()">${t('add_adv')}</button>`:''}</div>
+  <div class="sh"><div class="sh-t">${t('snabs')}</div>${canAdmin()?`<button class="btn btn-p btn-sm" onclick="openNewAdv()">${t('add_adv')}</button>`:''}</div>
   ${(advs||[]).map((a,i)=>{
     const spent=(allOps||[]).filter(o=>o.worker_name===a.worker_name).reduce((s,o)=>s+(o.amount_tjs||0),0);
     const rem=a.amount-spent;const pct=a.amount>0?Math.min(spent/a.amount*100,100):0;
@@ -1358,7 +1569,7 @@ masters:async()=>{
     <div class="sc b" style="animation-delay:.06s;"><div class="sc-lbl">Отработано</div><div class="sc-val" style="color:var(--blue);">${fmtN(totW)}</div><div class="sc-val2">TJS</div></div>
     <div class="sc o" style="animation-delay:.09s;"><div class="sc-lbl">Остаток</div><div class="sc-val" style="color:var(--ora);">${fmtN(totA-totW)}</div><div class="sc-val2">TJS</div></div>
   </div>
-  <div class="sh"><div class="sh-t">${t('mast_t')}</div>${USER?.role==='accountant'?`<button class="btn btn-p btn-sm" onclick="openNewMaster()">${t('new_m')}</button>`:''}</div>
+  <div class="sh"><div class="sh-t">${t('mast_t')}</div>${canAdmin()?`<button class="btn btn-p btn-sm" onclick="openNewMaster()">${t('new_m')}</button>`:''}</div>
   ${(masters||[]).map((m,i)=>{
     const avTJS=m.advance_amount||0,wkTJS=m.worked_amount||0,rem=avTJS-wkTJS;
     const pct=avTJS>0?Math.min(wkTJS/avTJS*100,100):0;
@@ -1375,8 +1586,8 @@ masters:async()=>{
         <div class="ms"><div class="ms-l">${t('left')}</div><div class="ms-v" style="color:${rem>0?'var(--ora)':'var(--ad)'};">${fmtN(rem)}</div></div>
       </div>
       <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${pct>=100?'var(--a)':pct>60?'var(--blue)':'var(--yel)'};animation-delay:${i*.07}s;"></div></div>
-      <div style="font-size:11px;color:var(--t4);margin-bottom:${USER?.role==='accountant'?'10px':'0'};">Выполнено: ${Math.round(pct)}% · Срок: ${m.due_date||'—'}${m.notes?' · '+m.notes:''}</div>
-      ${USER?.role==='accountant'?`<div class="a-btns">
+      <div style="font-size:11px;color:var(--t4);margin-bottom:${canAdmin()?'10px':'0'};">Выполнено: ${Math.round(pct)}% · Срок: ${m.due_date||'—'}${m.notes?' · '+m.notes:''}</div>
+      ${canAdmin()?`<div class="a-btns">
         <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="addMasterWork(${m.id})">${t('add_w')}</button>
         <button class="a-btn" style="background:var(--bg);border-color:var(--bd);color:var(--t3);" onclick="masterCard(${m.id})">${t('m_card')}</button>
         <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="delMaster(${m.id})">${t('delete')}</button>
@@ -1429,7 +1640,7 @@ debts:async()=>{
     <div class="sc r" style="animation-delay:.03s;"><div class="sc-lbl">${t('paybl')}</div><div class="sc-val" style="color:var(--red);">${fmtN(sumC)}</div><div class="sc-val2">TJS · $${fmtN(sumC/rate)}</div></div>
     <div class="sc g" style="animation-delay:.06s;"><div class="sc-lbl">${t('recv')}</div><div class="sc-val" style="color:var(--ad);">${fmtN(sumD)}</div><div class="sc-val2">TJS · $${fmtN(sumD/rate)}</div></div>
   </div>
-  ${USER?.role==='accountant'?`<button class="btn btn-p btn-sm mb16" onclick="openNewDebt()">+ Новый долг</button>`:''}
+  ${canAdmin()?`<button class="btn btn-p btn-sm mb16" onclick="openNewDebt()">+ Новый долг</button>`:''}
   <div class="sh"><div class="sh-t">${t('cred')}</div></div>
   ${cred.map((d,i)=>dc(d,i)).join('')||`<div class="empty"><div class="empty-icon">💳</div>${t('no_data')}</div>`}
   <div class="sh" style="margin-top:8px;"><div class="sh-t">${t('debt')}</div></div>
@@ -1536,7 +1747,7 @@ settings:async()=>{
       <div class="fld"><div class="fld-l">${t('co_em')}</div><input class="fi" id="co-em" value="${co?.email||''}"></div>
       <div class="fld s2"><div class="fld-l">${t('co_ad')}</div><input class="fi" id="co-ad" value="${co?.address||''}"></div>
     </div>
-    ${USER?.role==='accountant'?`<button class="btn btn-p btn-sm" style="margin-top:11px;" onclick="saveCo()">${t('save')}</button>`:''}
+    ${canAdmin()?`<button class="btn btn-p btn-sm" style="margin-top:11px;" onclick="saveCo()">${t('save')}</button>`:''}
   </div>
   <div class="card mb16" style="animation:fadeUp .3s ease .04s both;">
     <div class="sh"><div class="sh-t">${t('co_rate')}</div></div>
@@ -1553,20 +1764,20 @@ settings:async()=>{
       <div class="lb ${LANG==='tj'?'on':''}" onclick="setLang('tj')">🇹🇯 Тоҷикӣ</div>
     </div>
   </div>
-  ${USER?.role==='accountant'?`
+  ${canAdmin()?`
   ${sSection(t('objects'),OBJECTS,"addObj(OBJECTS)","editObj","delObj")}
   ${sSection(t('inc_c'),CATEGORIES.filter(c=>c.type==='income'),"addCat('income')","editCat","delCat")}
   ${sSection(t('exp_c'),CATEGORIES.filter(c=>c.type==='expense'),"addCat('expense')","editCat","delCat")}
   ${sSection(t('units'),UNITS,"addUnit(UNITS)","editUnit","delUnit")}
   <div class="card mb16" style="animation:fadeUp .3s ease .2s both;">
     <div class="sh"><div class="sh-t">${t('users')}</div><button class="btn btn-p btn-sm" onclick="openNewUser()">${t('add_u')}</button></div>
-    <div>${(users||[]).map(u=>`<div class="si"><div class="si-inf"><div class="si-name">${u.name} <span class="badge bgr" style="font-size:9px;">${u.role==='accountant'?t('acc'):u.role==='supplier'?t('sup'):t('dir')}</span></div><div class="si-sub">${u.phone||'—'}</div></div></div>`).join('')}</div>
+    <div>${(users||[]).map(u=>`<div class="si"><div class="si-inf"><div class="si-name">${u.name} <span class="badge bgr" style="font-size:9px;">${u.role==='accountant'||u.role==='admin'?'💼 Бухгалтер/Админ':u.role==='supplier'?'🔧 Снабженец':'📊 Директор'}</span></div><div class="si-sub">${u.phone||'—'}</div></div></div>`).join('')}</div>
   </div>`:''}
   <div class="card mb16" style="animation:fadeUp .3s ease .22s both;">
     <div class="sh"><div class="sh-t">${t('roles')}</div></div>
-    <div class="si"><div class="si-inf"><div class="si-name">💼 ${t('acc')}</div><div class="si-sub">Полный доступ: операции, авансы, долги, мастера, настройки. Редактирование за 2 дня.</div></div></div>
-    <div class="si"><div class="si-inf"><div class="si-name">🔧 ${t('sup')}</div><div class="si-sub">Только свои расходы. Редактирование только в день создания.</div></div></div>
-    <div class="si"><div class="si-inf"><div class="si-name">📊 ${t('dir')}</div><div class="si-sub">Просмотр всего. Без права изменения.</div></div></div>
+    <div class="si"><div class="si-inf"><div class="si-name">💼 accountant / admin / manager / owner</div><div class="si-sub">Полный доступ: операции, авансы, долги, мастера, настройки. Редактирование за 2 дня.</div></div></div>
+    <div class="si"><div class="si-inf"><div class="si-name">🔧 supplier — Снабженец</div><div class="si-sub">Только свои расходы. Редактирование только в день создания. Видит только свои записи.</div></div></div>
+    <div class="si"><div class="si-inf"><div class="si-name">📊 director — Директор</div><div class="si-sub">Просмотр всего, аналитика и отчёты. Без права изменения данных.</div></div></div>
   </div>
   <div class="card" style="animation:fadeUp .3s ease .24s both;">
     <div class="sh"><div class="sh-t">${t('sys')}</div></div>
@@ -1810,6 +2021,10 @@ function openNewUser(){
           <div class="fld"><div class="fld-l">Роль</div>
             <select class="fi fi-sel" id="nu-role">
               <option value="accountant">💼 Бухгалтер — полный доступ</option>
+              <option value="admin">🔑 Администратор — полный доступ</option>
+              <option value="admin">⚙️ Администратор — полный доступ</option>
+              <option value="manager">📋 Менеджер — полный доступ</option>
+              <option value="owner">👑 Владелец — полный доступ</option>
               <option value="supplier">🔧 Снабженец — только свои расходы</option>
               <option value="director">📊 Директор — только просмотр</option>
             </select>
