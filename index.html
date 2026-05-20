@@ -1649,7 +1649,7 @@ ops:async()=>{
       style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--redl);border:1.5px solid var(--redb);border-radius:var(--r2);cursor:pointer;font-family:var(--ff);font-weight:600;font-size:13px;color:var(--red);transition:all .18s;"
       onmouseover="this.style.background='#ffe0e0'" onmouseout="this.style.background='var(--redl)'">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4v14M4 11l7 7 7-7"/></svg>
-      + Расход
+      - Расход
     </button>
     <button onclick="openAddOpModal('advance')"
       style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--bluel);border:1.5px solid var(--blueb);border-radius:var(--r2);cursor:pointer;font-family:var(--ff);font-weight:600;font-size:13px;color:var(--blue);transition:all .18s;"
@@ -2068,7 +2068,7 @@ tasks:async()=>{
       <div class="pc-nums"><span style="color:var(--red);">Потрачено: ${fmtN(spent)}</span><span style="color:var(--ad);">Остаток: ${fmtN(rem)}</span></div>
       <div class="a-btns">
         <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="advStage(${a.id})">Следующий этап →</button>
-        <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="go('addexp')">+ Расход</button>
+        <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="go('addexp')">- Расход</button>
       </div>
     </div>`;
   }).join('')||`<div class="empty"><div class="empty-icon">✅</div>${t('no_data')}</div>`}`;
