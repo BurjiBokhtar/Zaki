@@ -37,6 +37,15 @@
   --sb:252px;--tb:58px;--nb:60px;
   --ff:'Inter',-apple-system,sans-serif;
 }
+
+@keyframes cloudFloat{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}
+@keyframes sunPulse{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
+
+/* Mobile login */
+@media(max-width:640px){
+  #lp-left{display:none!important;}
+  #login-page>div:last-child{padding:28px 20px!important;}
+}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -48,7 +57,7 @@
 html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);overflow:hidden;-webkit-font-smoothing:antialiased;}
 
 /* ══ CONFIG SCREEN ══ */
-.config-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
+/*.config-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
 .config-wrap{width:100%;max-width:500px;animation:fadeUp .5s ease;}
 .config-card{background:var(--w);border:1px solid var(--bd);border-radius:var(--r4);padding:32px;box-shadow:var(--shl);}
 .config-logo{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
@@ -185,6 +194,12 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 .nb-fab:active{transform:scale(.9);}
 .mob-overlay{display:none;position:fixed;inset:0;background:rgba(26,35,50,.4);z-index:49;}
 .mob-overlay.show{display:block;}
+
+/* Login dark styles */
+#login-page input::placeholder{color:rgba(255,255,255,.2)!important;}
+#login-page input:-webkit-autofill{-webkit-box-shadow:0 0 0 100px rgba(255,255,255,.07) inset!important;-webkit-text-fill-color:#fff!important;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes orb{0%,100%{transform:scale(1) translate(0,0)}50%{transform:scale(1.1) translate(10px,-10px)}}
 
 /* ══ COMPONENTS ══ */
 .card{background:var(--w);border:1px solid var(--bd);border-radius:var(--r2);padding:16px 18px;box-shadow:var(--sh);}
@@ -401,104 +416,150 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 </head>
 <body>
 
-<!-- ══ STEP 1: CONFIG (показывается если нет ключей) ══ -->
-<div class="config-screen" id="config-screen">
-  <div class="config-wrap">
-    <div class="config-card">
-      <div class="config-logo">
-        <div class="config-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M5 12C5 8.134 8.134 5 12 5" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-            <path d="M19 12C19 15.866 15.866 19 12 19" stroke="rgba(255,255,255,.5)" stroke-width="2.5" stroke-linecap="round"/>
-            <circle cx="12" cy="12" r="3.5" fill="white"/>
-          </svg>
-        </div>
-        <div class="config-brand">ZAKI<span>.</span></div>
-      </div>
-      <div class="step-badge">⚡ Первоначальная настройка</div>
-      <div class="config-title">Подключите Supabase</div>
-      <div class="config-sub">Вставьте ключи из вашего Supabase проекта. Они сохранятся в браузере — вводить один раз.</div>
-      <div class="config-steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div class="step-body">
-            <div class="step-title">Создайте проект на Supabase</div>
-            <div class="step-desc">Зайдите на <a href="https://supabase.com" target="_blank" class="step-link">supabase.com</a> → New Project → дождитесь создания (~2 мин)</div>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div class="step-body">
-            <div class="step-title">Запустите SQL схему</div>
-            <div class="step-desc">В Supabase → SQL Editor → вставьте содержимое файла <b>supabase_schema.sql</b> → Run</div>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-body">
-            <div class="step-title">Создайте пользователей</div>
-            <div class="step-desc">Supabase → Authentication → Users → Add User → создайте аккаунты для бухгалтера, снабженцев, директора</div>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div class="step-body">
-            <div class="step-title">Скопируйте ключи</div>
-            <div class="step-desc">Supabase → Settings → API → скопируйте <b>Project URL</b> и <b>anon public key</b></div>
-          </div>
-        </div>
-      </div>
-      <input class="fi" id="cfg-url" placeholder="https://xxxxx.supabase.co" type="url">
-      <input class="fi" id="cfg-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." type="text">
-      <button class="config-btn" onclick="saveConfig()">Сохранить и продолжить →</button>
-      <div class="config-note">
-        💡 Ключи хранятся только в вашем браузере (localStorage). Никуда не передаются.<br>
-        После сохранения эта страница больше не появится.
-      </div>
+<!-- ══ LOGIN ══ -->
+<div id="login-page" style="display:none;position:fixed;inset:0;z-index:9998;display:flex;align-items:stretch;">
+
+<!-- LEFT PANEL: city + weather + skyline -->
+<div id="lp-left" style="width:45%;flex-shrink:0;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:24px;">
+  <div id="lp-bg" style="position:absolute;inset:0;background:linear-gradient(180deg,#1a3a6b 0%,#2a5a9a 30%,#3a7bbf 60%,#1a2a4a 100%);transition:background 2s ease;"></div>
+
+  <!-- TOP: weather -->
+  <div style="position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border-radius:20px;padding:6px 14px;border:1px solid rgba(255,255,255,.2);">
+      <span style="font-size:16px;" id="lp-city-ico">🏙️</span>
+      <span style="font-size:13px;font-weight:600;color:#fff;font-family:var(--ff);" id="lp-city">Душанбе</span>
     </div>
+    <div style="background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border-radius:20px;padding:6px 14px;border:1px solid rgba(255,255,255,.2);text-align:right;">
+      <div style="font-size:20px;font-weight:800;color:#fff;line-height:1;" id="lp-temp">—°C</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.7);" id="lp-desc">...</div>
+    </div>
+  </div>
+
+  <!-- MIDDLE: sun/moon -->
+  <div style="position:relative;z-index:2;display:flex;align-items:center;justify-content:center;flex:1;">
+    <div id="lp-skyobj"></div>
+    <!-- cloud -->
+    <div style="position:absolute;top:20%;left:15%;width:60px;height:22px;background:rgba(255,255,255,.18);border-radius:20px;animation:cloudFloat 7s ease infinite;"></div>
+    <div style="position:absolute;top:30%;right:20%;width:45px;height:18px;background:rgba(255,255,255,.12);border-radius:20px;animation:cloudFloat 9s ease infinite .5s;"></div>
+  </div>
+
+  <!-- SKYLINE SVG -->
+  <div style="position:relative;z-index:2;">
+    <svg viewBox="0 0 300 110" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
+      <rect x="10" y="55" width="28" height="55" rx="2" fill="rgba(0,0,0,.35)"/>
+      <rect x="15" y="45" width="18" height="10" rx="1" fill="rgba(0,0,0,.28)"/>
+      <rect x="18" y="63" width="5" height="7" fill="rgba(255,255,255,.15)"/>
+      <rect x="26" y="68" width="5" height="7" fill="rgba(255,255,255,.1)"/>
+      <rect x="45" y="32" width="36" height="78" rx="2" fill="rgba(0,0,0,.42)"/>
+      <rect x="50" y="22" width="26" height="12" rx="1" fill="rgba(0,0,0,.35)"/>
+      <rect x="50" y="44" width="7" height="10" fill="rgba(255,255,255,.18)"/>
+      <rect x="62" y="44" width="7" height="10" fill="rgba(255,255,255,.1)"/>
+      <rect x="50" y="60" width="7" height="10" fill="rgba(255,255,255,.15)"/>
+      <rect x="62" y="60" width="7" height="10" fill="rgba(255,255,255,.2)"/>
+      <rect x="90" y="48" width="22" height="62" rx="2" fill="rgba(0,0,0,.32)"/>
+      <rect x="94" y="58" width="5" height="7" fill="rgba(255,255,255,.12)"/>
+      <rect x="103" y="58" width="5" height="7" fill="rgba(255,255,255,.18)"/>
+      <rect x="120" y="28" width="42" height="82" rx="2" fill="rgba(0,0,0,.46)"/>
+      <rect x="126" y="18" width="30" height="12" rx="1" fill="rgba(0,0,0,.38)"/>
+      <rect x="160" y="10" width="4" height="9" fill="rgba(255,100,100,.6)"/>
+      <rect x="126" y="40" width="7" height="10" fill="rgba(255,255,255,.2)"/>
+      <rect x="138" y="40" width="7" height="10" fill="rgba(255,255,255,.15)"/>
+      <rect x="150" y="40" width="7" height="10" fill="rgba(255,255,255,.1)"/>
+      <rect x="126" y="56" width="7" height="10" fill="rgba(255,255,255,.18)"/>
+      <rect x="138" y="56" width="7" height="10" fill="rgba(255,255,255,.12)"/>
+      <rect x="150" y="56" width="7" height="10" fill="rgba(255,255,255,.2)"/>
+      <rect x="126" y="72" width="7" height="9" fill="rgba(255,255,255,.14)"/>
+      <rect x="138" y="72" width="7" height="9" fill="rgba(255,255,255,.1)"/>
+      <rect x="170" y="44" width="26" height="66" rx="2" fill="rgba(0,0,0,.36)"/>
+      <rect x="174" y="54" width="5" height="8" fill="rgba(255,255,255,.15)"/>
+      <rect x="184" y="54" width="5" height="8" fill="rgba(255,255,255,.1)"/>
+      <rect x="174" y="68" width="5" height="8" fill="rgba(255,255,255,.18)"/>
+      <rect x="200" y="58" width="20" height="52" rx="2" fill="rgba(0,0,0,.3)"/>
+      <rect x="204" y="66" width="5" height="7" fill="rgba(255,255,255,.12)"/>
+      <rect x="213" y="66" width="5" height="7" fill="rgba(255,255,255,.18)"/>
+      <rect x="225" y="38" width="32" height="72" rx="2" fill="rgba(0,0,0,.42)"/>
+      <rect x="229" y="48" width="7" height="9" fill="rgba(255,255,255,.18)"/>
+      <rect x="241" y="48" width="7" height="9" fill="rgba(255,255,255,.14)"/>
+      <rect x="229" y="63" width="7" height="9" fill="rgba(255,255,255,.1)"/>
+      <rect x="241" y="63" width="7" height="9" fill="rgba(255,255,255,.2)"/>
+      <rect x="262" y="52" width="22" height="58" rx="2" fill="rgba(0,0,0,.32)"/>
+      <rect x="266" y="62" width="5" height="7" fill="rgba(255,255,255,.15)"/>
+      <rect x="275" y="62" width="5" height="7" fill="rgba(255,255,255,.12)"/>
+      <rect x="0" y="105" width="300" height="5" fill="rgba(0,0,0,.5)"/>
+    </svg>
+  </div>
+
+  <!-- BOTTOM INFO -->
+  <div style="position:relative;z-index:2;">
+    <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-family:var(--ff);" id="lp-co-sm">ZAKI ERP · ДУШАНБЕ</div>
+    <div style="font-size:18px;font-weight:800;color:#fff;line-height:1.3;font-family:var(--ff);" id="lp-greet">Рӯзи нек · Хуш омадед</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px;font-family:var(--ff);" id="lp-sys">Низоми идоракунии молияи сохтмон</div>
   </div>
 </div>
 
-<!-- ══ LOGIN ══ -->
-<div class="login-page" id="login-page">
-  <div class="login-wrap">
-    <div class="login-top">
-      <div class="login-icon">
-        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-          <path d="M5.5 13C5.5 8.858 8.858 5.5 13 5.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M20.5 13C20.5 17.142 17.142 20.5 13 20.5" stroke="rgba(255,255,255,.5)" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="13" cy="13" r="3.5" fill="white"/>
-        </svg>
-      </div>
-      <div class="login-brand">ZAKI<span>.</span></div>
-      <div class="login-tag">Система управления строительными финансами<br>Системаи идоракунии молияи сохтмон</div>
+<!-- RIGHT PANEL: form -->
+<div style="flex:1;background:#fff;display:flex;align-items:center;justify-content:center;padding:40px 32px;">
+  <div style="width:100%;max-width:340px;animation:fadeUp .5s ease .2s both;">
+
+    <div style="font-size:26px;font-weight:800;color:#1A2332;letter-spacing:-.5px;margin-bottom:4px;font-family:var(--ff);" id="lt-h">Хуш омадед</div>
+    <div style="font-size:13px;color:#6B7A99;margin-bottom:28px;font-family:var(--ff);" id="lt-s">Ворид шавед ба суратҳисоби худ</div>
+
+    <div id="login-err" style="display:none;background:#FFF5F5;border:1px solid #FED7D7;border-radius:10px;padding:10px 13px;font-size:12px;color:#E53E3E;margin-bottom:14px;font-family:var(--ff);"></div>
+
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:11px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;font-family:var(--ff);" id="lt-em">ЛОГИН (EMAIL)</label>
+      <input id="l-email" type="email" autocomplete="email"
+        style="width:100%;padding:12px 14px;background:#F5F7FA;border:1.5px solid #E4E9F0;border-radius:14px;font-size:14px;color:#1A2332;font-family:var(--ff);outline:none;transition:all .18s;"
+        placeholder="ном@ширкат.tj"
+        onfocus="this.style.borderColor='#39B980';this.style.background='#fff';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.1)'"
+        onblur="this.style.borderColor='#E4E9F0';this.style.background='#F5F7FA';this.style.boxShadow='none'"
+        onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <div class="login-card">
-      <div class="login-h" id="lt-h">Добро пожаловать</div>
-      <div class="login-s" id="lt-s">Войдите в систему</div>
-      <div class="login-err" id="login-err"></div>
-      <div style="margin-bottom:16px;">
-        <div class="fl-l" id="lt-rl" style="margin-bottom:7px;">Выберите роль</div>
-        <div class="role-grid">
-          <div class="role-card sel" onclick="selRole('accountant',this)"><div class="role-icon">💼</div><div class="role-name" id="lt-acc">Бухгалтер</div></div>
-          <div class="role-card" onclick="selRole('supplier',this)"><div class="role-icon">🔧</div><div class="role-name" id="lt-sup">Снабженец</div></div>
-          <div class="role-card" onclick="selRole('director',this)"><div class="role-icon">📊</div><div class="role-name" id="lt-dir">Директор</div></div>
-        </div>
+
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:11px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;font-family:var(--ff);" id="lt-pw">ПАРОЛ</label>
+      <div style="position:relative;">
+        <input id="l-pass" type="password" autocomplete="current-password"
+          style="width:100%;padding:12px 44px 12px 14px;background:#F5F7FA;border:1.5px solid #E4E9F0;border-radius:14px;font-size:14px;color:#1A2332;font-family:var(--ff);outline:none;transition:all .18s;"
+          placeholder="••••••••"
+          onfocus="this.style.borderColor='#39B980';this.style.background='#fff';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.1)'"
+          onblur="this.style.borderColor='#E4E9F0';this.style.background='#F5F7FA';this.style.boxShadow='none'"
+          onkeydown="if(event.key==='Enter')doLogin()">
+        <button onclick="togglePass()" type="button"
+          style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9AA5B8;padding:4px;transition:color .15s;"
+          onmouseover="this.style.color='#4A5568'" onmouseout="this.style.color='#9AA5B8'">
+          <svg id="eye-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M1.5 9s3-5.5 7.5-5.5S16.5 9 16.5 9s-3 5.5-7.5 5.5S1.5 9 1.5 9z"/>
+            <circle cx="9" cy="9" r="2.5"/>
+          </svg>
+        </button>
       </div>
-      <label class="fl-l" id="lt-em">Email</label>
-      <input class="login-fi" type="email" id="l-email" placeholder="admin@zaki.tj" onkeydown="if(event.key==='Enter')doLogin()">
-      <label class="fl-l" id="lt-pw">Пароль</label>
-      <input class="login-fi" type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
-      <button class="login-btn" onclick="doLogin()" id="l-btn">Войти в систему →</button>
-      <div class="login-footer">
-        <span id="lt-reset" style="cursor:pointer;color:var(--a);font-weight:600;" onclick="resetConfig()">Изменить настройки Supabase</span>
-      </div>
-      <div style="display:flex;gap:6px;justify-content:center;margin-top:10px;">
-        <button onclick="setLang('ru')" id="ll-ru" style="padding:5px 14px;border-radius:20px;border:1px solid var(--bd);background:var(--a);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">RU</button>
-        <button onclick="setLang('tj')" id="ll-tj" style="padding:5px 14px;border-radius:20px;border:1px solid var(--bd);background:var(--w);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">TJ</span>
-      </div>
+    </div>
+
+    <button id="l-btn" onclick="doLogin()"
+      style="width:100%;padding:14px;background:#39B980;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .2s;box-shadow:0 4px 16px rgba(57,185,128,.3);letter-spacing:-.1px;"
+      onmouseover="this.style.background='#2A9066';this.style.transform='translateY(-1px)'"
+      onmouseout="this.style.background='#39B980';this.style.transform='translateY(0)'">
+      <span id="l-btn-txt">Вуруд кардан →</span>
+    </button>
+
+    <div style="margin-top:20px;text-align:center;">
+      <div style="font-size:11px;color:#9AA5B8;margin-bottom:4px;font-family:var(--ff);" id="lt-help">ёрдам</div>
+      <div style="font-size:12px;color:#6B7A99;font-family:var(--ff);" id="lt-forgot">Паролро фаромӯш кардед? <span style="color:#39B980;font-weight:700;cursor:pointer;">+992 103 005 003</span></div>
+    </div>
+
+    <div style="display:flex;gap:6px;justify-content:center;margin-top:16px;">
+      <button onclick="setLang('ru')" id="ll-ru"
+        style="padding:5px 16px;border-radius:20px;border:1px solid #E4E9F0;background:#F5F7FA;color:#6B7A99;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .15s;">
+        RU
+      </button>
+      <button onclick="setLang('tj')" id="ll-tj"
+        style="padding:5px 16px;border-radius:20px;border:1px solid #39B980;background:#39B980;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .15s;">
+        TJ
+      </button>
     </div>
   </div>
+</div>
 </div>
 
 <!-- ══ APP ══ -->
@@ -630,6 +691,7 @@ const T={
     ed_2d:'Редактирование за последние 2 дня',
     del_q:'Удалить эту запись?',
     dev:'Разработчик: +992103005003 · iammirzozoda@gmail.com',
+    help:'ёрдам',forgot:'Паролро фаромӯш кардед?',
     users:'Пользователи',add_u:'Добавить',
     add_w:'Добавить работу',m_card:'Карточка',
     overdue:'Просрочено',done_ok:'Выполнено ✓',
@@ -678,6 +740,7 @@ const T={
     ed_2d:'2 рӯзи охирро тағйир додан мумкин аст',
     del_q:'Нест карда шавад?',
     dev:'Барномасоз: +992103005003 · iammirzozoda@gmail.com',
+    help:'ёрдам',forgot:'Паролро фаромӯш кардед?',
     users:'Корбарон',add_u:'Илова',
     add_w:'Кор илова',m_card:'Карточка',
     overdue:'Гузашта',done_ok:'Иҷро ✓',
@@ -692,26 +755,16 @@ let CHARTS={};
 function t(k){return T[LANG][k]||T.ru[k]||k;}
 
 /* ── SUPABASE CONFIG ── */
-function saveConfig(){
-  const url=document.getElementById('cfg-url').value.trim();
-  const key=document.getElementById('cfg-key').value.trim();
-  if(!url||!key){alert('Заполните оба поля');return;}
-  if(!url.includes('supabase.co')){alert('Неверный URL. Должен содержать .supabase.co');return;}
-  localStorage.setItem('sb_url',url);
-  localStorage.setItem('sb_key',key);
-  initSupabase(url,key);
-}
 function resetConfig(){
-  localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');
-  localStorage.removeItem('bino_session');
-  document.getElementById('login-page').style.display='none';
-  document.getElementById('config-screen').style.display='flex';
+  localStorage.removeItem('sb_url');
+  localStorage.removeItem('sb_key');
+  location.reload();
 }
 function initSupabase(url,key){
   SB=supabase.createClient(url,key);
-  document.getElementById('config-screen').style.display='none';
-  document.getElementById('login-page').style.display='flex';
 }
+// Keys hardcoded
+const _SB_URL='https://lgqfxinosfuenzqorzrl.supabase.co',_SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxncWZ4aW5vc2Z1ZW56cW9yenJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzQxNzYsImV4cCI6MjA5NDgxMDE3Nn0.scE3s5Yk5cFlcTdpnwzbYlX4o2Ydjxt-kg0R_60NskI';
 
 /* ── DB HELPERS ── */
 async function db(table){return SB.from(table);}
@@ -949,39 +1002,90 @@ function renderPage(id){
 /* ══════════════════════════════════════════════
    AUTH
 ══════════════════════════════════════════════ */
-let LOGIN_ROLE='accountant';
-function selRole(r,el){LOGIN_ROLE=r;document.querySelectorAll('.role-card').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');}
+/* Role auto-detected from profiles table */
+
+
+/* ── LOGIN AMBIENCE ── */
+function getTimeOfDay(){
+  const h=new Date().getHours();
+  if(h>=5&&h<10)return'morning';
+  if(h>=10&&h<18)return'day';
+  if(h>=18&&h<22)return'evening';
+  return'night';
+}
+function updateLoginAmbience(){
+  const tod=getTimeOfDay();
+  const bg=document.getElementById('lp-bg');
+  if(!bg)return;
+  const bgs={
+    morning:'linear-gradient(180deg,#FFB347 0%,#FF8C42 30%,#FF6B6B 60%,#4A90D9 100%)',
+    day:'linear-gradient(180deg,#1a3a6b 0%,#2a5a9a 30%,#3a7bbf 60%,#1a2a4a 100%)',
+    evening:'linear-gradient(180deg,#FF6B35 0%,#C0392B 25%,#8E44AD 55%,#1a1a2e 100%)',
+    night:'linear-gradient(180deg,#0a0a1a 0%,#0d1b3e 40%,#1a2a5a 100%)'
+  };
+  bg.style.background=bgs[tod]||bgs.day;
+  const skyObj=document.getElementById('lp-skyobj');
+  if(skyObj){
+    if(tod==='morning'||tod==='day'){
+      skyObj.innerHTML='<div style="width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,#FFE066,#FFB700);box-shadow:0 0 40px rgba(255,200,0,.5);animation:sunPulse 4s ease infinite;"></div>';
+    } else if(tod==='evening'){
+      skyObj.innerHTML='<div style="width:65px;height:65px;border-radius:50%;background:radial-gradient(circle,#FF8C42,#FF5E00);box-shadow:0 0 40px rgba(255,100,0,.4);animation:sunPulse 4s ease infinite;"></div>';
+    } else {
+      skyObj.innerHTML='<div style="width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,#E8E8C8,#C8C8A0);box-shadow:0 0 30px rgba(200,200,150,.4);position:relative;"><div style="position:absolute;top:10px;right:12px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.15);"></div></div>';
+    }
+  }
+  const greets={morning:LANG==='tj'?'Субҳ бахайр · Хуш омадед':'Доброе утро · Добро пожаловать',day:LANG==='tj'?'Рӯзи нек · Хуш омадед':'Добрый день · Добро пожаловать',evening:LANG==='tj'?'Бегоҳ бахайр · Хуш омадед':'Добрый вечер · Добро пожаловать',night:LANG==='tj'?'Шаб бахайр · Хуш омадед':'Доброй ночи · Добро пожаловать'};
+  const gEl=document.getElementById('lp-greet');if(gEl)gEl.textContent=greets[tod]||greets.day;
+  fetchWeatherLP();
+}
+async function fetchWeatherLP(){
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=38.56&longitude=68.77&current_weather=true&forecast_days=1');
+    const d=await r.json();
+    const temp=Math.round(d.current_weather?.temperature||30);
+    const wc=d.current_weather?.weathercode||0;
+    const desc=wc===0?'☀️ Sunny':wc<3?'🌤 Cloudy':wc<60?'☁️ Overcast':'🌧 Rainy';
+    const te=document.getElementById('lp-temp');const de=document.getElementById('lp-desc');
+    if(te)te.textContent=temp+'°C';if(de)de.textContent=desc;
+  }catch(e){
+    const te=document.getElementById('lp-temp');if(te)te.textContent='30°C';
+    const de=document.getElementById('lp-desc');if(de)de.textContent='☀️ Sunny';
+  }
+}
 
 async function doLogin(){
   const email=document.getElementById('l-email').value.trim();
   const pass=document.getElementById('l-pass').value;
   const err=document.getElementById('login-err');
-  if(!email||!pass){err.textContent='Заполните все поля';err.style.display='block';return;}
+  if(!email||!pass){
+    err.textContent=LANG==='tj'?'Ҳама майдонҳоро пур кунед':'Заполните все поля';
+    err.style.display='block';return;
+  }
   err.style.display='none';
   const btn=document.getElementById('l-btn');
-  btn.innerHTML='<div class="loader" style="border-color:rgba(255,255,255,.3);border-top-color:white;"></div>';btn.disabled=true;
+  const btnTxt=document.getElementById('l-btn-txt');
+  if(btnTxt) btnTxt.innerHTML='<div style="display:inline-flex;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;"></div>';
+  btn.disabled=true;
   try{
     const{data,error}=await SB.auth.signInWithPassword({email,password:pass});
     if(error)throw error;
-    // Get profile
-    const{data:profile}=await SB.from('profiles').select('*').eq('id',data.user.id).single();
-    // If no profile, create one with selected role
-    if(!profile){
-      await SB.from('profiles').insert({id:data.user.id,name:email.split('@')[0],role:LOGIN_ROLE});
-      USER={id:data.user.id,email,name:email.split('@')[0],role:LOGIN_ROLE};
-    } else {
-      USER={id:data.user.id,email,name:profile.name,role:profile.role};
+    const{data:profile,error:pe}=await SB.from('profiles').select('*').eq('id',data.user.id).single();
+    if(pe||!profile){
+      /* Profile not found — show error, don't auto-create */
+      throw new Error(LANG==='tj'?'Профили шумо ёфт нашуд. Бо администратор тамос гиред.':'Профиль не найден. Обратитесь к администратору.');
     }
+    USER={id:data.user.id,email,name:profile.name,role:profile.role};
     await loadBaseData();
     document.getElementById('login-page').style.display='none';
     document.getElementById('app').style.display='flex';
-    buildNav();
-    updatePeriodBtns();
+    buildNav();updatePeriodBtns();
     CUR_PAGE=USER.role==='supplier'?'my':'home';
     go(CUR_PAGE);
   }catch(e){
-    err.textContent=e.message||'Неверный email или пароль';err.style.display='block';
-    btn.textContent=t('login_btn');btn.disabled=false;
+    err.textContent=e.message||'Неверный email или пароль';
+    err.style.display='block';
+    if(btnTxt) btnTxt.textContent=t('login_btn');
+    btn.disabled=false;
   }
 }
 
@@ -989,7 +1093,11 @@ async function logOut(){
   await SB.auth.signOut();
   USER=null;
   document.getElementById('app').style.display='none';
-  document.getElementById('login-page').style.display='flex';
+  const lp=document.getElementById('login-page');
+  lp.style.display='flex';
+  document.getElementById('l-email').value='';
+  document.getElementById('l-pass').value='';
+  document.getElementById('login-err').style.display='none';
 }
 
 async function loadBaseData(){
@@ -1007,32 +1115,26 @@ async function loadBaseData(){
 
 function setLang(l){
   LANG=l;
-  // Sidebar lang buttons
-  ['lb-ru','lb-tj'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el)el.className='lb'+(id.includes(l==='ru'?'ru':'tj')?' on':'');
-  });
-  // Login lang buttons
-  ['ll-ru','ll-tj'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el)return;
-    const isActive=id.includes(l==='ru'?'ru':'tj');
-    el.style.background=isActive?'var(--a)':'var(--w)';
-    el.style.color=isActive?'#fff':'var(--t3)';
-    el.style.borderColor=isActive?'var(--a)':'var(--bd)';
-  });
-  updateLoginTexts();updatePeriodBtns();
+  const lbru=document.getElementById('lb-ru'),lbtj=document.getElementById('lb-tj');
+  if(lbru)lbru.className='lb'+(l==='ru'?' on':'');
+  if(lbtj)lbtj.className='lb'+(l==='tj'?' on':'');
+  const llru=document.getElementById('ll-ru'),lltj=document.getElementById('ll-tj');
+  if(llru){llru.style.background=l==='ru'?'#39B980':'#F5F7FA';llru.style.color=l==='ru'?'#fff':'#6B7A99';llru.style.borderColor=l==='ru'?'#39B980':'#E4E9F0';}
+  if(lltj){lltj.style.background=l==='tj'?'#39B980':'#F5F7FA';lltj.style.color=l==='tj'?'#fff':'#6B7A99';lltj.style.borderColor=l==='tj'?'#39B980':'#E4E9F0';}
+  updateLoginTexts();updatePeriodBtns();updateLoginAmbience();
   if(USER){buildNav();renderPage(CUR_PAGE);}
 }
 function updateLoginTexts(){
   const m={
-    'lt-h':'login','lt-s':'login_s','l-btn':'login_btn',
-    'lt-acc':'acc','lt-sup':'sup','lt-dir':'dir',
-    'lt-rl':'role_lbl','lt-em':'email','lt-pw':'password'
+    'lt-h':'login','lt-s':'login_s','l-btn-txt':'login_btn',
+    'lt-em':'email','lt-pw':'password','lt-help':'help','lt-forgot':'forgot'
   };
   for(const[id,key] of Object.entries(m)){
-    const el=document.getElementById(id);if(el)el.textContent=t(key);
+    const el=document.getElementById(id);
+    if(el&&T[LANG][key])el.textContent=t(key);
   }
+  const tag=document.getElementById('lt-tag');
+  if(tag)tag.textContent=LANG==='tj'?'Системаи идоракунии молияи сохтмон':'Система управления строительными финансами';
 }
 function updatePeriodBtns(){
   ['pb-today','pb-month','pb-year','pb-all'].forEach((id,i)=>{
@@ -2062,26 +2164,97 @@ setTimeout(()=>{
 },100);
 
 /* ══ INIT ══ */
+function togglePass(){
+  const inp=document.getElementById('l-pass');
+  const ico=document.getElementById('eye-icon');
+  if(inp.type==='password'){
+    inp.type='text';
+    ico.innerHTML='<path d="M1.5 9s3-5.5 7.5-5.5S16.5 9 16.5 9s-3 5.5-7.5 5.5S1.5 9 1.5 9z"/><circle cx="9" cy="9" r="2.5"/><line x1="2" y1="2" x2="16" y2="16" stroke="white" stroke-width="1.5"/>';
+  } else {
+    inp.type='password';
+    ico.innerHTML='<path d="M1.5 9s3-5.5 7.5-5.5S16.5 9 16.5 9s-3 5.5-7.5 5.5S1.5 9 1.5 9z"/><circle cx="9" cy="9" r="2.5"/>';
+  }
+}
+
+function showForgot(){
+  showToast('Позвоните: +992 103 005 003', false);
+}
+
+function updateLoginClock(){
+  const now=new Date();
+  const h=now.getHours(),m=now.getMinutes();
+  const el=document.getElementById('login-time');
+  const el2=document.getElementById('login-date');
+  if(el)el.textContent=h+':'+(m<10?'0':'')+m;
+  if(el2){
+    const days=['Якшанбе','Душанбе','Сешанбе','Чоршанбе','Панҷшанбе','Ҷумъа','Шанбе'];
+    const months=['январ','феврал','март','апрел','май','июн','июл','август','сентябр','октябр','ноябр','декабр'];
+    el2.textContent=days[now.getDay()]+', '+now.getDate()+' '+months[now.getMonth()];
+  }
+}
+updateLoginClock();
+setInterval(updateLoginClock,30000);
+
 (async()=>{
-  const sbUrl=localStorage.getItem('sb_url'),sbKey=localStorage.getItem('sb_key');
-  if(sbUrl&&sbKey){
-    initSupabase(sbUrl,sbKey);
-    // Try auto login
-    const{data:{session}}=await SB.auth.getSession();
-    if(session){
-      const{data:profile}=await SB.from('profiles').select('*').eq('id',session.user.id).single();
-      if(profile){
-        USER={id:session.user.id,email:session.user.email,name:profile.name,role:profile.role};
-        await loadBaseData();
-        document.getElementById('login-page').style.display='none';
-        document.getElementById('app').style.display='flex';
-        buildNav();updatePeriodBtns();
-        CUR_PAGE=USER.role==='supplier'?'my':'home';
-        go(CUR_PAGE);
-      }
+  /* ── SUPABASE: ключи зашиты напрямую ── */
+  const sbUrl = 'https://lgqfxinosfuenzqorzrl.supabase.co';
+  const sbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxncWZ4aW5vc2Z1ZW56cW9yenJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzQxNzYsImV4cCI6MjA5NDgxMDE3Nn0.scE3s5Yk5cFlcTdpnwzbYlX4o2Ydjxt-kg0R_60NskI';
+
+  SB = supabase.createClient(sbUrl, sbKey);
+
+  /* ── Проверить сессию ── */
+  const{data:{session}}=await SB.auth.getSession();
+  if(session){
+    const{data:profile}=await SB.from('profiles').select('*').eq('id',session.user.id).single();
+    if(profile){
+      USER={id:session.user.id,email:session.user.email,name:profile.name,role:profile.role};
+      await loadBaseData();
+      document.getElementById('login-page').style.display='none';
+      document.getElementById('app').style.display='flex';
+      buildNav();updatePeriodBtns();
+      CUR_PAGE=USER.role==='supplier'?'my':'home';
+      go(CUR_PAGE);
+      return;
     }
   }
+
+  /* ── Показать страницу входа ── */
+  document.getElementById('login-page').style.display='flex';updateLoginAmbience();
 })();
+
+function showAdminSetup(){
+  document.getElementById('login-page').style.display='flex';updateLoginAmbience();
+  document.getElementById('l-email').style.display='none';
+  document.getElementById('l-pass').parentElement.style.display='none';
+  document.getElementById('l-btn').style.display='none';
+  document.getElementById('lt-h').textContent='Настройка системы';
+  document.getElementById('lt-s').textContent='Введите Supabase ключи (только для администратора)';
+  const card=document.querySelector('#login-page .card') || document.querySelector('#login-page [style*="border-radius:20px"]');
+  if(card){
+    const setupDiv=document.createElement('div');
+    setupDiv.innerHTML=`
+      <div style="margin-bottom:10px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-family:var(--ff);">Supabase URL</div>
+        <input id="setup-url" type="url" style="width:100%;padding:11px 13px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;font-size:13px;color:#fff;font-family:var(--ff);outline:none;" placeholder="https://xxxxx.supabase.co">
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-family:var(--ff);">Anon Key</div>
+        <input id="setup-key" type="text" style="width:100%;padding:11px 13px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;font-size:13px;color:#fff;font-family:var(--ff);outline:none;" placeholder="eyJhbGci...">
+      </div>
+      <button onclick="saveSetup()" style="width:100%;padding:13px;background:#1D9E75;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--ff);">Сохранить →</button>
+    `;
+    card.appendChild(setupDiv);
+  }
+}
+
+function saveSetup(){
+  const url=document.getElementById('setup-url')?.value?.trim();
+  const key=document.getElementById('setup-key')?.value?.trim();
+  if(!url||!key){showToast('Заполните оба поля',true);return;}
+  localStorage.setItem('sb_url',url);
+  localStorage.setItem('sb_key',key);
+  location.reload();
+}
 </script>
 </body>
 </html>
