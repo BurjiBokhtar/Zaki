@@ -603,7 +603,10 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
       </div>
       <div class="page-ttl" id="page-ttl">Главная</div>
       <div class="tb-right">
-        <div class="online-chip"><div class="online-dot"></div><span id="tb-online">Онлайн</span></div>
+        <div class="online-chip" id="sync-chip" onclick="checkSync()" style="cursor:pointer;" title="Нажмите для проверки синхронизации">
+    <div class="online-dot" id="sync-dot"></div>
+    <span id="tb-online">Онлайн</span>
+  </div>
         <div class="tb-btn" onclick="go('settings')">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="var(--t3)" stroke-width="1.4"><circle cx="7.5" cy="7.5" r="2.2"/><path d="M7.5 1.5v1.2M7.5 12.3v1.2M13 7.5h-1.2M3.2 7.5H2M11.4 3.6l-.85.85M4.45 10.55l-.85.85M11.4 11.4l-.85-.85M4.45 4.45l-.85-.85" stroke-linecap="round"/></svg>
         </div>
@@ -706,7 +709,7 @@ const T={
     today:'Имрӯз',month:'Моҳ',year:'Сол',all:'Ҳамаи вақт',
     income:'Даромадҳо',expense:'Харҷҳо',balance:'Тавозуни хазина',net:'Қарзи холис',
     where:'Харитаи пул',in_cash:'Дар хазина',at_snabs:'Назди таъминотчиён',
-    recv:'Аз мо қарздоранд',paybl:'Мо Қарздоем',
+    recv:'Ба мо бадеҳанд',paybl:'Мо бадеҳем',
     cashflow:'Cash Flow',recent:'Амалиётҳои охирин',all_ops:'Ҳама →',rates:'Курсҳои асъор',
     new_op:'Амалиёти нав',op_type:'Навъи амалиёт',
     inc_op:'↑ Даромад',exp_op:'↓ Харҷ',adv_op:'→ Пешпардохт',
@@ -718,7 +721,7 @@ const T={
     save:'Захира',cancel:'Бекор',delete:'Нест',edit:'Тағйир',
     saved:'✓ Захира шуд',deleted:'Нест карда шуд',err:'Хато',
     sv_inc:'Даромад сабт →',sv_exp:'Харҷ захира →',sv_adv:'Пешпардохт додан →',
-    cred:'Кредиторӣ — Аз мо қарздоранд',debt:'Дебиторӣ — Мо Қарздоем',
+    cred:'Кредиторӣ — мо бадеҳем',debt:'Дебиторӣ — ба мо бадеҳанд',
     d_debt:'Қарз',d_paid:'Пардохт',d_rest:'Боқимонда',
     pay_m:'Пардохт',barter:'Бартер',got_m:'Пул гирифт',
     adv_iss:'Пешпардохт дода',spent:'Харҷ шуда',add_adv:'+ Пешпардохт',details:'Тафсилот',
@@ -874,45 +877,170 @@ function stageTrack(stage,stages,names){
 
 /* ── EXPORT ── */
 function exportXL(ops,filename){
+  if(!ops||!ops.length){showToast('Нет данных для экспорта',true);return;}
   const rate=COMPANY.usd_rate||10.92;
-  const data=ops.map(o=>({
-    [t('date')]:o.date,
-    'Тип':o.type==='income'?t('inc_op'):o.type==='advance'?t('adv_op'):t('exp_op'),
-    'Объект':o.object_name||'—','Категория':o.category_name||'—',
-    'Описание':o.description||'—',
-    'Кол-во':o.qty||'','Ед.':o.unit||'','Цена':o.price||'',
-    [t('amount')]:o.amount,[t('currency')]:o.currency,
-    '≈ TJS':o.currency==='USD'?fmtN(o.amount*rate):'',
-    '≈ USD':o.currency==='TJS'?fmtN(o.amount/rate):'',
-    'Сотрудник':o.worker_name||''
+  const rows=ops.map(o=>({
+    'Дата': o.date||'',
+    'Тип': o.type==='income'?'Приход':o.type==='advance'?'Аванс':'Расход',
+    'Объект': o.object_name||'—',
+    'Категория': o.category_name||'—',
+    'Описание': o.description||'—',
+    'Количество': o.qty||'',
+    'Единица': o.unit||'',
+    'Цена за ед.': o.price||'',
+    'Сумма': o.amount||0,
+    'Валюта': o.currency||'TJS',
+    'Сумма TJS': o.currency==='TJS'?o.amount:parseFloat((o.amount*rate).toFixed(2)),
+    'Сумма USD': o.currency==='USD'?o.amount:parseFloat((o.amount/rate).toFixed(4)),
+    'Способ оплаты': o.method||'',
+    'Сотрудник': o.worker_name||'',
+    'Примечание': o.note||'',
+    'Дата создания': o.created_at?o.created_at.slice(0,16):'',
   }));
-  const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();
+
+  const ws=XLSX.utils.json_to_sheet(rows);
+
+  // Column widths
+  ws['!cols']=[
+    {wch:12},{wch:10},{wch:16},{wch:20},{wch:30},
+    {wch:8},{wch:8},{wch:10},{wch:12},{wch:8},
+    {wch:14},{wch:14},{wch:14},{wch:18},{wch:20},{wch:18}
+  ];
+
+  const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Операции');
+
+  // Summary sheet
+  const incTJS=ops.filter(o=>o.type==='income'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+  const incUSD=ops.filter(o=>o.type==='income'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+  const expTJS=ops.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+  const expUSD=ops.filter(o=>o.type==='expense'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+  const summary=[
+    {'Показатель':'Приходы TJS','Сумма':incTJS},
+    {'Показатель':'Расходы TJS','Сумма':expTJS},
+    {'Показатель':'Баланс TJS','Сумма':incTJS-expTJS},
+    {'Показатель':'Приходы USD','Сумма':incUSD},
+    {'Показатель':'Расходы USD','Сумма':expUSD},
+    {'Показатель':'Баланс USD','Сумма':incUSD-expUSD},
+    {'Показатель':'Курс 1 USD','Сумма':rate},
+    {'Показатель':'Всего операций','Сумма':ops.length},
+    {'Показатель':'Дата выгрузки','Сумма':new Date().toLocaleDateString('ru')},
+  ];
+  const ws2=XLSX.utils.json_to_sheet(summary);
+  ws2['!cols']=[{wch:20},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Сводка');
+
   XLSX.writeFile(wb,filename+'_'+today()+'.xlsx');
-  showToast('✓ Excel скачан');
+  showToast('✓ Excel: '+rows.length+' записей скачан');
 }
+
+
 function exportPDF(title,ops){
+  if(!ops||!ops.length){showToast('Нет данных для экспорта',true);return;}
   const rate=COMPANY.usd_rate||10.92;
   const w=window.open('','_blank');
-  const incTJS=ops.filter(o=>o.type==='income').reduce((a,o)=>a+(o.amount_tjs||0),0);
-  const expTJS=ops.filter(o=>o.type==='expense').reduce((a,o)=>a+(o.amount_tjs||0),0);
-  const rows=ops.map(o=>`<tr><td>${o.date}</td><td>${o.type==='income'?'↑':o.type==='advance'?'→':'↓'}</td><td>${o.object_name||'—'}</td><td>${o.category_name||'—'}</td><td>${o.description||'—'}</td><td align="right">${fmtN(o.amount)} ${o.currency}</td></tr>`).join('');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
-  <style>body{font-family:Arial,sans-serif;padding:22px;font-size:12px;color:#1A2332;}
-  .logo{font-size:20px;font-weight:900;color:#39B980;margin-bottom:2px;}.logo span{color:#1A2332;}
-  table{width:100%;border-collapse:collapse;}th{background:#F0FAF6;padding:7px;text-align:left;border-bottom:2px solid #E8F8F2;font-size:10px;font-weight:700;color:#2A9066;}td{padding:6px 7px;border-bottom:1px solid #F5F7FA;}
-  .sum{margin-top:14px;padding:12px;background:#F0FAF6;border-radius:10px;display:flex;gap:20px;}.si{text-align:center;}.sl{font-size:9px;color:#6B7A99;text-transform:uppercase;margin-bottom:2px;}.sv{font-size:15px;font-weight:800;}
-  footer{margin-top:20px;text-align:center;font-size:10px;color:#9AA5B8;}</style></head><body>
-  <div class="logo">ZAKI<span>.</span></div>
-  <div style="color:#6B7A99;font-size:10px;margin-bottom:16px;">${COMPANY.name||''}</div>
-  <h2 style="font-size:14px;margin-bottom:4px;">${title}</h2>
-  <p style="color:#6B7A99;font-size:10px;margin-bottom:12px;">Дата: ${new Date().toLocaleDateString('ru')} · Курс: 1 USD = ${rate} TJS</p>
-  <table><thead><tr><th>Дата</th><th>Тип</th><th>Объект</th><th>Категория</th><th>Описание</th><th>Сумма</th></tr></thead><tbody>${rows}</tbody></table>
-  <div class="sum"><div class="si"><div class="sl">Приходы TJS</div><div class="sv" style="color:#2A9066;">+${fmtN(incTJS)}</div></div><div class="si"><div class="sl">Расходы TJS</div><div class="sv" style="color:#E53E3E;">-${fmtN(expTJS)}</div></div><div class="si"><div class="sl">Баланс TJS</div><div class="sv" style="color:#3182CE;">${fmtN(incTJS-expTJS)}</div></div></div>
-  <footer>${COMPANY.name||''} | ${COMPANY.phone||''}<br>${t('dev')}</footer>
-  <script>window.print();<\/script></body></html>`);
-  w.document.close();showToast('✓ PDF для печати');
+  if(!w){showToast('Разрешите всплывающие окна в браузере',true);return;}
+  const incTJS=ops.filter(o=>o.type==='income'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+  const incUSD=ops.filter(o=>o.type==='income'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+  const expTJS=ops.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+  const expUSD=ops.filter(o=>o.type==='expense'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+  const rows=ops.map(o=>`<tr>
+    <td>${o.date||'—'}</td>
+    <td style="color:${o.type==='income'?'#2A9066':o.type==='advance'?'#3182CE':'#E53E3E'};font-weight:600;">
+      ${o.type==='income'?'↑ Приход':o.type==='advance'?'→ Аванс':'↓ Расход'}
+    </td>
+    <td>${o.object_name||'—'}</td>
+    <td>${o.category_name||'—'}</td>
+    <td>${o.description||'—'}</td>
+    <td style="text-align:right;font-weight:600;color:${o.type==='income'?'#2A9066':'#E53E3E'};">
+      ${o.type==='income'?'+':'−'}${Number(o.amount||0).toLocaleString('ru')} ${o.currency}
+    </td>
+    <td style="text-align:right;color:#6B7A99;font-size:10px;">
+      ${o.currency==='TJS'?'$'+Number(o.amount/rate).toFixed(2):Number(o.amount*rate).toLocaleString('ru')+' TJS'}
+    </td>
+    <td>${o.worker_name&&o.worker_name!=='Бухгалтер'?o.worker_name:''}</td>
+  </tr>`).join('');
+
+  w.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>${title} — ZAKI ERP</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;padding:24px;font-size:11px;color:#1A2332;background:#fff;}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #39B980;}
+  .logo{font-size:24px;font-weight:900;color:#39B980;letter-spacing:-1px;}
+  .logo span{color:#1A2332;}
+  .co-name{font-size:13px;font-weight:600;color:#1A2332;margin-bottom:2px;}
+  .co-sub{font-size:10px;color:#6B7A99;}
+  .report-title{font-size:16px;font-weight:700;color:#1A2332;margin-bottom:4px;}
+  .report-meta{font-size:10px;color:#6B7A99;}
+  table{width:100%;border-collapse:collapse;margin-bottom:20px;}
+  thead tr{background:#F0FAF6;}
+  th{padding:8px 7px;text-align:left;font-size:10px;font-weight:700;color:#2A9066;border-bottom:1.5px solid #E8F8F2;text-transform:uppercase;letter-spacing:.05em;}
+  td{padding:7px 7px;border-bottom:1px solid #F5F7FA;font-size:11px;vertical-align:top;}
+  tr:hover{background:#FAFFFE;}
+  .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;padding:16px;background:#F0FAF6;border-radius:10px;border:1px solid #E8F8F2;}
+  .sum-item{text-align:center;}
+  .sum-label{font-size:9px;color:#6B7A99;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+  .sum-val{font-size:15px;font-weight:800;}
+  .sum-val.green{color:#2A9066;}
+  .sum-val.red{color:#E53E3E;}
+  .sum-val.blue{color:#3182CE;}
+  footer{margin-top:20px;padding-top:12px;border-top:1px solid #E4E9F0;text-align:center;font-size:9px;color:#9AA5B8;}
+  @media print{body{padding:12px;}@page{margin:15mm;}}
+</style></head><body>
+<div class="header">
+  <div>
+    <div class="logo">ZAKI<span>.</span></div>
+    <div class="co-sub">Система управления финансами</div>
+  </div>
+  <div style="text-align:right;">
+    <div class="co-name">${COMPANY.name||'ZAKI ERP'}</div>
+    <div class="co-sub">${COMPANY.address||''}</div>
+    <div class="co-sub">${COMPANY.phone||''}</div>
+  </div>
+</div>
+
+<div class="report-title">${title}</div>
+<div class="report-meta">
+  Дата формирования: ${new Date().toLocaleDateString('ru',{day:'numeric',month:'long',year:'numeric'})} &nbsp;|&nbsp;
+  Курс: 1 USD = ${rate} TJS &nbsp;|&nbsp;
+  Записей: ${ops.length}
+</div>
+
+<br>
+<table>
+  <thead>
+    <tr>
+      <th>Дата</th>
+      <th>Тип</th>
+      <th>Объект</th>
+      <th>Категория</th>
+      <th>Описание</th>
+      <th style="text-align:right;">Сумма</th>
+      <th style="text-align:right;">Эквивалент</th>
+      <th>Сотрудник</th>
+    </tr>
+  </thead>
+  <tbody>${rows}</tbody>
+</table>
+
+<div class="summary">
+  <div class="sum-item"><div class="sum-label">Приходы TJS</div><div class="sum-val green">+${Number(incTJS).toLocaleString('ru')}</div></div>
+  <div class="sum-item"><div class="sum-label">Расходы TJS</div><div class="sum-val red">-${Number(expTJS).toLocaleString('ru')}</div></div>
+  <div class="sum-item"><div class="sum-label">Баланс TJS</div><div class="sum-val ${incTJS-expTJS>=0?'green':'red'}">${incTJS-expTJS>=0?'+':''}${Number(incTJS-expTJS).toLocaleString('ru')}</div></div>
+  <div class="sum-item"><div class="sum-label">USD</div><div class="sum-val blue">$${Number(incUSD-expUSD).toFixed(2)}</div></div>
+</div>
+
+<footer>
+  ${COMPANY.name||'ZAKI ERP'} &nbsp;·&nbsp; ${COMPANY.phone||''} &nbsp;·&nbsp; ${COMPANY.email||''}<br>
+  Разработчик: +992 103 005 003 · iammirzozoda@gmail.com
+</footer>
+<script>window.print();<\/script>
+</body></html>`);
+  w.document.close();
+  showToast('✓ PDF: '+ops.length+' записей');
 }
+
 
 /* ══════════════════════════════════════════════
    NAV
@@ -931,8 +1059,8 @@ const NAV_ICO={
   tasks:`<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 7.5l4 4L13 3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 };
 const NAV_K={home:'home',ops:'ops',snabs:'snabs',masters:'masters',debts:'debts',stats:'stats',settings:'settings',my:'my',addexp:'addexp',myexp:'myexp',tasks:'tasks'};
-const BUH_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{id:'masters'},{id:'debts'},{s:'an'},{id:'stats'},{s:'oth'},{id:'settings'}];
-const DIR_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{id:'masters'},{id:'debts'},{s:'an'},{id:'stats'}];
+const BUH_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{id:'debts'},{s:'an'},{id:'stats'},{s:'oth'},{id:'settings'}];
+const DIR_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{id:'debts'},{s:'an'},{id:'stats'}];
 const SUP_NAV=[{id:'my'},{id:'addexp'},{id:'myexp'},{id:'tasks'}];
 const SECS={fin:{ru:'Финансы',tj:'Молия'},an:{ru:'Аналитика',tj:'Таҳлил'},oth:{ru:'Прочее',tj:'Дигар'}};
 
@@ -1339,84 +1467,164 @@ function isSup(){return USER?.role==='supplier';}
 
 /* ══ ADD OP MODAL ══ */
 function openAddOpModal(type){
-  OP_TYPE=type;SEL_OBJ='';SEL_CUR='TJS';
+  OP_TYPE=type; SEL_OBJ=''; SEL_CUR='TJS';
   const incCats=CATEGORIES.filter(c=>c.type==='income');
   const expCats=CATEGORIES.filter(c=>c.type==='expense');
   const cats=type==='income'?incCats:expCats;
   SEL_CAT=cats[0]?.name||'';
-  const rate=COMPANY.usd_rate||10.92;
-  const typeLabel=type==='income'?'Новый приход':type==='advance'?'Аванс снабженцу':'Новый расход';
+  const typeLabel=type==='income'?'Новый приход':type==='advance'?'Аванс / Выдать':'Новый расход';
   const typeColor=type==='income'?'var(--a)':type==='advance'?'var(--blue)':'var(--red)';
 
   openModal(typeLabel,`
-    <div style="margin-bottom:12px;">
-      <div class="fld-l mb8">Объект</div>
-      <div class="chips" id="mo-obj">
-        <div class="chip sel" onclick="fSelObj(this,'')">Без объекта</div>
-        ${OBJECTS.map(o=>`<div class="chip" onclick="fSelObj(this,'${o.name}')">${o.name}</div>`).join('')}
+    <div class="fg f2">
+      <!-- Объект — выпадающий список -->
+      <div class="fld s2">
+        <div class="fld-l">Объект</div>
+        <select class="fi fi-sel" id="mo-obj" onchange="SEL_OBJ=this.value">
+          <option value="">— Без объекта —</option>
+          ${OBJECTS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
+        </select>
       </div>
-    </div>
-    ${type!=='advance'?`
-    <div style="margin-bottom:12px;">
-      <div class="fld-l mb8">Категория</div>
-      <div class="chips" id="mo-cat">
-        ${cats.map((c,i)=>`<div class="chip ${i===0?'sel':''}" onclick="fSelCat(this,'${c.name}')">${c.name}</div>`).join('')}
+
+      ${type!=='advance'?`
+      <!-- Категория — выпадающий список -->
+      <div class="fld s2">
+        <div class="fld-l">Категория</div>
+        <select class="fi fi-sel" id="mo-cat" onchange="SEL_CAT=this.value">
+          ${cats.map((c,i)=>`<option value="${c.name}" ${i===0?'selected':''}>${c.name}</option>`).join('')}
+        </select>
+      </div>`:''}
+
+      <!-- Дата и валюта -->
+      <div class="fld">
+        <div class="fld-l">Дата</div>
+        <input class="fi" type="date" id="mo-date" value="${today()}">
       </div>
-    </div>`:''}
-    <div class="fg f2" style="margin-bottom:12px;">
-      <div class="fld"><div class="fld-l">Дата</div><input class="fi" type="date" id="mo-date" value="${today()}"></div>
-      <div class="fld"><div class="fld-l">Валюта</div>
+      <div class="fld">
+        <div class="fld-l">Валюта</div>
         <div class="cur-tog" style="margin-top:2px;">
-          <button class="cur-btn on" id="mo-tjs" onclick="moSetCur('TJS')">TJS</button>
-          <button class="cur-btn" id="mo-usd" onclick="moSetCur('USD')">USD</button>
+          <button class="cur-btn on" id="mo-tjs" onclick="mSetCur('TJS')">TJS</button>
+          <button class="cur-btn" id="mo-usd" onclick="mSetCur('USD')">USD</button>
         </div>
       </div>
+
       ${type==='advance'?`
-      <div class="fld s2"><div class="fld-l">Снабженец</div><select class="fi fi-sel" id="mo-worker"><option value="">— выберите —</option></select></div>
+      <!-- Аванс: имя сотрудника — свободный ввод + список -->
+      <div class="fld s2">
+        <div class="fld-l">Кому выдаётся (сотрудник или компания)</div>
+        <input class="fi" id="mo-worker" list="workers-list"
+          placeholder="Введите имя или выберите из списка..."
+          style="font-weight:500;">
+        <datalist id="workers-list" id="workers-datalist"></datalist>
+      </div>
+      <div class="fld s2">
+        <div class="fld-l">Задача / Назначение</div>
+        <input class="fi" id="mo-task" placeholder="Закупка материалов, доставка...">
+      </div>
+      <div class="fld s2">
+        <div class="fld-l">Сумма аванса</div>
+        <input class="fi fi-lg" id="mo-amount" type="number" placeholder="0" oninput="mCalcD()">
+      </div>
       `:`
-      <div class="fld s2"><div class="fld-l">Описание</div><input class="fi" id="mo-desc" placeholder="${type==='income'?'Клиент, квартира...':'Наименование...'}"></div>
-      `}
+      <!-- Описание -->
+      <div class="fld s2">
+        <div class="fld-l">Описание</div>
+        <input class="fi" id="mo-desc" placeholder="${type==='income'?'Клиент, квартира №, услуга...':'Наименование товара или услуги...'}">
+      </div>
+
       ${type==='expense'?`
-      <div class="fld"><div class="fld-l">Кол-во</div><input class="fi" id="mo-qty" type="number" placeholder="0" oninput="moCalc()"></div>
-      <div class="fld"><div class="fld-l">Ед. изм.</div><select class="fi fi-sel" id="mo-unit">${UNITS.map(u=>`<option>${u.name}</option>`).join('')}</select></div>
-      <div class="fld"><div class="fld-l">Цена за ед.</div><input class="fi" id="mo-price" type="number" placeholder="0" oninput="moCalc()"></div>
-      <div class="fld"><div class="fld-l">Итого</div><input class="fi fi-lg" id="mo-total" type="number" placeholder="0" oninput="moCalcT()"></div>
+      <!-- Расход: кол-во × цена -->
+      <div class="fld">
+        <div class="fld-l">Количество</div>
+        <input class="fi" id="mo-qty" type="number" placeholder="0" oninput="mCalc()">
+      </div>
+      <div class="fld">
+        <div class="fld-l">Единица</div>
+        <select class="fi fi-sel" id="mo-unit">
+          ${UNITS.map(u=>`<option>${u.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fld">
+        <div class="fld-l">Цена за ед.</div>
+        <input class="fi" id="mo-price" type="number" placeholder="0" oninput="mCalc()">
+      </div>
+      <div class="fld">
+        <div class="fld-l">Итого (или ввести)</div>
+        <input class="fi fi-lg" id="mo-total" type="number" placeholder="0" oninput="mCalcT()">
+      </div>
       `:`
-      <div class="fld s2"><div class="fld-l">Сумма</div><input class="fi fi-lg" id="mo-amount" type="number" placeholder="0" oninput="moCalcD()"></div>
-      ${type==='income'?`<div class="fld s2"><div class="fld-l">Способ оплаты</div><select class="fi fi-sel" id="mo-method"><option value="cash">Наличные</option><option value="transfer">Перевод</option><option value="card">Карта</option></select></div>`:''}
+      <!-- Приход: сумма и способ оплаты -->
+      <div class="fld s2">
+        <div class="fld-l">Сумма</div>
+        <input class="fi fi-lg" id="mo-amount" type="number" placeholder="0" oninput="mCalcD()">
+      </div>
+      <div class="fld s2">
+        <div class="fld-l">Способ оплаты</div>
+        <select class="fi fi-sel" id="mo-method">
+          <option value="cash">Наличные</option>
+          <option value="transfer">Перевод</option>
+          <option value="card">Карта</option>
+        </select>
+      </div>
       `}
-      <div class="fld s2"><div class="fld-l">Примечание</div><input class="fi" id="mo-note" placeholder="Необязательно"></div>
+      `}
+
+      <div class="fld s2">
+        <div class="fld-l">Примечание</div>
+        <input class="fi" id="mo-note" placeholder="Необязательно">
+      </div>
     </div>
-    <div style="background:var(--ap);border:1.5px solid var(--al);border-radius:var(--r2);padding:12px 14px;">
-      <div style="font-size:10px;color:var(--ad);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">${typeLabel}</div>
-      <div style="font-size:22px;font-weight:800;color:${typeColor};" id="mo-total-show">0 TJS</div>
-      <div style="font-size:11px;color:var(--t3);margin-top:2px;" id="mo-total-hint"></div>
+
+    <!-- Итоговая сумма -->
+    <div class="total-box" style="margin-top:14px;">
+      <div class="total-l">${typeLabel}</div>
+      <div class="total-v" id="mo-tv" style="color:${typeColor};">0 TJS</div>
+      <div class="total-h" id="mo-th"></div>
     </div>`,
+
     async()=>{
       const rate=COMPANY.usd_rate||10.92;
       const date=document.getElementById('mo-date')?.value||today();
+      // Re-read select values (in case onchange didn't fire)
+      const objEl=document.getElementById('mo-obj');
+      if(objEl) SEL_OBJ=objEl.value||'';
+      const catEl=document.getElementById('mo-cat');
+      if(catEl) SEL_CAT=catEl.value||SEL_CAT;
+
       let amt=0,desc='',method='cash';
+
       if(OP_TYPE==='expense'){
-        const q=parseFloat(document.getElementById('mo-qty')?.value)||0;
+        const q2=parseFloat(document.getElementById('mo-qty')?.value)||0;
         const p=parseFloat(document.getElementById('mo-price')?.value)||0;
         const tot=document.getElementById('mo-total');
-        amt=tot?.value?parseFloat(tot.value)||q*p:q*p;
-        desc=document.getElementById('mo-desc')?.value||'';
+        amt=tot?.value?parseFloat(tot.value)||q2*p:q2*p;
+        desc=document.getElementById('mo-desc')?.value?.trim()||'';
         if(!amt){showToast('Введите сумму или кол-во × цену',true);return;}
       } else if(OP_TYPE==='income'){
         amt=parseFloat(document.getElementById('mo-amount')?.value)||0;
-        desc=document.getElementById('mo-desc')?.value||'';
+        desc=document.getElementById('mo-desc')?.value?.trim()||'';
         method=document.getElementById('mo-method')?.value||'cash';
         if(!amt){showToast('Введите сумму',true);return;}
       } else {
+        // Аванс
         amt=parseFloat(document.getElementById('mo-amount')?.value)||0;
-        const w=document.getElementById('mo-worker')?.value||'';
+        const w=(document.getElementById('mo-worker')?.value||'').trim();
+        const task=(document.getElementById('mo-task')?.value||'').trim();
+        if(!amt){showToast('Введите сумму аванса',true);return;}
+        if(!w){showToast('Укажите кому выдаётся аванс',true);return;}
         desc='Аванс → '+w;
-        if(!amt||!w){showToast('Укажите снабженца и сумму',true);return;}
-        await SB.from('advances').insert({worker_name:w,object_name:SEL_OBJ,task:SEL_CAT,amount:amt,currency:SEL_CUR});
+        // Save to advances table
+        const{error:ae}=await SB.from('advances').insert({
+          worker_name:w,object_name:SEL_OBJ,task:task||'Аванс',
+          amount:amt,currency:SEL_CUR,
+          stage_names:JSON.stringify(['Старт','Закупка','Доставка','Сдача'])
+        });
+        if(ae){showToast('Ошибка записи аванса: '+ae.message,true);return;}
       }
+
       const{error}=await SB.from('operations').insert({
-        type:OP_TYPE,date,object_name:SEL_OBJ,
+        type:OP_TYPE,date,
+        object_name:SEL_OBJ||'',
         category_name:SEL_CAT||'Прочее',
         description:desc,amount:amt,currency:SEL_CUR,method,
         amount_tjs:SEL_CUR==='USD'?amt*rate:amt,
@@ -1429,19 +1637,23 @@ function openAddOpModal(type){
         note:document.getElementById('mo-note')?.value||'',
         created_by:USER?.id
       });
-      if(error){showToast(error.message,true);return;}
-      closeModal();showToast('✓ '+typeLabel+' сохранён');
-      window._opsFilter={q:'',type:'all',date:''};
-      renderPage('ops');
+      if(error){showToast('Ошибка: '+error.message,true);return;}
+      closeModal();
+      showToast('✓ '+typeLabel+' сохранён');
+      window._opsFilter={q:'',type:'all',date:'',currency:'all'};
+      renderPage(CUR_PAGE);
     },
     typeLabel+' →'
   );
-  // Fill workers
+
+  // Fill datalist with existing workers from profiles
   SB.from('profiles').select('name').in('role',['supplier','accountant','admin']).then(({data})=>{
-    const sel=document.getElementById('mo-worker');
-    if(sel&&data)sel.innerHTML='<option value="">— выберите —</option>'+data.map(u=>`<option>${u.name}</option>`).join('');
+    const dl=document.getElementById('workers-datalist');
+    if(dl&&data) dl.innerHTML=data.map(u=>`<option value="${u.name}">`).join('');
   });
 }
+
+
 function moSetCur(c){
   SEL_CUR=c;
   document.getElementById('mo-tjs').className='cur-btn'+(c==='TJS'?' on':'');
@@ -1472,83 +1684,141 @@ const PAGES={
 
 /* ── HOME ── */
 home:async()=>{
+  const rate=COMPANY.usd_rate||10.92;
+  // Load all data
   const[opsR,debtsR,advR]=await Promise.all([
     (()=>{let q=SB.from('operations').select('*');q=periodFilter(q);return q;})(),
     SB.from('debts').select('*'),
     SB.from('advances').select('*').eq('status','active')
   ]);
-  const ops=(opsR.data||[]);
-  const debts=(debtsR.data||[]);
-  const advs=(advR.data||[]);
-  const rate=COMPANY.usd_rate||10.92;
+  const allOps=opsR.data||[], debts=debtsR.data||[], advs=advR.data||[];
+
+  // Selected object filter (stored on window)
+  window._homeObj = window._homeObj||'';
+  const ops = window._homeObj
+    ? allOps.filter(o=>o.object_name===window._homeObj)
+    : allOps;
+
   const inc=ops.filter(o=>o.type==='income');
   const exp=ops.filter(o=>o.type==='expense');
   const adv=ops.filter(o=>o.type==='advance');
-  // TJS и USD считаются ОТДЕЛЬНО — не конвертируем
+
+  // Strict separate currencies
   const incTJS=inc.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const expTJS=exp.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const advTJS=adv.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const incUSD=inc.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
   const expUSD=exp.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
   const advUSD=adv.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
-  // Баланс = приходы - расходы - авансы снабженцам (аванс = внутренний перевод)
   const balTJS=incTJS-expTJS-advTJS;
   const balUSD=incUSD-expUSD-advUSD;
-  const bal=balTJS+(balUSD*rate); // для долговых расчётов
-  const cred=debts.filter(d=>d.type==='creditor').reduce((a,d)=>a+toTJS(d.total_amount-d.paid_amount,d.currency),0);
-  const deb=debts.filter(d=>d.type==='debtor').reduce((a,d)=>a+toTJS(d.total_amount-d.paid_amount,d.currency),0);
-  // Авансы снабженцам — остаток (выдано - потрачено ими)
+  const bal=balTJS+(balUSD*rate);
+
+  const cred=debts.filter(d=>d.type==='creditor').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
+  const deb=debts.filter(d=>d.type==='debtor').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
   const advTot_given=advs.reduce((a,x)=>a+x.amount,0);
-  // Расходы снабженцев из operations
-  const supExp_tjs=ops.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
-  const supExp_usd=ops.filter(o=>o.type==='expense'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
-  const advTot=advTot_given; // total given for money map
-  // Monthly data (all ops for chart)
-  const{data:allOps}=await SB.from('operations').select('date,type,amount_tjs').order('date');
+  const advTot_spent=allOps.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+
+  // By category (for selected object or all)
+  const byCat={};
+  exp.forEach(o=>{if(o.category_name)byCat[o.category_name]=(byCat[o.category_name]||0)+o.amount;});
+  const ck=Object.keys(byCat).sort((a,b)=>byCat[b]-byCat[a]).slice(0,8);
+
+  // By object (always all data for overview)
+  const byObj={};
+  allOps.forEach(o=>{
+    if(!o.object_name)return;
+    if(!byObj[o.object_name])byObj[o.object_name]={inc:0,exp:0};
+    if(o.type==='income')byObj[o.object_name].inc+=o.amount;
+    else if(o.type==='expense')byObj[o.object_name].exp+=o.amount;
+  });
+  const objKeys=Object.keys(byObj);
+
+  // Monthly (for selected object or all)
+  const{data:allOpsAll}=await SB.from('operations').select('date,type,amount,currency,object_name').order('date');
   const months=[];
   for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);months.push(d.toISOString().slice(0,7));}
-  const mInc=months.map(m=>(allOps||[]).filter(o=>o.type==='income'&&o.date?.startsWith(m)).reduce((a,o)=>a+(o.amount_tjs||0),0));
-  const mExp=months.map(m=>(allOps||[]).filter(o=>o.type==='expense'&&o.date?.startsWith(m)).reduce((a,o)=>a+(o.amount_tjs||0),0));
-  // By category
-  const byCat={};
-  (allOps||[]).filter(o=>o.type==='expense').forEach(o=>{if(o.category_name)byCat[o.category_name]=(byCat[o.category_name]||0)+(o.amount_tjs||0);});
-  const ck=Object.keys(byCat).sort((a,b)=>byCat[b]-byCat[a]).slice(0,6);
-
-  setTimeout(()=>{
-    mkChart('ch-bar',{type:'bar',data:{labels:months.map(m=>m.slice(5)),datasets:[
-      {label:t('income'),data:mInc,backgroundColor:'rgba(57,185,128,.8)',borderRadius:6,borderSkipped:false},
-      {label:t('expense'),data:mExp,backgroundColor:'rgba(229,62,62,.7)',borderRadius:6,borderSkipped:false}
-    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-      plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:10,padding:10}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},
-      scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
-    if(ck.length)mkChart('ch-cat',{type:'doughnut',data:{labels:ck,datasets:[{data:ck.map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:0,borderRadius:3,spacing:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS`}}}}});
-  },80);
+  const filterForObj=(arr)=>window._homeObj?arr.filter(o=>o.object_name===window._homeObj):arr;
+  const mInc=months.map(m=>filterForObj(allOpsAll||[]).filter(o=>o.type==='income'&&o.date?.startsWith(m)&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0));
+  const mExp=months.map(m=>filterForObj(allOpsAll||[]).filter(o=>o.type==='expense'&&o.date?.startsWith(m)&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0));
 
   const ratesArr=[
-    {f:'USD',t:'TJS',v:rate,c:'linear-gradient(135deg,#39B980,#2A9066)'},
-    {f:'EUR',t:'TJS',v:(rate*1.08).toFixed(2),c:'linear-gradient(135deg,#3182CE,#2B6CB0)'},
-    {f:'RUB',t:'TJS',v:(rate/90).toFixed(4),c:'linear-gradient(135deg,#6B46C1,#553C9A)'},
+    {f:'USD',t2:'TJS',v:rate,c:'linear-gradient(135deg,#39B980,#2A9066)'},
+    {f:'EUR',t2:'TJS',v:(rate*1.08).toFixed(2),c:'linear-gradient(135deg,#3182CE,#2B6CB0)'},
+    {f:'RUB',t2:'TJS',v:(rate/90).toFixed(4),c:'linear-gradient(135deg,#6B46C1,#553C9A)'},
   ];
-  const recentOps=(opsR.data||[]).slice(0,8);
+
+  setTimeout(()=>{
+    // Cash flow line chart
+    mkChart('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[
+      {label:'Приход TJS',data:mInc,borderColor:'#39B980',backgroundColor:'rgba(57,185,128,.08)',fill:true,tension:.4,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'white',pointBorderColor:'#39B980',pointBorderWidth:2},
+      {label:'Расход TJS',data:mExp,borderColor:'#E53E3E',backgroundColor:'rgba(229,62,62,.05)',fill:true,tension:.4,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'white',pointBorderColor:'#E53E3E',pointBorderWidth:2}
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:10,padding:10,usePointStyle:true}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},
+      scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
+
+    // Donut — categories
+    if(ck.length){
+      mkChart('ch-cat',{type:'doughnut',data:{labels:ck,datasets:[{data:ck.map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:0,borderRadius:3,spacing:2}]},
+        options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+          plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8}},
+            tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS`}}}}});
+    }
+
+    // Bar chart — by object
+    if(objKeys.length){
+      mkChart('ch-obj',{type:'bar',data:{labels:objKeys,datasets:[
+        {label:'Приход',data:objKeys.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.8)',borderRadius:5,borderSkipped:false},
+        {label:'Расход',data:objKeys.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.75)',borderRadius:5,borderSkipped:false}
+      ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:9,padding:8}},
+          tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},
+        scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}},
+        onClick:(e,els)=>{
+          if(els.length){
+            const obj=objKeys[els[0].index];
+            window._homeObj=window._homeObj===obj?'':obj;
+            destroyCharts();renderPage('home');
+          }
+        }
+      }});
+    }
+  },80);
+
   return `
+  <!-- EXCHANGE RATES -->
   <div class="rates-grid mb20">
-    ${ratesArr.map((r,i)=>`<div class="rate-c" style="background:${r.c};animation-delay:${i*.04}s;"><div class="rate-l">1 ${r.f} / ${r.t}</div><div class="rate-v">${r.v} ${r.t}</div><div class="rate-s">НБТ · ${new Date().toLocaleDateString('ru',{day:'numeric',month:'short'})}</div></div>`).join('')}
+    ${ratesArr.map((r,i)=>`<div class="rate-c" style="background:${r.c};animation-delay:${i*.04}s;"><div class="rate-l">1 ${r.f} / ${r.t2}</div><div class="rate-v">${r.v} ${r.t2}</div><div class="rate-s">НБТ · ${new Date().toLocaleDateString('ru',{day:'numeric',month:'short'})}</div></div>`).join('')}
   </div>
+
+  <!-- OBJECT FILTER -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+    <span style="font-size:12px;color:var(--t3);font-weight:600;">Фильтр по объекту:</span>
+    <div class="chips">
+      <div class="chip ${!window._homeObj?'sel':''}"
+        onclick="window._homeObj='';destroyCharts();renderPage('home')">Все объекты</div>
+      ${OBJECTS.map(o=>`<div class="chip ${window._homeObj===o.name?'sel':''}"
+        onclick="window._homeObj='${o.name}';destroyCharts();renderPage('home')">${o.name}</div>`).join('')}
+    </div>
+    ${window._homeObj?`<span class="badge bg" style="margin-left:4px;">📍 ${window._homeObj}</span>`:''}
+  </div>
+
+  <!-- STAT CARDS: TJS и USD отдельно -->
   <div class="g2 mb12">
     <div class="sc g" style="animation-delay:.04s;">
-      <div class="sc-lbl">↑ ${t('income')}</div>
-      <div style="display:flex;gap:14px;align-items:baseline;margin:6px 0 4px;flex-wrap:wrap;">
+      <div class="sc-lbl">↑ Приходы</div>
+      <div style="display:flex;gap:14px;align-items:baseline;margin:5px 0 3px;flex-wrap:wrap;">
         <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">TJS</div><div style="font-size:20px;font-weight:800;color:var(--ad);">+${fmtN(incTJS)}</div></div>
-        <div style="width:1px;background:var(--bd);height:28px;align-self:center;"></div>
+        <div style="width:1px;background:var(--bd);height:26px;align-self:center;"></div>
         <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">USD</div><div style="font-size:20px;font-weight:800;color:var(--blue);">+$${fmtN(incUSD)}</div></div>
       </div>
-      <div class="sc-val2">${inc.length} операций</div>
+      <div class="sc-val2">${inc.length} операций${window._homeObj?' · '+window._homeObj:''}</div>
     </div>
     <div class="sc r" style="animation-delay:.07s;">
-      <div class="sc-lbl">↓ ${t('expense')}</div>
-      <div style="display:flex;gap:14px;align-items:baseline;margin:6px 0 4px;flex-wrap:wrap;">
+      <div class="sc-lbl">↓ Расходы</div>
+      <div style="display:flex;gap:14px;align-items:baseline;margin:5px 0 3px;flex-wrap:wrap;">
         <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">TJS</div><div style="font-size:20px;font-weight:800;color:var(--red);">-${fmtN(expTJS)}</div></div>
-        <div style="width:1px;background:var(--bd);height:28px;align-self:center;"></div>
+        <div style="width:1px;background:var(--bd);height:26px;align-self:center;"></div>
         <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">USD</div><div style="font-size:20px;font-weight:800;color:var(--ora);">-$${fmtN(expUSD)}</div></div>
       </div>
       <div class="sc-val2">${exp.length} операций</div>
@@ -1556,42 +1826,65 @@ home:async()=>{
   </div>
   <div class="g2 mb20">
     <div class="sc g" style="animation-delay:.1s;">
-      <div class="sc-lbl">🏦 ${t('balance')} (касса)</div>
-      <div style="display:flex;gap:14px;align-items:baseline;margin:6px 0 4px;flex-wrap:wrap;">
+      <div class="sc-lbl">🏦 Баланс кассы</div>
+      <div style="display:flex;gap:14px;align-items:baseline;margin:5px 0 3px;flex-wrap:wrap;">
         <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">TJS</div><div style="font-size:20px;font-weight:800;color:${balTJS>=0?'var(--adk)':'var(--red)'};">${balTJS>=0?'+':''}${fmtN(balTJS)}</div></div>
-        <div style="width:1px;background:var(--bd);height:28px;align-self:center;"></div>
+        <div style="width:1px;background:var(--bd);height:26px;align-self:center;"></div>
         <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">USD</div><div style="font-size:20px;font-weight:800;color:${balUSD>=0?'var(--blue)':'var(--red)'};">${balUSD>=0?'+':''}$${fmtN(balUSD)}</div></div>
       </div>
       <div class="sc-val2">После авансов снабженцам</div>
     </div>
     <div class="sc o" style="animation-delay:.13s;">
       <div class="sc-lbl">⏳ Долги</div>
-      <div style="display:flex;gap:14px;align-items:baseline;margin:6px 0 4px;flex-wrap:wrap;">
+      <div style="display:flex;gap:14px;align-items:baseline;margin:5px 0 3px;flex-wrap:wrap;">
         <div><div style="font-size:10px;color:var(--ad);margin-bottom:1px;">Нам должны</div><div style="font-size:20px;font-weight:800;color:var(--ad);">${fmtN(deb)}</div></div>
-        <div style="width:1px;background:var(--bd);height:28px;align-self:center;"></div>
+        <div style="width:1px;background:var(--bd);height:26px;align-self:center;"></div>
         <div><div style="font-size:10px;color:var(--red);margin-bottom:1px;">Мы должны</div><div style="font-size:20px;font-weight:800;color:var(--red);">${fmtN(cred)}</div></div>
       </div>
       <div class="sc-val2">Нетто: ${fmtN(deb-cred)} TJS</div>
     </div>
   </div>
-  <div class="sh"><div class="sh-t">${t('where')}</div></div>
-  <div class="money-map">
-    <div class="mm" style="animation-delay:.04s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div><div class="mm-l">${t('in_cash')}</div><div class="mm-v" style="color:var(--adk);">${fmtN(bal)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(bal/rate)}</div></div>
-    <div class="mm" style="animation-delay:.07s;"><div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div><div class="mm-l">${t('at_snabs')}</div><div class="mm-v" style="color:var(--yel);">${fmtN(advTJS-expTJS>0?advTJS-expTJS:0)}</div><div class="mm-v2" style="color:var(--t4);">Выдано: ${fmtN(advTJS)} TJS</div></div>
-    <div class="mm" style="animation-delay:.1s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('recv')}</div><div class="mm-v" style="color:var(--ad);">${fmtN(deb)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(deb/rate)}</div></div>
-    <div class="mm" style="animation-delay:.13s;"><div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('paybl')}</div><div class="mm-v" style="color:var(--red);">${fmtN(cred)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(cred/rate)}</div></div>
+
+  <!-- MONEY MAP -->
+  <div class="sh"><div class="sh-t">Карта денег</div></div>
+  <div class="money-map mb20">
+    <div class="mm" style="animation-delay:.04s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div><div class="mm-l">В кассе TJS</div><div class="mm-v" style="color:var(--adk);">${fmtN(balTJS)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(balUSD)} USD</div></div>
+    <div class="mm" style="animation-delay:.07s;"><div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div><div class="mm-l">У снабженцев</div><div class="mm-v" style="color:var(--yel);">${fmtN(Math.max(0,advTot_given-advTot_spent))}</div><div class="mm-v2" style="color:var(--t4);">Выдано: ${fmtN(advTot_given)}</div></div>
+    <div class="mm" style="animation-delay:.1s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">Нам должны</div><div class="mm-v" style="color:var(--ad);">${fmtN(deb)}</div><div class="mm-v2" style="color:var(--t4);">TJS дебиторка</div></div>
+    <div class="mm" style="animation-delay:.13s;"><div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">Мы должны</div><div class="mm-v" style="color:var(--red);">${fmtN(cred)}</div><div class="mm-v2" style="color:var(--t4);">TJS кредиторка</div></div>
   </div>
+
+  <!-- CHARTS -->
   <div class="g2 mb20">
-    <div class="card" style="animation:fadeUp .3s ease .06s both;"><div class="sh"><div class="sh-t">${t('cashflow')}</div><div class="sh-a" onclick="go('stats')">Детально →</div></div><div class="ch-wrap ch240"><canvas id="ch-bar"></canvas></div></div>
-    <div class="card" style="animation:fadeUp .3s ease .08s both;"><div class="sh"><div class="sh-t">${t('by_cat')}</div></div><div class="ch-wrap ch240"><canvas id="ch-cat"></canvas></div></div>
+    <div class="card" style="animation:fadeUp .3s ease .06s both;">
+      <div class="sh"><div class="sh-t">Cash Flow TJS${window._homeObj?' — '+window._homeObj:' — Все объекты'}</div></div>
+      <div class="ch-wrap ch240"><canvas id="ch-cf"></canvas></div>
+    </div>
+    <div class="card" style="animation:fadeUp .3s ease .08s both;">
+      <div class="sh"><div class="sh-t">Расходы по категориям</div></div>
+      ${ck.length?`<div class="ch-wrap ch240"><canvas id="ch-cat"></canvas></div>`:`<div class="empty" style="height:200px;"><div class="empty-icon">📋</div>Нет данных</div>`}
+    </div>
   </div>
-  <div class="card" style="animation:fadeUp .3s ease .1s both;">
-    <div class="sh"><div class="sh-t">${t('recent')}</div><div class="sh-a" onclick="go('ops')">${t('all_ops')}</div></div>
-    <div>${recentOps.length?recentOps.map(o=>txRow(o,false)).join(''):`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
-  </div>`;
+
+  <!-- BY OBJECT — click to filter -->
+  ${objKeys.length?`
+  <div class="card mb20" style="animation:fadeUp .3s ease .1s both;">
+    <div class="sh">
+      <div class="sh-t">По объектам — нажмите на столбец для фильтра</div>
+      ${window._homeObj?`<div class="sh-a" onclick="window._homeObj='';destroyCharts();renderPage('home')">✕ Сброс фильтра</div>`:''}
+    </div>
+    <div class="ch-wrap ch200"><canvas id="ch-obj"></canvas></div>
+  </div>`:''}
+
+  <!-- RECENT OPS -->
+  <div class="card" style="animation:fadeUp .3s ease .12s both;">
+    <div class="sh"><div class="sh-t">Последние операции${window._homeObj?' — '+window._homeObj:''}</div><div class="sh-a" onclick="go('ops')">Все →</div></div>
+    <div>${ops.slice(0,8).map(o=>txRow(o,false)).join('')||`<div class="empty"><div class="empty-icon">📋</div>Нет данных</div>`}</div>
+  </div>
+  `;
 },
 
-/* ── OPERATIONS ── */
+
 ops:async()=>{
   const allOps=await getOps();
   window._ops=allOps;
@@ -1649,7 +1942,7 @@ ops:async()=>{
       style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--redl);border:1.5px solid var(--redb);border-radius:var(--r2);cursor:pointer;font-family:var(--ff);font-weight:600;font-size:13px;color:var(--red);transition:all .18s;"
       onmouseover="this.style.background='#ffe0e0'" onmouseout="this.style.background='var(--redl)'">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4v14M4 11l7 7 7-7"/></svg>
-      - Расход
+      + Расход
     </button>
     <button onclick="openAddOpModal('advance')"
       style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--bluel);border:1.5px solid var(--blueb);border-radius:var(--r2);cursor:pointer;font-family:var(--ff);font-weight:600;font-size:13px;color:var(--blue);transition:all .18s;"
@@ -1747,8 +2040,11 @@ snabs:async()=>{
   <div class="sh"><div class="sh-t">${t('snabs')}</div>${canAdmin()?`<button class="btn btn-p btn-sm" onclick="openNewAdv()">${t('add_adv')}</button>`:''}</div>
   ${(advs||[]).map((a,i)=>{
     // Потрачено конкретным снабженцем — только расходы, точная валюта
+    // Потрачено = расходы снабженца (только тип expense, любая валюта → конвертим в TJS для сравнения)
     const workerOps=(allOps||[]).filter(o=>o.type==='expense'&&o.worker_name===a.worker_name);
-    const spent=workerOps.reduce((s,o)=>s+o.amount,0);
+    const spent=workerOps.reduce((s,o)=>s+(o.currency==='USD'?o.amount*(COMPANY.usd_rate||10.92):o.amount),0);
+    const spentTJS=workerOps.filter(o=>o.currency==='TJS').reduce((s,o)=>s+o.amount,0);
+    const spentUSD=workerOps.filter(o=>o.currency==='USD').reduce((s,o)=>s+o.amount,0);
     const rem=a.amount-spent;const pct=a.amount>0?Math.min(spent/a.amount*100,100):0;
     const isOver=rem<0;const clr=clrs[i%4],bg=bgs[i%4];
     const names=Array.isArray(a.stage_names)?a.stage_names:SNAMES;
@@ -2068,7 +2364,7 @@ tasks:async()=>{
       <div class="pc-nums"><span style="color:var(--red);">Потрачено: ${fmtN(spent)}</span><span style="color:var(--ad);">Остаток: ${fmtN(rem)}</span></div>
       <div class="a-btns">
         <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="advStage(${a.id})">Следующий этап →</button>
-        <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="go('addexp')">- Расход</button>
+        <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="go('addexp')">+ Расход</button>
       </div>
     </div>`;
   }).join('')||`<div class="empty"><div class="empty-icon">✅</div>${t('no_data')}</div>`}`;
@@ -2373,4 +2669,74 @@ function saveSetup(){
 }
 </script>
 </body>
-</html>
+</html>function buildSupForm(container){
+  SEL_OBJ='';SEL_CUR='TJS';OP_TYPE='expense';
+  const expCats=CATEGORIES.filter(c=>c.type==='expense');
+  SEL_CAT=expCats[0]?.name||'';
+  container.innerHTML=`
+  <div class="form-card">
+    <div class="fg f2">
+      <div class="fld s2">
+        <div class="fld-l">Объект</div>
+        <select class="fi fi-sel" id="so-obj" onchange="SEL_OBJ=this.value">
+          <option value="">— Без объекта —</option>
+          ${OBJECTS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fld s2">
+        <div class="fld-l">Категория расхода</div>
+        <select class="fi fi-sel" id="so-cat" onchange="SEL_CAT=this.value">
+          ${expCats.map((c,i)=>`<option value="${c.name}" ${i===0?'selected':''}>${c.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fld">
+        <div class="fld-l">Дата</div>
+        <input class="fi" type="date" id="so-date" value="${today()}">
+      </div>
+      <div class="fld">
+        <div class="fld-l">Валюта</div>
+        <div class="cur-tog" style="margin-top:2px;">
+          <button class="cur-btn on" id="so-tjs" onclick="sSetCur('TJS')">TJS</button>
+          <button class="cur-btn" id="so-usd" onclick="sSetCur('USD')">USD</button>
+        </div>
+      </div>
+      <div class="fld s2">
+        <div class="fld-l">Описание / наименование</div>
+        <input class="fi" id="so-desc" placeholder="Что куплено или оплачено...">
+      </div>
+      <div class="fld">
+        <div class="fld-l">Количество</div>
+        <input class="fi" id="so-qty" type="number" placeholder="0" oninput="sCalc()">
+      </div>
+      <div class="fld">
+        <div class="fld-l">Единица</div>
+        <select class="fi fi-sel" id="so-unit">
+          ${UNITS.map(u=>`<option>${u.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fld">
+        <div class="fld-l">Цена за ед.</div>
+        <input class="fi" id="so-price" type="number" placeholder="0" oninput="sCalc()">
+      </div>
+      <div class="fld">
+        <div class="fld-l">Итого (или ввести)</div>
+        <input class="fi fi-lg" id="so-total" type="number" placeholder="0" oninput="sCalcT()">
+      </div>
+      <div class="fld s2">
+        <div class="fld-l">Примечание</div>
+        <input class="fi" id="so-note" placeholder="Необязательно">
+      </div>
+    </div>
+    <div class="total-box" style="margin-top:14px;margin-bottom:14px;">
+      <div class="total-l">Итого расход</div>
+      <div class="total-v" id="so-tv">0 TJS</div>
+      <div class="total-h" id="so-th"></div>
+    </div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;">
+      <button class="btn btn-p" onclick="sSubmit()">Сохранить расход →</button>
+      <button class="btn btn-s" onclick="go('myexp')">Отмена</button>
+    </div>
+  </div>`;
+}
+
+
