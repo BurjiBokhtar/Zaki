@@ -46,7 +46,48 @@
   #lp-left{display:none!important;}
   #login-page>div:last-child{padding:28px 20px!important;}
 }
+@keyframes orbFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-20px) scale(1.02)}}
+@keyframes loginCardIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulseGreen{0%,100%{box-shadow:0 0 0 0 rgba(57,185,128,.4)}70%{box-shadow:0 0 0 8px rgba(57,185,128,0)}}
+@keyframes slideInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes iconBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+@keyframes cloudFloat{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}
+@keyframes sunPulse{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes countUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulseBar{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+@keyframes iconBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+@keyframes shimmerLoad{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Icon hover animation */
+.icon-card:hover .card-icon{animation:iconBounce .4s ease;}
+.icon-card{cursor:default;transition:box-shadow .2s,transform .2s;}
+.icon-card:hover{box-shadow:0 4px 16px rgba(57,185,128,.15);transform:translateY(-2px);}
+
+/* Pulse bar */
+.pulse-bar{
+  position:sticky;top:0;z-index:30;
+  background:linear-gradient(135deg,#0d1f1a,#1a3a2a);
+  padding:10px 18px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  border-bottom:1px solid rgba(57,185,128,.2);
+  flex-shrink:0;
+}
+.pulse-item{display:flex;align-items:center;gap:7px;}
+.pulse-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pulse-lbl{font-size:10px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1px;}
+.pulse-val{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.pulse-div{width:1px;height:28px;background:rgba(255,255,255,.12);}
+.pulse-sync{margin-left:auto;display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;background:rgba(57,185,128,.15);border:1px solid rgba(57,185,128,.25);cursor:pointer;transition:all .15s;}
+.pulse-sync:hover{background:rgba(57,185,128,.25);}
+.pulse-sync-dot{width:5px;height:5px;border-radius:50%;background:#39B980;animation:pulse 2s infinite;}
+
+/* Counter animation */
+.count-animated{animation:countUp .5s ease both;}
+
+/* Card icon style */
+.card-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;transition:transform .2s;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
@@ -118,35 +159,35 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 .app{display:none;height:100vh;overflow:hidden;flex-direction:row;}
 
 /* SIDEBAR */
-.sidebar{width:var(--sb);background:var(--w);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;z-index:50;transition:transform .3s cubic-bezier(.4,0,.2,1);}
+.sidebar{width:var(--sb);background:#0F1F1A;border-right:none;display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;z-index:50;transition:transform .3s cubic-bezier(.4,0,.2,1);}
 .sidebar::-webkit-scrollbar{width:3px;}
-.sidebar::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px;}
-.sb-hd{padding:16px 14px 12px;border-bottom:1px solid var(--bd);}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(57,185,128,.3);border-radius:2px;}
+.sb-hd{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.06);}
 .sb-logo{display:flex;align-items:center;gap:9px;}
 .sb-ico{width:34px;height:34px;background:var(--a);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .sb-brand{font-size:17px;font-weight:800;color:var(--t);letter-spacing:-.4px;}
 .sb-brand span{color:var(--a);}
 .sb-sub{font-size:9px;color:var(--t4);margin-top:1px;}
-.sb-co{margin:8px 10px 4px;padding:9px 11px;background:var(--ap);border:1px solid var(--al);border-radius:var(--r2);}
-.sb-co-name{font-size:12px;font-weight:700;color:var(--adk);}
-.sb-co-sub{font-size:10px;color:var(--ad);opacity:.7;margin-top:1px;}
-.sb-sec{padding:12px 15px 4px;font-size:9px;color:var(--t4);text-transform:uppercase;letter-spacing:.1em;font-weight:700;}
-.sb-item{display:flex;align-items:center;gap:9px;padding:8px 12px;margin:1px 7px;border-radius:var(--r);cursor:pointer;transition:all .15s;color:var(--t3);font-size:13px;font-weight:500;}
-.sb-item:hover{background:var(--bg);color:var(--t);}
-.sb-item.on{background:var(--al);color:var(--adk);font-weight:600;}
+.sb-co{margin:10px 10px 4px;padding:10px 12px;background:rgba(57,185,128,.1);border:1px solid rgba(57,185,128,.2);border-radius:var(--r2);}
+.sb-co-name{font-size:12px;font-weight:700;color:rgba(255,255,255,.9);}
+.sb-co-sub{font-size:10px;color:rgba(57,185,128,.6);margin-top:1px;}
+.sb-sec{padding:14px 16px 5px;font-size:9px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.12em;font-weight:700;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 12px;margin:1px 8px;border-radius:var(--r);cursor:pointer;transition:all .18s;color:rgba(255,255,255,.5);font-size:13px;font-weight:500;}
+.sb-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85);}
+.sb-item.on{background:rgba(57,185,128,.18);color:#fff;font-weight:600;border-left:2.5px solid var(--a);}
 .sb-item.on svg{stroke:var(--a) !important;}
-.sb-item svg{flex-shrink:0;stroke:var(--t4);transition:stroke .15s;}
-.sb-foot{padding:11px 13px;border-top:1px solid var(--bd);margin-top:auto;}
+.sb-item svg{flex-shrink:0;stroke:rgba(255,255,255,.35);transition:stroke .15s;}
+.sb-foot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.06);margin-top:auto;}
 .sb-user{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
-.sb-ava{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;background:var(--al);color:var(--adk);}
-.sb-uname{font-size:13px;font-weight:700;color:var(--t);}
-.sb-urole{font-size:10px;color:var(--t4);}
-.sb-badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:var(--al);color:var(--adk);margin-bottom:9px;}
-.sb-btn{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:var(--r);background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:12px;font-weight:600;cursor:pointer;width:100%;font-family:var(--ff);transition:all .15s;}
-.sb-btn:hover{background:var(--bg2);}
+.sb-ava{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
+.sb-uname{font-size:13px;font-weight:700;color:rgba(255,255,255,.9);}
+.sb-urole{font-size:10px;color:rgba(255,255,255,.35);}
+.sb-badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(57,185,128,.15);color:var(--a);border:1px solid rgba(57,185,128,.25);margin-bottom:9px;}
+.sb-btn{display:flex;align-items:center;gap:6px;padding:8px 11px;border-radius:var(--r);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);font-size:12px;font-weight:600;cursor:pointer;width:100%;font-family:var(--ff);transition:all .15s;}
+.sb-btn:hover{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);}
 .lang-row{display:flex;gap:5px;margin-top:8px;}
-.lb{flex:1;padding:5px;border-radius:7px;border:1px solid var(--bd);background:var(--w);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);text-align:center;color:var(--t3);transition:all .15s;}
-.lb.on{background:var(--a);color:var(--w);border-color:var(--a);}
+.lb{flex:1;padding:5px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);text-align:center;color:rgba(255,255,255,.4);transition:all .15s;}
+.lb.on{background:var(--a);color:#fff;border-color:var(--a);}
 
 /* MAIN */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
@@ -417,117 +458,67 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 <body>
 
 <!-- ══ LOGIN ══ -->
-<div id="login-page" style="display:none;position:fixed;inset:0;z-index:9998;display:flex;align-items:stretch;">
+<div id="login-page" style="display:none;position:fixed;inset:0;z-index:9998;background:linear-gradient(135deg,#0a1f14 0%,#0f2d1e 50%,#0d1f14 100%);align-items:center;justify-content:center;padding:16px;overflow:auto;">
 
-<!-- LEFT PANEL: city + weather + skyline -->
-<div id="lp-left" style="width:45%;flex-shrink:0;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:24px;">
-  <div id="lp-bg" style="position:absolute;inset:0;background:linear-gradient(180deg,#1a3a6b 0%,#2a5a9a 30%,#3a7bbf 60%,#1a2a4a 100%);transition:background 2s ease;"></div>
-
-  <!-- TOP: weather -->
-  <div style="position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;">
-    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border-radius:20px;padding:6px 14px;border:1px solid rgba(255,255,255,.2);">
-      <span style="font-size:16px;" id="lp-city-ico">🏙️</span>
-      <span style="font-size:13px;font-weight:600;color:#fff;font-family:var(--ff);" id="lp-city">Душанбе</span>
-    </div>
-    <div style="background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border-radius:20px;padding:6px 14px;border:1px solid rgba(255,255,255,.2);text-align:right;">
-      <div style="font-size:20px;font-weight:800;color:#fff;line-height:1;" id="lp-temp">—°C</div>
-      <div style="font-size:10px;color:rgba(255,255,255,.7);" id="lp-desc">...</div>
-    </div>
-  </div>
-
-  <!-- MIDDLE: sun/moon -->
-  <div style="position:relative;z-index:2;display:flex;align-items:center;justify-content:center;flex:1;">
-    <div id="lp-skyobj"></div>
-    <!-- cloud -->
-    <div style="position:absolute;top:20%;left:15%;width:60px;height:22px;background:rgba(255,255,255,.18);border-radius:20px;animation:cloudFloat 7s ease infinite;"></div>
-    <div style="position:absolute;top:30%;right:20%;width:45px;height:18px;background:rgba(255,255,255,.12);border-radius:20px;animation:cloudFloat 9s ease infinite .5s;"></div>
-  </div>
-
-  <!-- SKYLINE SVG -->
-  <div style="position:relative;z-index:2;">
-    <svg viewBox="0 0 300 110" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
-      <rect x="10" y="55" width="28" height="55" rx="2" fill="rgba(0,0,0,.35)"/>
-      <rect x="15" y="45" width="18" height="10" rx="1" fill="rgba(0,0,0,.28)"/>
-      <rect x="18" y="63" width="5" height="7" fill="rgba(255,255,255,.15)"/>
-      <rect x="26" y="68" width="5" height="7" fill="rgba(255,255,255,.1)"/>
-      <rect x="45" y="32" width="36" height="78" rx="2" fill="rgba(0,0,0,.42)"/>
-      <rect x="50" y="22" width="26" height="12" rx="1" fill="rgba(0,0,0,.35)"/>
-      <rect x="50" y="44" width="7" height="10" fill="rgba(255,255,255,.18)"/>
-      <rect x="62" y="44" width="7" height="10" fill="rgba(255,255,255,.1)"/>
-      <rect x="50" y="60" width="7" height="10" fill="rgba(255,255,255,.15)"/>
-      <rect x="62" y="60" width="7" height="10" fill="rgba(255,255,255,.2)"/>
-      <rect x="90" y="48" width="22" height="62" rx="2" fill="rgba(0,0,0,.32)"/>
-      <rect x="94" y="58" width="5" height="7" fill="rgba(255,255,255,.12)"/>
-      <rect x="103" y="58" width="5" height="7" fill="rgba(255,255,255,.18)"/>
-      <rect x="120" y="28" width="42" height="82" rx="2" fill="rgba(0,0,0,.46)"/>
-      <rect x="126" y="18" width="30" height="12" rx="1" fill="rgba(0,0,0,.38)"/>
-      <rect x="160" y="10" width="4" height="9" fill="rgba(255,100,100,.6)"/>
-      <rect x="126" y="40" width="7" height="10" fill="rgba(255,255,255,.2)"/>
-      <rect x="138" y="40" width="7" height="10" fill="rgba(255,255,255,.15)"/>
-      <rect x="150" y="40" width="7" height="10" fill="rgba(255,255,255,.1)"/>
-      <rect x="126" y="56" width="7" height="10" fill="rgba(255,255,255,.18)"/>
-      <rect x="138" y="56" width="7" height="10" fill="rgba(255,255,255,.12)"/>
-      <rect x="150" y="56" width="7" height="10" fill="rgba(255,255,255,.2)"/>
-      <rect x="126" y="72" width="7" height="9" fill="rgba(255,255,255,.14)"/>
-      <rect x="138" y="72" width="7" height="9" fill="rgba(255,255,255,.1)"/>
-      <rect x="170" y="44" width="26" height="66" rx="2" fill="rgba(0,0,0,.36)"/>
-      <rect x="174" y="54" width="5" height="8" fill="rgba(255,255,255,.15)"/>
-      <rect x="184" y="54" width="5" height="8" fill="rgba(255,255,255,.1)"/>
-      <rect x="174" y="68" width="5" height="8" fill="rgba(255,255,255,.18)"/>
-      <rect x="200" y="58" width="20" height="52" rx="2" fill="rgba(0,0,0,.3)"/>
-      <rect x="204" y="66" width="5" height="7" fill="rgba(255,255,255,.12)"/>
-      <rect x="213" y="66" width="5" height="7" fill="rgba(255,255,255,.18)"/>
-      <rect x="225" y="38" width="32" height="72" rx="2" fill="rgba(0,0,0,.42)"/>
-      <rect x="229" y="48" width="7" height="9" fill="rgba(255,255,255,.18)"/>
-      <rect x="241" y="48" width="7" height="9" fill="rgba(255,255,255,.14)"/>
-      <rect x="229" y="63" width="7" height="9" fill="rgba(255,255,255,.1)"/>
-      <rect x="241" y="63" width="7" height="9" fill="rgba(255,255,255,.2)"/>
-      <rect x="262" y="52" width="22" height="58" rx="2" fill="rgba(0,0,0,.32)"/>
-      <rect x="266" y="62" width="5" height="7" fill="rgba(255,255,255,.15)"/>
-      <rect x="275" y="62" width="5" height="7" fill="rgba(255,255,255,.12)"/>
-      <rect x="0" y="105" width="300" height="5" fill="rgba(0,0,0,.5)"/>
-    </svg>
-  </div>
-
-  <!-- BOTTOM INFO -->
-  <div style="position:relative;z-index:2;">
-    <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-family:var(--ff);" id="lp-co-sm">ZAKI ERP · ДУШАНБЕ</div>
-    <div style="font-size:18px;font-weight:800;color:#fff;line-height:1.3;font-family:var(--ff);" id="lp-greet">Рӯзи нек · Хуш омадед</div>
-    <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px;font-family:var(--ff);" id="lp-sys">Низоми идоракунии молияи сохтмон</div>
-  </div>
+<!-- Floating background orbs -->
+<div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
+  <div style="position:absolute;top:10%;left:5%;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(57,185,128,.07) 0%,transparent 70%);animation:orbFloat 8s ease infinite;"></div>
+  <div style="position:absolute;bottom:10%;right:5%;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(57,185,128,.05) 0%,transparent 70%);animation:orbFloat 10s ease infinite .5s;"></div>
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(57,185,128,.04) 0%,transparent 70%);"></div>
 </div>
 
-<!-- RIGHT PANEL: form -->
-<div style="flex:1;background:#fff;display:flex;align-items:center;justify-content:center;padding:40px 32px;">
-  <div style="width:100%;max-width:340px;animation:fadeUp .5s ease .2s both;">
+<!-- Login Card -->
+<div style="width:100%;max-width:420px;position:relative;z-index:2;animation:loginCardIn .5s cubic-bezier(.22,1,.36,1);">
 
-    <div style="font-size:26px;font-weight:800;color:#1A2332;letter-spacing:-.5px;margin-bottom:4px;font-family:var(--ff);" id="lt-h">Хуш омадед</div>
-    <div style="font-size:13px;color:#6B7A99;margin-bottom:28px;font-family:var(--ff);" id="lt-s">Ворид шавед ба суратҳисоби худ</div>
+  <!-- Logo -->
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;background:linear-gradient(135deg,#39B980,#2A9066);border-radius:20px;margin-bottom:14px;box-shadow:0 8px 24px rgba(57,185,128,.3);">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+        <path d="M7 15C7 10.582 10.582 7 15 7" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <path d="M23 15C23 19.418 19.418 23 15 23" stroke="rgba(255,255,255,.5)" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="15" cy="15" r="4" fill="white"/>
+      </svg>
+    </div>
+    <div style="font-size:32px;font-weight:800;color:#fff;letter-spacing:-1px;font-family:var(--ff);">ZAKI<span style="color:#39B980;">.</span></div>
+    <div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:4px;font-family:var(--ff);" id="lp-sys">Низоми идоракунии молияи сохтмон</div>
+    <!-- Weather pill -->
+    <div style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:5px 14px;">
+      <span id="lp-city-ico" style="font-size:14px;">🏙️</span>
+      <span id="lp-city" style="font-size:11px;color:rgba(255,255,255,.6);font-family:var(--ff);">Душанбе</span>
+      <span style="color:rgba(255,255,255,.2);">·</span>
+      <span id="lp-temp" style="font-size:11px;color:rgba(255,255,255,.7);font-weight:600;font-family:var(--ff);">—°C</span>
+      <span id="lp-desc" style="font-size:10px;color:rgba(255,255,255,.4);font-family:var(--ff);">...</span>
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div style="background:rgba(255,255,255,.97);border-radius:20px;padding:28px 28px 22px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="font-size:20px;font-weight:700;color:#1A2332;margin-bottom:3px;font-family:var(--ff);" id="lt-h">Хуш омадед</div>
+    <div style="font-size:13px;color:#6B7A99;margin-bottom:20px;font-family:var(--ff);" id="lt-s">Ворид шавед ба суратҳисоби худ</div>
 
     <div id="login-err" style="display:none;background:#FFF5F5;border:1px solid #FED7D7;border-radius:10px;padding:10px 13px;font-size:12px;color:#E53E3E;margin-bottom:14px;font-family:var(--ff);"></div>
 
     <div style="margin-bottom:14px;">
-      <label style="display:block;font-size:11px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;font-family:var(--ff);" id="lt-em">ЛОГИН (EMAIL)</label>
+      <label style="display:block;font-size:10px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-family:var(--ff);" id="lt-em">ЛОГИН (EMAIL)</label>
       <input id="l-email" type="email" autocomplete="email"
-        style="width:100%;padding:12px 14px;background:#F5F7FA;border:1.5px solid #E4E9F0;border-radius:14px;font-size:14px;color:#1A2332;font-family:var(--ff);outline:none;transition:all .18s;"
-        placeholder="ном@ширкат.tj"
-        onfocus="this.style.borderColor='#39B980';this.style.background='#fff';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.1)'"
-        onblur="this.style.borderColor='#E4E9F0';this.style.background='#F5F7FA';this.style.boxShadow='none'"
-        onkeydown="if(event.key==='Enter')doLogin()">
+        style="width:100%;padding:12px 14px;background:#F5F7FA;border:1.5px solid #E4E9F0;border-radius:12px;font-size:14px;color:#1A2332;font-family:var(--ff);outline:none;transition:all .2s;"
+        placeholder="email@zaki.tj"
+        onfocus="this.style.borderColor='#39B980';this.style.background='#fff';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.1)';"
+        onblur="this.style.borderColor='#E4E9F0';this.style.background='#F5F7FA';this.style.boxShadow='none';"
+        onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()">
     </div>
 
     <div style="margin-bottom:20px;">
-      <label style="display:block;font-size:11px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;font-family:var(--ff);" id="lt-pw">ПАРОЛ</label>
+      <label style="display:block;font-size:10px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-family:var(--ff);" id="lt-pw">ПАРОЛ</label>
       <div style="position:relative;">
         <input id="l-pass" type="password" autocomplete="current-password"
-          style="width:100%;padding:12px 44px 12px 14px;background:#F5F7FA;border:1.5px solid #E4E9F0;border-radius:14px;font-size:14px;color:#1A2332;font-family:var(--ff);outline:none;transition:all .18s;"
+          style="width:100%;padding:12px 44px 12px 14px;background:#F5F7FA;border:1.5px solid #E4E9F0;border-radius:12px;font-size:14px;color:#1A2332;font-family:var(--ff);outline:none;transition:all .2s;"
           placeholder="••••••••"
-          onfocus="this.style.borderColor='#39B980';this.style.background='#fff';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.1)'"
-          onblur="this.style.borderColor='#E4E9F0';this.style.background='#F5F7FA';this.style.boxShadow='none'"
+          onfocus="this.style.borderColor='#39B980';this.style.background='#fff';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.1)';"
+          onblur="this.style.borderColor='#E4E9F0';this.style.background='#F5F7FA';this.style.boxShadow='none';"
           onkeydown="if(event.key==='Enter')doLogin()">
         <button onclick="togglePass()" type="button"
-          style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9AA5B8;padding:4px;transition:color .15s;"
-          onmouseover="this.style.color='#4A5568'" onmouseout="this.style.color='#9AA5B8'">
+          style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9AA5B8;padding:4px;transition:color .15s;">
           <svg id="eye-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M1.5 9s3-5.5 7.5-5.5S16.5 9 16.5 9s-3 5.5-7.5 5.5S1.5 9 1.5 9z"/>
             <circle cx="9" cy="9" r="2.5"/>
@@ -537,30 +528,37 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
     </div>
 
     <button id="l-btn" onclick="doLogin()"
-      style="width:100%;padding:14px;background:#39B980;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .2s;box-shadow:0 4px 16px rgba(57,185,128,.3);letter-spacing:-.1px;"
-      onmouseover="this.style.background='#2A9066';this.style.transform='translateY(-1px)'"
-      onmouseout="this.style.background='#39B980';this.style.transform='translateY(0)'">
+      style="width:100%;padding:14px;background:linear-gradient(135deg,#39B980,#2A9066);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .2s;box-shadow:0 4px 16px rgba(57,185,128,.35);letter-spacing:-.2px;"
+      onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(57,185,128,.45)';"
+      onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 16px rgba(57,185,128,.35)';">
       <span id="l-btn-txt">Вуруд кардан →</span>
     </button>
 
-    <div style="margin-top:20px;text-align:center;">
-      <div style="font-size:11px;color:#9AA5B8;margin-bottom:4px;font-family:var(--ff);" id="lt-help">ёрдам</div>
-      <div style="font-size:12px;color:#6B7A99;font-family:var(--ff);" id="lt-forgot">Паролро фаромӯш кардед? <span style="color:#39B980;font-weight:700;cursor:pointer;">+992 103 005 003</span></div>
+    <div style="margin-top:16px;text-align:center;font-size:11px;color:#9AA5B8;font-family:var(--ff);">
+      <span id="lt-forgot">Паролро фаромӯш кардед?</span>
+      <span style="color:#39B980;font-weight:600;cursor:pointer;"> +992 103 005 003</span>
     </div>
 
-    <div style="display:flex;gap:6px;justify-content:center;margin-top:16px;">
+    <!-- Lang buttons -->
+    <div style="display:flex;gap:6px;justify-content:center;margin-top:14px;">
       <button onclick="setLang('ru')" id="ll-ru"
-        style="padding:5px 16px;border-radius:20px;border:1px solid #E4E9F0;background:#F5F7FA;color:#6B7A99;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .15s;">
+        style="padding:5px 18px;border-radius:20px;border:1px solid #E4E9F0;background:#F5F7FA;color:#6B7A99;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .15s;">
         RU
       </button>
       <button onclick="setLang('tj')" id="ll-tj"
-        style="padding:5px 16px;border-radius:20px;border:1px solid #39B980;background:#39B980;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .15s;">
+        style="padding:5px 18px;border-radius:20px;border:1px solid #39B980;background:#39B980;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .15s;">
         TJ
       </button>
     </div>
   </div>
+
+  <!-- Bottom text -->
+  <div style="text-align:center;margin-top:16px;font-size:11px;color:rgba(255,255,255,.3);font-family:var(--ff);">
+    ZAKI ERP · Системаи идоракунии молия
+  </div>
 </div>
 </div>
+
 
 <!-- ══ APP ══ -->
 <div class="app" id="app">
@@ -603,10 +601,7 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
       </div>
       <div class="page-ttl" id="page-ttl">Главная</div>
       <div class="tb-right">
-        <div class="online-chip" id="sync-chip" onclick="checkSync()" style="cursor:pointer;" title="Нажмите для проверки синхронизации">
-    <div class="online-dot" id="sync-dot"></div>
-    <span id="tb-online">Онлайн</span>
-  </div>
+        
         <div class="tb-btn" onclick="go('settings')">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="var(--t3)" stroke-width="1.4"><circle cx="7.5" cy="7.5" r="2.2"/><path d="M7.5 1.5v1.2M7.5 12.3v1.2M13 7.5h-1.2M3.2 7.5H2M11.4 3.6l-.85.85M4.45 10.55l-.85.85M11.4 11.4l-.85-.85M4.45 4.45l-.85-.85" stroke-linecap="round"/></svg>
         </div>
@@ -616,7 +611,38 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
         </div>
       </div>
     </div>
+    <div id="pulse-bar"></div>
     <div class="mob-tabs" id="mob-tabs"></div>
+    <!-- FINANCIAL PULSE BAR -->
+    <div class="pulse-bar" id="pulse-bar" style="display:none;">
+      <div class="pulse-item">
+        <div class="pulse-dot" style="background:var(--a);"></div>
+        <div><div class="pulse-lbl">Сегодня · Приход</div><div class="pulse-val inc" id="pb-inc">—</div></div>
+      </div>
+      <div class="pulse-item">
+        <div class="pulse-dot" style="background:var(--red);"></div>
+        <div><div class="pulse-lbl">Расход</div><div class="pulse-val exp" id="pb-exp">—</div></div>
+      </div>
+      <div class="pulse-item" style="flex:1;min-width:120px;">
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+            <div class="pulse-lbl">Баланс</div>
+            <div class="pulse-val bal" id="pb-bal" style="font-size:13px;">—</div>
+          </div>
+          <div class="pulse-prog"><div class="pulse-prog-fill" id="pb-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="pulse-item">
+        <div class="pulse-dot" style="background:var(--blue);"></div>
+        <div><div class="pulse-lbl">Авансы активные</div><div class="pulse-val" style="color:var(--blue);" id="pb-adv">—</div></div>
+      </div>
+      <div class="pulse-item" style="cursor:pointer;" onclick="renderPage('home')" title="Обновить">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--t4)" stroke-width="1.4" stroke-linecap="round">
+          <path d="M1 7a6 6 0 1 0 .5-2.5"/><path d="M1 2v3h3"/>
+        </svg>
+        <div class="pulse-lbl" id="pb-time">—</div>
+      </div>
+    </div>
     <div class="period-bar" id="period-bar">
       <button class="pb on" onclick="setPeriod('today',this)" id="pb-today">Сегодня</button>
       <button class="pb" onclick="setPeriod('month',this)" id="pb-month">Месяц</button>
@@ -649,6 +675,65 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 ═══════════════════════════════════════════════════ */
 
 /* ── TRANSLATIONS ── */
+/* ── ANIMATED COUNTER ── */
+
+
+/* ── PULSE BAR UPDATE ── */
+async function updatePulse(){
+  try{
+    const today2=today();
+    const{data:ops}=await SB.from('operations').select('type,amount,currency').eq('date',today2);
+    if(!ops) return;
+    const rate=COMPANY.usd_rate||10.92;
+    const incTJS=(ops||[]).filter(o=>o.type==='income'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+    const expTJS=(ops||[]).filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+    const balTJS=incTJS-expTJS;
+    const incUSD=(ops||[]).filter(o=>o.type==='income'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+    const expUSD=(ops||[]).filter(o=>o.type==='expense'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+    const balUSD=incUSD-expUSD;
+    const pb=document.getElementById('pulse-bar');
+    if(pb) pb.style.display='flex';
+    const pi=document.getElementById('pulse-inc');
+    const pe=document.getElementById('pulse-exp');
+    const pbal=document.getElementById('pulse-bal');
+    const pbusd=document.getElementById('pulse-bal-usd');
+    const pusdw=document.getElementById('pulse-usd-wrap');
+    if(pi) animateCounter(pi,incTJS,600,'+','');
+    if(pe) animateCounter(pe,expTJS,600,'-','');
+    if(pbal){
+      pbal.style.color=balTJS>=0?'#68D391':'#FC8181';
+      animateCounter(pbal,balTJS,700,(balTJS>=0?'+':'-'),'');
+    }
+    if(balUSD!==0&&pusdw&&pbusd){
+      pusdw.style.display='flex';
+      pbusd.style.color=balUSD>=0?'#76E4F7':'#FC8181';
+      animateCounter(pbusd,Math.abs(balUSD),700,(balUSD>=0?'$':'-$'),'');
+    }
+  }catch(e){console.error('pulse:',e);}
+}
+
+/* ── SYNC CHECK ── */
+async function checkSync(){
+  const dot=document.getElementById('sync-dot');
+  const lbl=document.getElementById('tb-online');
+  if(dot)dot.style.background='var(--yel)';
+  if(lbl)lbl.textContent='Проверка...';
+  try{
+    const t1=Date.now();
+    const{data,error}=await SB.from('company').select('id,name').eq('id',1).single();
+    const ms=Date.now()-t1;
+    if(error)throw error;
+    if(dot)dot.style.background='#39B980';
+    if(lbl)lbl.textContent='✓ '+ms+'мс';
+    showToast('✓ Supabase: '+data.name+' · '+ms+'мс отклик');
+    setTimeout(()=>{if(lbl)lbl.textContent='Онлайн';if(dot)dot.style.background='#39B980';},4000);
+  }catch(e){
+    if(dot)dot.style.background='var(--red)';
+    if(lbl)lbl.textContent='Ошибка!';
+    showToast('✗ Supabase ошибка: '+e.message,true);
+  }
+}
+
 const T={
   ru:{
     login:'Добро пожаловать',login_s:'Войдите в систему',login_btn:'Войти →',
@@ -987,6 +1072,33 @@ function exportPDF(title,ops){
   .sum-val.blue{color:#3182CE;}
   footer{margin-top:20px;padding-top:12px;border-top:1px solid #E4E9F0;text-align:center;font-size:9px;color:#9AA5B8;}
   @media print{body{padding:12px;}@page{margin:15mm;}}
+
+/* ── FINANCIAL PULSE ── */
+.pulse-bar{
+  display:flex;align-items:center;gap:0;padding:0 18px;
+  background:#fff;border-bottom:1px solid var(--bd);
+  flex-shrink:0;overflow-x:auto;
+}
+.pulse-bar::-webkit-scrollbar{display:none;}
+.pulse-item{
+  display:flex;align-items:center;gap:7px;padding:9px 16px;
+  border-right:1px solid var(--bd);white-space:nowrap;flex-shrink:0;
+}
+.pulse-item:last-child{border-right:none;}
+.pulse-lbl{font-size:10px;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+.pulse-val{font-size:15px;font-weight:800;letter-spacing:-.3px;}
+.pulse-val.inc{color:var(--ad);}
+.pulse-val.exp{color:var(--red);}
+.pulse-val.bal{color:var(--blue);}
+.pulse-dot{width:7px;height:7px;border-radius:50%;}
+.pulse-prog{flex:1;height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;min-width:60px;margin:0 8px;}
+.pulse-prog-fill{height:100%;border-radius:2px;background:var(--a);transition:width .8s cubic-bezier(.22,1,.36,1);}
+
+/* ── ANIMATED COUNTERS ── */
+@keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.sc-val{animation:countUp .5s ease both;}
+.sparkline-wrap{display:flex;align-items:flex-end;gap:2px;height:26px;margin-top:6px;}
+.spark-bar{width:5px;border-radius:2px 2px 0 0;transition:height .6s cubic-bezier(.22,1,.36,1);min-height:3px;}
 </style></head><body>
 <div class="header">
   <div>
@@ -1125,7 +1237,7 @@ function renderPage(id){
     c.innerHTML=`<div class="pg-loader"><div class="loader"></div></div>`;
     c.style.transition='opacity .25s ease';
     requestAnimationFrame(()=>{c.style.opacity='1';});
-    try{const html=await PAGES[id]?.();if(html!==undefined)c.innerHTML=html;}
+    try{const html=await PAGES[id]?.();if(html!==undefined){c.innerHTML=html;animateAllCounters();}}
     catch(e){c.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div>${e.message}</div>`;}
   },60);
 }
@@ -1147,7 +1259,8 @@ function getTimeOfDay(){
 function updateLoginAmbience(){
   const tod=getTimeOfDay();
   const bg=document.getElementById('lp-bg');
-  if(!bg)return;
+  // bg may not exist in new centered login design — that's ok
+  if(bg){
   const bgs={
     morning:'linear-gradient(180deg,#FFB347 0%,#FF8C42 30%,#FF6B6B 60%,#4A90D9 100%)',
     day:'linear-gradient(180deg,#1a3a6b 0%,#2a5a9a 30%,#3a7bbf 60%,#1a2a4a 100%)',
@@ -1168,19 +1281,36 @@ function updateLoginAmbience(){
   const greets={morning:LANG==='tj'?'Субҳ бахайр · Хуш омадед':'Доброе утро · Добро пожаловать',day:LANG==='tj'?'Рӯзи нек · Хуш омадед':'Добрый день · Добро пожаловать',evening:LANG==='tj'?'Бегоҳ бахайр · Хуш омадед':'Добрый вечер · Добро пожаловать',night:LANG==='tj'?'Шаб бахайр · Хуш омадед':'Доброй ночи · Добро пожаловать'};
   const gEl=document.getElementById('lp-greet');if(gEl)gEl.textContent=greets[tod]||greets.day;
   fetchWeatherLP();
+  }
+  fetchWeatherLP(); // always fetch weather for strip
 }
 async function fetchWeatherLP(){
+  const tod=getTimeOfDay();
+  // Update greeting based on time
+  const greets={
+    morning:LANG==='tj'?'Субҳ бахайр 🌅':'Доброе утро 🌅',
+    day:LANG==='tj'?'Рӯзи нек ☀️':'Добрый день ☀️',
+    evening:LANG==='tj'?'Бегоҳ бахайр 🌇':'Добрый вечер 🌇',
+    night:LANG==='tj'?'Шаб бахайр 🌙':'Доброй ночи 🌙'
+  };
+  const gEl=document.getElementById('lp-sys');
+  if(gEl) gEl.textContent=greets[tod]||greets.day;
   try{
     const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=38.56&longitude=68.77&current_weather=true&forecast_days=1');
     const d=await r.json();
     const temp=Math.round(d.current_weather?.temperature||30);
     const wc=d.current_weather?.weathercode||0;
-    const desc=wc===0?'☀️ Sunny':wc<3?'🌤 Cloudy':wc<60?'☁️ Overcast':'🌧 Rainy';
-    const te=document.getElementById('lp-temp');const de=document.getElementById('lp-desc');
-    if(te)te.textContent=temp+'°C';if(de)de.textContent=desc;
+    const desc=wc===0?'Ясно ☀️':wc<3?'Облачно 🌤':wc<60?'Пасмурно ☁️':'Дождь 🌧';
+    const te=document.getElementById('lp-temp');
+    const de=document.getElementById('lp-desc');
+    if(te)te.textContent=temp+'°C';
+    if(de)de.textContent=desc;
+    // Also update city ico based on weather
+    const ico=document.getElementById('lp-city-ico');
+    if(ico)ico.textContent=wc===0?'☀️':wc<3?'🌤':wc<60?'☁️':'🌧';
   }catch(e){
     const te=document.getElementById('lp-temp');if(te)te.textContent='30°C';
-    const de=document.getElementById('lp-desc');if(de)de.textContent='☀️ Sunny';
+    const de=document.getElementById('lp-desc');if(de)de.textContent='Ясно ☀️';
   }
 }
 
@@ -1212,6 +1342,9 @@ async function doLogin(){
     buildNav();updatePeriodBtns();
     CUR_PAGE=USER.role==='supplier'?'my':'home';
     go(CUR_PAGE);
+    // Start pulse bar
+    updatePulse();
+    setInterval(updatePulse,60000); // refresh every minute
   }catch(e){
     err.textContent=e.message||'Неверный email или пароль';
     err.style.display='block';
@@ -1246,13 +1379,23 @@ async function loadBaseData(){
 
 function setLang(l){
   LANG=l;
+  // Sidebar buttons
   const lbru=document.getElementById('lb-ru'),lbtj=document.getElementById('lb-tj');
   if(lbru)lbru.className='lb'+(l==='ru'?' on':'');
   if(lbtj)lbtj.className='lb'+(l==='tj'?' on':'');
+  // Login buttons (dark bg version)
   const llru=document.getElementById('ll-ru'),lltj=document.getElementById('ll-tj');
-  if(llru){llru.style.background=l==='ru'?'#39B980':'#F5F7FA';llru.style.color=l==='ru'?'#fff':'#6B7A99';llru.style.borderColor=l==='ru'?'#39B980':'#E4E9F0';}
-  if(lltj){lltj.style.background=l==='tj'?'#39B980':'#F5F7FA';lltj.style.color=l==='tj'?'#fff':'#6B7A99';lltj.style.borderColor=l==='tj'?'#39B980':'#E4E9F0';}
-  updateLoginTexts();updatePeriodBtns();updateLoginAmbience();
+  if(llru){
+    llru.style.background=l==='ru'?'#39B980':'rgba(255,255,255,.1)';
+    llru.style.color=l==='ru'?'#fff':'rgba(255,255,255,.6)';
+    llru.style.borderColor=l==='ru'?'#39B980':'rgba(255,255,255,.2)';
+  }
+  if(lltj){
+    lltj.style.background=l==='tj'?'#39B980':'rgba(255,255,255,.1)';
+    lltj.style.color=l==='tj'?'#fff':'rgba(255,255,255,.6)';
+    lltj.style.borderColor=l==='tj'?'#39B980':'rgba(255,255,255,.2)';
+  }
+  updateLoginTexts();updatePeriodBtns();
   if(USER){buildNav();renderPage(CUR_PAGE);}
 }
 function updateLoginTexts(){
@@ -1458,7 +1601,7 @@ async function fSubmit(isSupplier){
    PAGES
 ══════════════════════════════════════════════ */
 // Проверки прав: любая роль кроме director и supplier = полный доступ
-function canAdmin(){return USER?.role!=='director'&&USER?.role!=='supplier';}
+
 function canView(){return true;}
 function isDir(){return USER?.role==='director';}
 function isAcc(){return (USER?.role==='accountant'||USER?.role==='admin')||USER?.role==='admin';}
@@ -1680,6 +1823,48 @@ function moUpdTotal(val){
   if(th)th.textContent=SEL_CUR==='TJS'?`≈ $${fmtN(a/rate)} USD`:`≈ ${fmtN(a*rate)} TJS`;
 }
 
+/* ── ANIMATED COUNTERS ── */
+
+
+
+
+/* ── SPARKLINE ── */
+
+
+/* ── FINANCIAL PULSE ── */
+async function renderPulseBar(){
+  const bar = document.getElementById('pulse-bar');
+  if(!bar) return;
+  // Today's ops
+  const{data:todayOps} = await SB.from('operations').select('type,amount,currency,amount_tjs')
+    .eq('date', today());
+  if(!todayOps) return;
+  const rate = COMPANY.usd_rate||10.92;
+  const incT = todayOps.filter(o=>o.type==='income').reduce((a,o)=>a+(o.currency==='TJS'?o.amount:o.amount*rate),0);
+  const expT = todayOps.filter(o=>o.type==='expense').reduce((a,o)=>a+(o.currency==='TJS'?o.amount:o.amount*rate),0);
+  const balT = incT - expT;
+  const pct = incT>0 ? Math.min(expT/incT*100,100) : 0;
+  bar.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;padding:7px 16px;background:linear-gradient(90deg,rgba(57,185,128,.06),rgba(57,185,128,.02));border-bottom:1px solid rgba(57,185,128,.1);flex-wrap:wrap;">
+      <div style="font-size:10px;font-weight:700;color:var(--a);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">📊 Пульс сегодня</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--ad);white-space:nowrap;">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 10V2M2 6l4-4 4 4"/></svg>
+        +${fmtN(incT)} TJS
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--red);white-space:nowrap;">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2v8M2 6l4 4 4-4"/></svg>
+        -${fmtN(expT)} TJS
+      </div>
+      <div style="flex:1;min-width:80px;max-width:160px;height:4px;background:rgba(0,0,0,.08);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${pct.toFixed(1)}%;background:${pct>80?'var(--red)':pct>50?'var(--yel)':'var(--a)'};border-radius:2px;transition:width .6s;"></div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:${balT>=0?'var(--adk)':'var(--red)'};white-space:nowrap;">
+        ${balT>=0?'=':''} ${fmtN(Math.abs(balT))} TJS ${balT<0?'дефицит':''}
+      </div>
+      <div style="font-size:10px;color:var(--t4);white-space:nowrap;">${todayOps.length} операций</div>
+    </div>`;
+}
+
 const PAGES={
 
 /* ── HOME ── */
@@ -1742,6 +1927,9 @@ home:async()=>{
   const mInc=months.map(m=>filterForObj(allOpsAll||[]).filter(o=>o.type==='income'&&o.date?.startsWith(m)&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0));
   const mExp=months.map(m=>filterForObj(allOpsAll||[]).filter(o=>o.type==='expense'&&o.date?.startsWith(m)&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0));
 
+  // Update pulse bar with today's data
+  updatePulse();
+
   const ratesArr=[
     {f:'USD',t2:'TJS',v:rate,c:'linear-gradient(135deg,#39B980,#2A9066)'},
     {f:'EUR',t2:'TJS',v:(rate*1.08).toFixed(2),c:'linear-gradient(135deg,#3182CE,#2B6CB0)'},
@@ -1749,6 +1937,100 @@ home:async()=>{
   ];
 
   setTimeout(()=>{
+    /* ── ANIMATED COUNTERS ── */
+    function animCounter(elId, target, prefix, suffix, duration){
+      const el=document.getElementById(elId);
+      if(!el)return;
+      const startTime=performance.now();
+      const isNeg=target<0;
+      const absTarget=Math.abs(target);
+      function step(now){
+        const elapsed=now-startTime;
+        const progress=Math.min(elapsed/duration,1);
+        // Easing: ease-out cubic
+        const eased=1-Math.pow(1-progress,3);
+        const current=Math.round(eased*absTarget);
+        const formatted=current.toLocaleString('ru');
+        el.textContent=(isNeg?'-':'')+(prefix||'')+formatted+(suffix||'');
+        if(progress<1) requestAnimationFrame(step);
+        else el.textContent=(isNeg?'-':'')+(prefix||'')+absTarget.toLocaleString('ru')+(suffix||'');
+      }
+      requestAnimationFrame(step);
+    }
+
+    // Fire all counters with 600ms duration
+    animCounter('cnt-incTJS', incTJS, '', '', 700);
+    animCounter('cnt-incUSD', incUSD, '$', '', 700);
+    animCounter('cnt-expTJS', expTJS, '', '', 700);
+    animCounter('cnt-expUSD', expUSD, '$', '', 700);
+    animCounter('cnt-balTJS', balTJS, '', '', 900);
+    animCounter('cnt-balUSD', balUSD, '$', '', 900);
+    animCounter('cnt-deb', deb, '', '', 600);
+    animCounter('cnt-cred', cred, '', '', 600);
+
+    // Net debt label
+    const netEl=document.getElementById('cnt-net');
+    if(netEl) setTimeout(()=>{ netEl.textContent='Нетто: '+fmtN(deb-cred)+' TJS'; }, 700);
+
+    /* ── SPARKLINES ── */
+    // Get last 7 days
+    const days7=[];
+    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days7.push(d.toISOString().slice(0,10));}
+    const dayOps=allOpsAll||[];
+
+    function drawSparkline(canvasId, data, color, fillColor){
+      const canvas=document.getElementById(canvasId);
+      if(!canvas)return;
+      const ctx=canvas.getContext('2d');
+      const W=canvas.width, H=canvas.height;
+      ctx.clearRect(0,0,W,H);
+      if(!data.length||data.every(v=>v===0)){
+        ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);
+        ctx.strokeStyle='rgba(150,150,150,.2)';ctx.lineWidth=1.5;ctx.stroke();
+        return;
+      }
+      const max=Math.max(...data,1);
+      const min=0;
+      const range=max-min||1;
+      const pts=data.map((v,i)=>({
+        x: (i/(data.length-1||1))*(W-4)+2,
+        y: H-2-((v-min)/range)*(H-4)
+      }));
+      // Fill area
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, H);
+      pts.forEach(p=>ctx.lineTo(p.x,p.y));
+      ctx.lineTo(pts[pts.length-1].x, H);
+      ctx.closePath();
+      ctx.fillStyle=fillColor;
+      ctx.fill();
+      // Line
+      ctx.beginPath();
+      pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+      ctx.strokeStyle=color;
+      ctx.lineWidth=2;
+      ctx.lineJoin='round';
+      ctx.lineCap='round';
+      ctx.stroke();
+      // Last dot
+      const last=pts[pts.length-1];
+      ctx.beginPath();
+      ctx.arc(last.x,last.y,3,0,Math.PI*2);
+      ctx.fillStyle=color;
+      ctx.fill();
+    }
+
+    const incData7=days7.map(d=>dayOps.filter(o=>o.type==='income'&&o.currency==='TJS'&&o.date===d).reduce((a,o)=>a+o.amount,0));
+    const expData7=days7.map(d=>dayOps.filter(o=>o.type==='expense'&&o.currency==='TJS'&&o.date===d).reduce((a,o)=>a+o.amount,0));
+    const balData7=incData7.map((v,i)=>v-expData7[i]);
+    const netData7=days7.map((_,i)=>Math.max(0,deb-cred));
+
+    drawSparkline('spark-inc', incData7, '#2A9066', 'rgba(57,185,128,.12)');
+    drawSparkline('spark-exp', expData7, '#E53E3E', 'rgba(229,62,62,.10)');
+    drawSparkline('spark-bal', balData7, '#3182CE', 'rgba(49,130,206,.10)');
+    drawSparkline('spark-debt', netData7, '#DD6B20', 'rgba(221,107,32,.10)');
+
+    /* ── CHARTS ── */
     // Cash flow line chart
     mkChart('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[
       {label:'Приход TJS',data:mInc,borderColor:'#39B980',backgroundColor:'rgba(57,185,128,.08)',fill:true,tension:.4,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'white',pointBorderColor:'#39B980',pointBorderWidth:2},
@@ -1803,49 +2085,121 @@ home:async()=>{
     ${window._homeObj?`<span class="badge bg" style="margin-left:4px;">📍 ${window._homeObj}</span>`:''}
   </div>
 
-  <!-- STAT CARDS: TJS и USD отдельно -->
+  <!-- STAT CARDS: анимированные счётчики + sparklines -->
+  <!-- ANIMATED STAT CARDS WITH ICONS -->
   <div class="g2 mb12">
-    <div class="sc g" style="animation-delay:.04s;">
-      <div class="sc-lbl">↑ Приходы</div>
-      <div style="display:flex;gap:14px;align-items:baseline;margin:5px 0 3px;flex-wrap:wrap;">
-        <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">TJS</div><div style="font-size:20px;font-weight:800;color:var(--ad);">+${fmtN(incTJS)}</div></div>
-        <div style="width:1px;background:var(--bd);height:26px;align-self:center;"></div>
-        <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">USD</div><div style="font-size:20px;font-weight:800;color:var(--blue);">+$${fmtN(incUSD)}</div></div>
+    <div class="sc g" style="animation-delay:.04s;overflow:hidden;position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div style="flex:1;">
+          <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 11V2M2 6.5l4.5-4.5 4.5 4.5"/></svg>
+            Приходы
+          </div>
+          <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
+            <div><div style="font-size:10px;color:var(--t4);">TJS</div>
+              <div style="font-size:20px;font-weight:800;color:var(--ad);transition:all .3s;" id="cnt-incTJS">+${fmtN(incTJS)}</div></div>
+            <div style="width:1px;background:var(--bd);height:22px;align-self:center;"></div>
+            <div><div style="font-size:10px;color:var(--t4);">USD</div>
+              <div style="font-size:20px;font-weight:800;color:var(--blue);" id="cnt-incUSD">$${fmtN(incUSD)}</div></div>
+          </div>
+          <div class="sc-val2" style="margin-top:3px;">${inc.length} операций${window._homeObj?' · '+window._homeObj:''}</div>
+        </div>
+        <canvas id="spark-inc" width="56" height="32" style="flex-shrink:0;opacity:.75;margin-top:4px;"></canvas>
       </div>
-      <div class="sc-val2">${inc.length} операций${window._homeObj?' · '+window._homeObj:''}</div>
     </div>
-    <div class="sc r" style="animation-delay:.07s;">
-      <div class="sc-lbl">↓ Расходы</div>
-      <div style="display:flex;gap:14px;align-items:baseline;margin:5px 0 3px;flex-wrap:wrap;">
-        <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">TJS</div><div style="font-size:20px;font-weight:800;color:var(--red);">-${fmtN(expTJS)}</div></div>
-        <div style="width:1px;background:var(--bd);height:26px;align-self:center;"></div>
-        <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">USD</div><div style="font-size:20px;font-weight:800;color:var(--ora);">-$${fmtN(expUSD)}</div></div>
+    <div class="sc r" style="animation-delay:.07s;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div style="flex:1;">
+          <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v9M2 6.5l4.5 4.5 4.5-4.5"/></svg>
+            Расходы
+          </div>
+          <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
+            <div><div style="font-size:10px;color:var(--t4);">TJS</div>
+              <div style="font-size:20px;font-weight:800;color:var(--red);" id="cnt-expTJS">-${fmtN(expTJS)}</div></div>
+            <div style="width:1px;background:var(--bd);height:22px;align-self:center;"></div>
+            <div><div style="font-size:10px;color:var(--t4);">USD</div>
+              <div style="font-size:20px;font-weight:800;color:var(--ora);" id="cnt-expUSD">$${fmtN(expUSD)}</div></div>
+          </div>
+          <div class="sc-val2" style="margin-top:3px;">${exp.length} операций</div>
+        </div>
+        <canvas id="spark-exp" width="56" height="32" style="flex-shrink:0;opacity:.75;margin-top:4px;"></canvas>
       </div>
-      <div class="sc-val2">${exp.length} операций</div>
     </div>
   </div>
   <div class="g2 mb20">
     <div class="sc g" style="animation-delay:.1s;">
-      <div class="sc-lbl">🏦 Баланс кассы</div>
-      <div style="display:flex;gap:14px;align-items:baseline;margin:5px 0 3px;flex-wrap:wrap;">
-        <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">TJS</div><div style="font-size:20px;font-weight:800;color:${balTJS>=0?'var(--adk)':'var(--red)'};">${balTJS>=0?'+':''}${fmtN(balTJS)}</div></div>
-        <div style="width:1px;background:var(--bd);height:26px;align-self:center;"></div>
-        <div><div style="font-size:10px;color:var(--t4);margin-bottom:1px;">USD</div><div style="font-size:20px;font-weight:800;color:${balUSD>=0?'var(--blue)':'var(--red)'};">${balUSD>=0?'+':''}$${fmtN(balUSD)}</div></div>
+      <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round"><rect x="1" y="3" width="11" height="8" rx="1.5"/><path d="M1 6h11"/></svg>
+        Баланс кассы
       </div>
-      <div class="sc-val2">После авансов снабженцам</div>
+      <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
+        <div><div style="font-size:10px;color:var(--t4);">TJS</div>
+          <div style="font-size:20px;font-weight:800;color:${balTJS>=0?'var(--adk)':'var(--red)'};" id="cnt-balTJS">${balTJS>=0?'+':''}${fmtN(balTJS)}</div></div>
+        <div style="width:1px;background:var(--bd);height:22px;align-self:center;"></div>
+        <div><div style="font-size:10px;color:var(--t4);">USD</div>
+          <div style="font-size:20px;font-weight:800;color:${balUSD>=0?'var(--blue)':'var(--red)'};" id="cnt-balUSD">${balUSD>=0?'+$':'-$'}${fmtN(Math.abs(balUSD))}</div></div>
+      </div>
+      <div class="sc-val2" style="margin-top:3px;">После авансов снабженцам</div>
     </div>
     <div class="sc o" style="animation-delay:.13s;">
-      <div class="sc-lbl">⏳ Долги</div>
-      <div style="display:flex;gap:14px;align-items:baseline;margin:5px 0 3px;flex-wrap:wrap;">
-        <div><div style="font-size:10px;color:var(--ad);margin-bottom:1px;">Нам должны</div><div style="font-size:20px;font-weight:800;color:var(--ad);">${fmtN(deb)}</div></div>
-        <div style="width:1px;background:var(--bd);height:26px;align-self:center;"></div>
-        <div><div style="font-size:10px;color:var(--red);margin-bottom:1px;">Мы должны</div><div style="font-size:20px;font-weight:800;color:var(--red);">${fmtN(cred)}</div></div>
+      <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--ora)" stroke-width="1.8" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 4v3l2 1.5" stroke-linecap="round"/></svg>
+        Долги
       </div>
-      <div class="sc-val2">Нетто: ${fmtN(deb-cred)} TJS</div>
+      <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
+        <div><div style="font-size:10px;color:var(--ad);">Нам должны</div>
+          <div style="font-size:20px;font-weight:800;color:var(--ad);" id="cnt-deb">${fmtN(deb)}</div></div>
+        <div style="width:1px;background:var(--bd);height:22px;align-self:center;"></div>
+        <div><div style="font-size:10px;color:var(--red);">Мы должны</div>
+          <div style="font-size:20px;font-weight:800;color:var(--red);" id="cnt-cred">${fmtN(cred)}</div></div>
+      </div>
+      <div class="sc-val2" style="margin-top:3px;">Нетто: ${fmtN(deb-cred)} TJS</div>
     </div>
   </div>
+  <script>
+    setTimeout(()=>{
+      // Animate all counters
+      [
+        {id:'cnt-incTJS',val:${incTJS},pre:'+'},
+        {id:'cnt-incUSD',val:${incUSD},pre:'$'},
+        {id:'cnt-expTJS',val:${expTJS},pre:'-'},
+        {id:'cnt-expUSD',val:${expUSD},pre:'$'},
+        {id:'cnt-balTJS',val:Math.abs(${balTJS}),pre:'${balTJS>=0?"+":"−"}'},
+        {id:'cnt-balUSD',val:Math.abs(${balUSD}),pre:'${balUSD>=0?"$":"−$"}'},
+        {id:'cnt-deb',val:${deb},pre:''},
+        {id:'cnt-cred',val:${cred},pre:''},
+      ].forEach(({id,val,pre})=>{
+        const el=document.getElementById(id);
+        if(!el)return;
+        animateCounter(el,val,900,pre,'');
+      });
+      // Sparklines (7-day trend)
+      const mInc7=[${mInc.slice(-7).join(',')}];
+      const mExp7=[${mExp.slice(-7).join(',')}];
+      drawSparkline('spark-inc',mInc7,'#39B980');
+      drawSparkline('spark-exp',mExp7,'#E53E3E');
+      // Pulse bar
+      renderPulseBar();
+    },100);
+  </script>
 
-  <!-- MONEY MAP -->
+  <!-- animate counters after render -->
+  <script>
+  setTimeout(()=>{
+    const els=[
+      ['h-inc-tjs',${incTJS},'+',''],
+      ['h-exp-tjs',${expTJS},'-',''],
+      ['h-bal-tjs',${Math.abs(balTJS)},${balTJS>=0?"'+'":"'-'"},''],
+    ];
+    els.forEach(([id,val,pre,suf])=>{
+      const el=document.getElementById(id);
+      if(el)animateCounter(el,val,900,pre,suf);
+    });
+  },100);
+  <\/script>
+
+<!-- MONEY MAP -->
   <div class="sh"><div class="sh-t">Карта денег</div></div>
   <div class="money-map mb20">
     <div class="mm" style="animation-delay:.04s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div><div class="mm-l">В кассе TJS</div><div class="mm-v" style="color:var(--adk);">${fmtN(balTJS)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(balUSD)} USD</div></div>
@@ -1931,7 +2285,7 @@ ops:async()=>{
   const canEdit=canWrite();
   return `
   ${canEdit?`
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
     <button onclick="openAddOpModal('income')"
       style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--ap);border:1.5px solid rgba(57,185,128,.3);border-radius:var(--r2);cursor:pointer;font-family:var(--ff);font-weight:600;font-size:13px;color:var(--adk);transition:all .18s;"
       onmouseover="this.style.background='var(--al)'" onmouseout="this.style.background='var(--ap)'">
@@ -1944,12 +2298,7 @@ ops:async()=>{
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4v14M4 11l7 7 7-7"/></svg>
       + Расход
     </button>
-    <button onclick="openAddOpModal('advance')"
-      style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--bluel);border:1.5px solid var(--blueb);border-radius:var(--r2);cursor:pointer;font-family:var(--ff);font-weight:600;font-size:13px;color:var(--blue);transition:all .18s;"
-      onmouseover="this.style.background='#d0e8fa'" onmouseout="this.style.background='var(--bluel)'">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h16M11 4l7 7-7 7"/></svg>
-      Аванс →
-    </button>
+
   </div>`:``}
 
   <!-- SUMMARY TJS/USD отдельно -->
@@ -2020,96 +2369,164 @@ ops:async()=>{
 
 /* ── SNABS ── */
 snabs:async()=>{
-  const[{data:advs},{data:allOps}]=await Promise.all([
-    SB.from('advances').select('*').order('created_at',{ascending:false}),
-    SB.from('operations').select('worker_name,amount_tjs,type').eq('type','expense')
-  ]);
   const rate=COMPANY.usd_rate||10.92;
+  const[{data:advs},{data:allOps},{data:profiles}]=await Promise.all([
+    SB.from('advances').select('*').order('created_at',{ascending:false}),
+    SB.from('operations').select('worker_name,amount,currency,type,date,description,amount_tjs').eq('type','expense'),
+    SB.from('profiles').select('name,role').in('role',['supplier','accountant','admin'])
+  ]);
+  window._advProfiles = profiles||[];
   const clrs=['var(--a)','var(--blue)','var(--pur)','var(--ora)'];
   const bgs=['var(--al)','var(--bluel)','var(--purl)','var(--oral)'];
   const totalAdv=(advs||[]).reduce((a,x)=>a+x.amount,0);
-  // Потрачено = реальные расходы снабженцев (только тип expense)
-  const totalSpent=(allOps||[]).filter(o=>o.type==='expense').reduce((a,o)=>a+o.amount,0);
-  const totalRemaining=totalAdv-totalSpent;
-  const SNAMES=['Старт','Закупка','Доставка','Сдача'];
-  return `
-  <div class="g2 mb20">
-    <div class="sc g" style="animation-delay:.03s;"><div class="sc-lbl">${t('adv_iss')}</div><div class="sc-val" style="color:var(--ad);">${fmtN(totalAdv)}</div><div class="sc-val2">TJS · $${fmtN(totalAdv/rate)}</div></div>
-    <div class="sc r" style="animation-delay:.06s;"><div class="sc-lbl">${t('spent')}</div><div class="sc-val" style="color:var(--red);">${fmtN(totalSpent)}</div><div class="sc-val2">TJS · $${fmtN(totalSpent/rate)}</div></div>
-  </div>
-  <div class="sh"><div class="sh-t">${t('snabs')}</div>${canAdmin()?`<button class="btn btn-p btn-sm" onclick="openNewAdv()">${t('add_adv')}</button>`:''}</div>
-  ${(advs||[]).map((a,i)=>{
-    // Потрачено конкретным снабженцем — только расходы, точная валюта
-    // Потрачено = расходы снабженца (только тип expense, любая валюта → конвертим в TJS для сравнения)
-    const workerOps=(allOps||[]).filter(o=>o.type==='expense'&&o.worker_name===a.worker_name);
-    const spent=workerOps.reduce((s,o)=>s+(o.currency==='USD'?o.amount*(COMPANY.usd_rate||10.92):o.amount),0);
+  const totalSpentTJS=(allOps||[]).filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+  const totalSpentUSD=(allOps||[]).filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+
+  const active=(advs||[]).filter(a=>a.status!=='done'&&a.status!=='closed');
+  const done=(advs||[]).filter(a=>a.status==='done'||a.status==='closed');
+
+  function advCard(a,i){
+    const rate2=COMPANY.usd_rate||10.92;
+    const workerOps=(allOps||[]).filter(o=>o.worker_name===a.worker_name);
     const spentTJS=workerOps.filter(o=>o.currency==='TJS').reduce((s,o)=>s+o.amount,0);
     const spentUSD=workerOps.filter(o=>o.currency==='USD').reduce((s,o)=>s+o.amount,0);
-    const rem=a.amount-spent;const pct=a.amount>0?Math.min(spent/a.amount*100,100):0;
-    const isOver=rem<0;const clr=clrs[i%4],bg=bgs[i%4];
-    const names=Array.isArray(a.stage_names)?a.stage_names:SNAMES;
-    return `<div class="pc" style="animation-delay:${i*.07}s;">
-      <div class="pc-top"><div class="pc-lft">
-        <div class="ava" style="width:40px;height:40px;background:${bg};color:${clr};">${(a.worker_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
-        <div><div class="pc-name">${a.worker_name}</div><div class="pc-sub">${a.task||'—'} · ${a.object_name||'—'}</div></div>
-      </div>
-      <div style="display:flex;gap:5px;align-items:center;">
-        ${isOver?`<span class="badge br">Перерасход</span>`:`<span class="badge ${(a.stage||0)>=(a.stages||4)?'bg':'by'}">${(a.stage||0)>=(a.stages||4)?t('done_ok'):'Этап '+(a.stage||0)+'/'+(a.stages||4)}</span>`}
-      </div></div>
-      ${stageTrack(a.stage||0,a.stages||4,names)}
-      <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${isOver?'var(--red)':pct>75?'var(--yel)':clr};animation-delay:${.1+i*.07}s;"></div></div>
-      <div class="pc-nums"><span style="color:var(--red);">−${fmtN(spent)} TJS</span><span style="color:${rem>=0?'var(--ad)':'var(--red)'};">Остаток: ${fmtN(Math.abs(rem))} TJS</span></div>
-      ${USER?.role!=='director'?`<div class="a-btns">
-        <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="advStage(${a.id})">${(a.stage||0)>=(a.stages||4)?'✓ Готово':'Этап →'}</button>
-        <button class="a-btn" style="background:var(--bg);border-color:var(--bd);color:var(--t3);" onclick="showWorkerOps('${a.worker_name}')">${t('details')}</button>
-      </div>`:''}
-    </div>`;
-  }).join('')||`<div class="empty"><div class="empty-icon">👷</div>${t('no_data')}</div>`}`;
-},
+    const spent=spentTJS+(spentUSD*rate2);
+    const total=a.amount*(a.currency==='USD'?rate2:1);
+    const rem=total-spent;
+    const pct=total>0?Math.min(spent/total*100,100):0;
+    const isOver=rem<0;
+    const isDone=a.status==='done'||a.status==='closed';
+    const clr=clrs[i%4],bg=bgs[i%4];
+    const names=Array.isArray(a.stage_names)?a.stage_names:['Старт','Закупка','Доставка','Сдача'];
 
-/* ── MASTERS ── */
-masters:async()=>{
-  const{data:masters}=await SB.from('masters').select('*,master_works(*)').order('created_at',{ascending:false});
-  const rate=COMPANY.usd_rate||10.92;
-  const totA=(masters||[]).reduce((a,m)=>a+(m.advance_amount||0),0);
-  const totW=(masters||[]).reduce((a,m)=>a+(m.worked_amount||0),0);
-  const clrs=['var(--a)','var(--blue)','var(--pur)','var(--ora)'];
-  const bgs=['var(--al)','var(--bluel)','var(--purl)','var(--oral)'];
-  const sm={active:{l:t('s_act'),c:'by'},partial:{l:t('s_par'),c:'bb'},done:{l:t('done_ok'),c:'bg'},late:{l:t('overdue'),c:'br'}};
-  return `
-  <div class="g3 mb20">
-    <div class="sc g" style="animation-delay:.03s;"><div class="sc-lbl">Выдано авансов</div><div class="sc-val" style="color:var(--ad);">${fmtN(totA)}</div><div class="sc-val2">TJS</div></div>
-    <div class="sc b" style="animation-delay:.06s;"><div class="sc-lbl">Отработано</div><div class="sc-val" style="color:var(--blue);">${fmtN(totW)}</div><div class="sc-val2">TJS</div></div>
-    <div class="sc o" style="animation-delay:.09s;"><div class="sc-lbl">Остаток</div><div class="sc-val" style="color:var(--ora);">${fmtN(totA-totW)}</div><div class="sc-val2">TJS</div></div>
+    if(isDone){
+      // Compact done card
+      return \`<div class="pc" style="animation-delay:\${i*.05}s;opacity:.7;padding:10px 14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="ava" style="width:34px;height:34px;background:\${bg};color:\${clr};font-size:11px;">\${(a.worker_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:600;color:var(--t2);">\${a.worker_name}</div>
+            <div style="font-size:10px;color:var(--t4);">\${a.task||'—'} · \${a.object_name||'—'}</div>
+          </div>
+          <span class="badge bg" style="font-size:10px;">✓ Закрыт</span>
+          <div style="text-align:right;font-size:11px;">
+            <div style="color:var(--t3);">Выдано: \${fmtN(a.amount)} \${a.currency}</div>
+            <div style="color:var(--t4);">Потрачено: \${fmtN(spentTJS)} TJS\${spentUSD>0?' / $'+fmtN(spentUSD)+' USD':''}</div>
+          </div>
+          \${canWrite()?\`<button onclick="reopenAdv(\${a.id})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);font-size:11px;cursor:pointer;font-family:var(--ff);color:var(--t3);">↺</button>\`:''}
+        </div>
+      </div>\`;
+    }
+
+    return \`<div class="pc" style="animation-delay:\${i*.07}s;">
+      <div class="pc-top">
+        <div class="pc-lft">
+          <div class="ava" style="width:42px;height:42px;background:\${bg};color:\${clr};">\${(a.worker_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+          <div>
+            <div class="pc-name">\${a.worker_name}</div>
+            <div class="pc-sub">\${a.task||'—'} · \${a.object_name||'—'}</div>
+            <div style="font-size:10px;color:var(--t4);margin-top:1px;">Выдан: \${a.created_at?a.created_at.slice(0,10):'—'}</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <span class="badge \${isOver?'br':pct>80?'by':'bg'}">\${isOver?'Перерасход':pct>80?'Почти всё':'Этап '+(a.stage||0)+'/'+(a.stages||4)}</span>
+          <div style="font-size:12px;font-weight:700;color:var(--t);">\${fmtN(a.amount)} \${a.currency}</div>
+        </div>
+      </div>
+
+      \${stageTrack(a.stage||0,a.stages||4,names)}
+
+      <div class="bar-tr mb8">
+        <div class="bar-fi" style="width:\${pct.toFixed(1)}%;background:\${isOver?'var(--red)':pct>80?'var(--yel)':clr};animation-delay:\${.1+i*.07}s;"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px;">
+        <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px;text-align:center;">
+          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">Выдано</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ad);">\${fmtN(a.amount)} \${a.currency}</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px;text-align:center;">
+          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">Потрачено</div>
+          <div style="font-size:13px;font-weight:700;color:var(--red);">\${fmtN(spentTJS)} TJS\${spentUSD>0?'<br><span style="font-size:10px;">$'+fmtN(spentUSD)+'</span>':''}</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid \${isOver?'var(--redb)':'var(--bd)'};border-radius:var(--r);padding:8px;text-align:center;">
+          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">Остаток</div>
+          <div style="font-size:13px;font-weight:700;color:\${isOver?'var(--red)':'var(--adk)'};">\${isOver?'−':''}\${fmtN(Math.abs(rem))} TJS</div>
+        </div>
+      </div>
+
+      \${canWrite()?\`
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+        <button onclick="advReturn(\${a.id},'money')"
+          style="padding:8px 4px;border-radius:var(--r);background:var(--al);border:1px solid rgba(57,185,128,.25);color:var(--adk);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
+          onmouseover="this.style.background='rgba(57,185,128,.2)'" onmouseout="this.style.background='var(--al)'">
+          ↩ Возврат
+        </button>
+        <button onclick="advDone(\${a.id})"
+          style="padding:8px 4px;border-radius:var(--r);background:var(--bluel);border:1px solid var(--blueb);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
+          onmouseover="this.style.background='#d0e8fa'" onmouseout="this.style.background='var(--bluel)'">
+          ✓ Выполнено
+        </button>
+        <button onclick="advAddExpense('\${a.worker_name}','\${a.object_name||''}')"
+          style="padding:8px 4px;border-radius:var(--r);background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
+          onmouseover="this.style.background='#ffe0e0'" onmouseout="this.style.background='var(--redl)'">
+          + Расход
+        </button>
+        <button onclick="advStage(\${a.id})"
+          style="padding:8px 4px;border-radius:var(--r);background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;">
+          Этап →
+        </button>
+      </div>\`:''}
+
+      \${workerOps.length?\`
+      <div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:2px;">
+        <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">История расходов</div>
+        \${workerOps.slice(0,4).map(o=>\`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bg2);">
+            <div>
+              <span style="font-size:11px;color:var(--t2);">\${o.description||o.category_name||'—'}</span>
+              <span style="font-size:10px;color:var(--t4);margin-left:6px;">\${o.date}</span>
+            </div>
+            <span style="font-size:11px;font-weight:600;color:var(--red);">−\${fmtN(o.amount)} \${o.currency}</span>
+          </div>\`).join('')}
+        \${workerOps.length>4?\`<div style="font-size:10px;color:var(--t4);text-align:center;padding-top:4px;">+ ещё \${workerOps.length-4} расходов</div>\`:''}
+      </div>\`:''}
+    </div>\`;
+  }
+
+  return \`
+  <div class="g2 mb16">
+    <div class="sc g" style="animation-delay:.03s;">
+      <div class="sc-lbl">↑ Выдано авансов</div>
+      <div style="font-size:20px;font-weight:800;color:var(--ad);">\${fmtN(totalAdv)} TJS</div>
+      <div class="sc-val2">\${active.length} активных · \${done.length} закрытых</div>
+    </div>
+    <div class="sc r" style="animation-delay:.06s;">
+      <div class="sc-lbl">↓ Потрачено снабженцами</div>
+      <div style="display:flex;gap:12px;align-items:baseline;margin-top:3px;">
+        <div style="font-size:20px;font-weight:800;color:var(--red);">\${fmtN(totalSpentTJS)} TJS</div>
+        \${totalSpentUSD>0?\`<div style="font-size:14px;font-weight:700;color:var(--ora);">$\${fmtN(totalSpentUSD)}</div>\`:''}
+      </div>
+    </div>
   </div>
-  <div class="sh"><div class="sh-t">${t('mast_t')}</div>${canAdmin()?`<button class="btn btn-p btn-sm" onclick="openNewMaster()">${t('new_m')}</button>`:''}</div>
-  ${(masters||[]).map((m,i)=>{
-    const avTJS=m.advance_amount||0,wkTJS=m.worked_amount||0,rem=avTJS-wkTJS;
-    const pct=avTJS>0?Math.min(wkTJS/avTJS*100,100):0;
-    const st=sm[m.status||'active']||sm.active;
-    return `<div class="mc" style="animation-delay:${i*.07}s;">
-      <div class="mc-hd">
-        <div class="mc-ava" style="background:${bgs[i%4]};color:${clrs[i%4]};">${(m.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
-        <div style="flex:1;min-width:0;"><div class="mc-name">${m.name}</div><div class="mc-phone">${m.phone||'—'}</div><div class="mc-obj">${m.object_name||'—'} · ${m.specialty||'—'}</div></div>
-        <span class="badge ${st.c}">${st.l}</span>
-      </div>
-      <div class="mc-stats">
-        <div class="ms"><div class="ms-l">${t('got')}</div><div class="ms-v" style="color:var(--ad);">${fmtN(avTJS)}</div></div>
-        <div class="ms"><div class="ms-l">${t('worked')}</div><div class="ms-v" style="color:var(--blue);">${fmtN(wkTJS)}</div></div>
-        <div class="ms"><div class="ms-l">${t('left')}</div><div class="ms-v" style="color:${rem>0?'var(--ora)':'var(--ad)'};">${fmtN(rem)}</div></div>
-      </div>
-      <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${pct>=100?'var(--a)':pct>60?'var(--blue)':'var(--yel)'};animation-delay:${i*.07}s;"></div></div>
-      <div style="font-size:11px;color:var(--t4);margin-bottom:${canAdmin()?'10px':'0'};">Выполнено: ${Math.round(pct)}% · Срок: ${m.due_date||'—'}${m.notes?' · '+m.notes:''}</div>
-      ${canAdmin()?`<div class="a-btns">
-        <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="addMasterWork(${m.id})">${t('add_w')}</button>
-        <button class="a-btn" style="background:var(--bg);border-color:var(--bd);color:var(--t3);" onclick="masterCard(${m.id})">${t('m_card')}</button>
-        <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="delMaster(${m.id})">${t('delete')}</button>
-      </div>`:''}
-    </div>`;
-  }).join('')||`<div class="empty"><div class="empty-icon">⭐</div>${t('no_data')}</div>`}`;
+
+  <div class="sh">
+    <div class="sh-t">Активные авансы (\${active.length})</div>
+    \${canWrite()?\`<button class="btn btn-p btn-sm" onclick="openNewAdv()" style="display:flex;align-items:center;gap:5px;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 1v11M1 6.5h11"/></svg>
+      Выдать аванс
+    </button>\`:''}
+  </div>
+  \${active.map((a,i)=>advCard(a,i)).join('')||\`<div class="empty"><div class="empty-icon">👷</div>Нет активных авансов</div>\`}
+
+  \${done.length?\`
+  <div class="sh" style="margin-top:12px;"><div class="sh-t" style="color:var(--t3);">Закрытые (\${done.length})</div></div>
+  \${done.map((a,i)=>advCard(a,active.length+i)).join('')}
+  \`:''}
+  \`;
 },
 
-/* ── DEBTS ── */
+
 debts:async()=>{
   const{data:debts}=await SB.from('debts').select('*,debt_returns(*)').order('due_date');
   const rate=COMPANY.usd_rate||10.92;
@@ -2374,6 +2791,108 @@ tasks:async()=>{
 /* ══════════════════════════════════════════════
    ACTION HANDLERS
 ══════════════════════════════════════════════ */
+/* ── ADVANCE HELPERS ── */
+function canAdmin(){return USER?.role==='accountant'||USER?.role==='admin';}
+
+function openNewAdvanceFull(){
+  const rate=COMPANY.usd_rate||10.92;
+  // Build worker list from profiles + existing advance workers
+  SB.from('profiles').select('name,role').in('role',['supplier','accountant','admin']).then(({data:profiles})=>{
+    const workerOpts=(profiles||[]).map(p=>`<option value="${p.name}">${p.name} (${p.role})</option>`).join('');
+    openModal('Выдать аванс',`
+      <div class="fg f2">
+        <div class="fld s2">
+          <div class="fld-l">Получатель (снабженец или компания)</div>
+          <input class="fi" id="na-worker" list="na-workers-list"
+            placeholder="Выберите из списка или введите имя..."
+            style="font-weight:500;">
+          <datalist id="na-workers-list">${workerOpts}</datalist>
+        </div>
+        <div class="fld s2">
+          <div class="fld-l">Объект</div>
+          <select class="fi fi-sel" id="na-obj">
+            <option value="">— Без объекта —</option>
+            ${OBJECTS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fld s2">
+          <div class="fld-l">Задача / Назначение аванса</div>
+          <input class="fi" id="na-task" placeholder="Закупка арматуры, доставка цемента...">
+        </div>
+        <div class="fld">
+          <div class="fld-l">Сумма</div>
+          <input class="fi fi-lg" id="na-amt" type="number" placeholder="0"
+            oninput="const r=COMPANY.usd_rate||10.92,a=parseFloat(this.value)||0,c=document.getElementById('na-cur').value;document.getElementById('na-hint').textContent=c==='TJS'?'≈ $'+Math.round(a/r)+' USD':'≈ '+Math.round(a*r)+' TJS';">
+        </div>
+        <div class="fld">
+          <div class="fld-l">Валюта</div>
+          <select class="fi fi-sel" id="na-cur">
+            <option value="TJS">TJS — Сомони</option>
+            <option value="USD">USD — Доллар</option>
+          </select>
+        </div>
+        <div class="fld s2">
+          <div style="background:var(--ap);border:1px solid var(--al);border-radius:var(--r);padding:10px 12px;">
+            <div style="font-size:10px;color:var(--ad);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Эквивалент</div>
+            <div style="font-size:16px;font-weight:700;color:var(--adk);" id="na-hint">0 USD</div>
+          </div>
+        </div>
+        <div class="fld">
+          <div class="fld-l">Дата выдачи</div>
+          <input class="fi" type="date" id="na-date" value="${today()}">
+        </div>
+        <div class="fld">
+          <div class="fld-l">Примечание</div>
+          <input class="fi" id="na-note" placeholder="Необязательно">
+        </div>
+      </div>`,
+      async()=>{
+        const worker=(document.getElementById('na-worker').value||'').trim();
+        const amt=parseFloat(document.getElementById('na-amt').value)||0;
+        const cur=document.getElementById('na-cur').value;
+        const obj=document.getElementById('na-obj').value;
+        const task=document.getElementById('na-task').value.trim();
+        const date=document.getElementById('na-date').value;
+        if(!worker){showToast('Укажите получателя аванса',true);return;}
+        if(!amt){showToast('Введите сумму',true);return;}
+        const r=COMPANY.usd_rate||10.92;
+        const amtTJS=cur==='USD'?amt*r:amt;
+        const amtUSD=cur==='TJS'?amt/r:amt;
+        // Save to advances table
+        const{error:ae}=await SB.from('advances').insert({
+          worker_name:worker,object_name:obj,task:task||'Аванс',
+          amount:amt,currency:cur,stage:0,stages:4,
+          stage_names:JSON.stringify(['Старт','Закупка','Доставка','Сдача']),
+          status:'active'
+        });
+        if(ae){showToast('Ошибка: '+ae.message,true);return;}
+        // Save as operation
+        const{error:oe}=await SB.from('operations').insert({
+          type:'advance',date,
+          object_name:obj,category_name:'Аванс снабженцу',
+          description:'Аванс → '+worker+(task?' ('+task+')':''),
+          amount:amt,currency:cur,
+          amount_tjs:amtTJS,amount_usd:amtUSD,
+          usd_rate:r,method:'cash',
+          worker_name:USER?.name||'Бухгалтер',
+          target_worker:worker,
+          note:document.getElementById('na-note').value,
+          created_by:USER?.id
+        });
+        if(oe){showToast('Аванс создан, но операция не записана: '+oe.message,true);}
+        else showToast('✓ Аванс '+fmtN(amt)+' '+cur+' выдан → '+worker);
+        closeModal();
+        renderPage('snabs');
+      },
+      'Выдать аванс →'
+    );
+  });
+}
+
+
+
+
+
 async function advStage(id){
   const{data:a}=await SB.from('advances').select('stage,stages').eq('id',id).single();
   const newStage=Math.min((a.stage||0)+1,a.stages||4);
@@ -2387,29 +2906,195 @@ async function showWorkerOps(name){
   document.getElementById('m-ft').innerHTML=`<button class="btn btn-p btn-sm" onclick="closeModal()">Закрыть</button>`;
 }
 async function openNewAdv(){
-  const{data:suppliers}=await SB.from('profiles').select('name').eq('role','supplier');
+  // Load both profiles (suppliers) and all names from advances
+  const[{data:suppliers},{data:existingAdvs}]=await Promise.all([
+    SB.from('profiles').select('name,role').in('role',['supplier','accountant','admin']),
+    SB.from('advances').select('worker_name').neq('worker_name','')
+  ]);
+  const allNames=[...new Set([
+    ...(suppliers||[]).map(u=>u.name),
+    ...(existingAdvs||[]).map(a=>a.worker_name)
+  ])].filter(Boolean);
+
   openModal('Выдать аванс',`
     <div class="fg f2">
-      <div class="fld s2"><div class="fld-l">Снабженец</div><select class="fi fi-sel" id="na-w">${(suppliers||[]).map(u=>`<option>${u.name}</option>`).join('')}</select></div>
-      <div class="fld"><div class="fld-l">${t('obj_l')}</div><select class="fi fi-sel" id="na-o">${OBJECTS.map(o=>`<option>${o.name}</option>`).join('')}</select></div>
-      <div class="fld"><div class="fld-l">Задача</div><input class="fi" id="na-t" placeholder="Закупка арматуры..."></div>
-      <div class="fld"><div class="fld-l">${t('amount')}</div><input class="fi fi-lg" id="na-a" type="number" placeholder="0"></div>
-      <div class="fld"><div class="fld-l">${t('currency')}</div><select class="fi fi-sel" id="na-c"><option>TJS</option><option>USD</option></select></div>
-      <div class="fld"><div class="fld-l">Срок</div><input class="fi" type="date" id="na-d" value="${today()}"></div>
+      <div class="fld s2">
+        <div class="fld-l">Кому выдаётся (выберите или введите)</div>
+        <input class="fi" id="na-w" list="na-workers-list"
+          placeholder="Выберите из списка или введите имя..."
+          style="font-size:14px;font-weight:500;">
+        <datalist id="na-workers-list">
+          ${allNames.map(n=>`<option value="${n}">`).join('')}
+        </datalist>
+        <div style="font-size:10px;color:var(--t4);margin-top:3px;">
+          Снабженцы из системы: ${(suppliers||[]).map(u=>u.name).join(', ')||'—'}
+        </div>
+      </div>
+      <div class="fld s2">
+        <div class="fld-l">Задача / Назначение</div>
+        <input class="fi" id="na-t" placeholder="Закупка арматуры, доставка бетона...">
+      </div>
+      <div class="fld">
+        <div class="fld-l">Объект</div>
+        <select class="fi fi-sel" id="na-o">
+          <option value="">— Без объекта —</option>
+          ${OBJECTS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fld">
+        <div class="fld-l">Срок сдачи</div>
+        <input class="fi" type="date" id="na-d" value="${today()}">
+      </div>
+      <div class="fld">
+        <div class="fld-l">Сумма аванса</div>
+        <input class="fi fi-lg" id="na-a" type="number" placeholder="0"
+          style="font-size:18px;font-weight:800;color:var(--a);">
+      </div>
+      <div class="fld">
+        <div class="fld-l">Валюта</div>
+        <select class="fi fi-sel" id="na-c"><option>TJS</option><option>USD</option></select>
+      </div>
+    </div>
+    <div class="total-box" style="margin-top:12px;">
+      <div class="total-l">Итого к выдаче</div>
+      <div class="total-v" id="na-total">0 TJS</div>
     </div>`,
     async()=>{
-      const w=document.getElementById('na-w').value,amt=parseFloat(document.getElementById('na-a').value)||0;
-      if(!w||!amt){showToast('Заполните поля',true);return;}
-      const rate=COMPANY.usd_rate||10.92,cur=document.getElementById('na-c').value;
+      const w=(document.getElementById('na-w').value||'').trim();
+      const amt=parseFloat(document.getElementById('na-a').value)||0;
+      const cur=document.getElementById('na-c').value;
       const obj=document.getElementById('na-o').value;
-      await Promise.all([
-        SB.from('advances').insert({worker_name:w,object_name:obj,task:document.getElementById('na-t').value,amount:amt,currency:cur,due_date:document.getElementById('na-d').value}),
-        SB.from('operations').insert({type:'advance',date:today(),object_name:obj,category_name:'Аванс снабженцу',description:'Аванс → '+w,amount:amt,currency:cur,amount_tjs:cur==='USD'?amt*rate:amt,amount_usd:cur==='TJS'?amt/rate:amt,usd_rate:rate,method:'cash',worker_name:USER?.name||'Бухгалтер',created_by:USER?.id})
-      ]);
-      closeModal();showToast(t('saved'));renderPage('snabs');
+      const task=document.getElementById('na-t').value;
+      const due=document.getElementById('na-d').value;
+      if(!w){showToast('Укажите получателя аванса',true);return;}
+      if(!amt){showToast('Введите сумму аванса',true);return;}
+      const rate=COMPANY.usd_rate||10.92;
+      // Save advance record
+      const{error:ae}=await SB.from('advances').insert({
+        worker_name:w,object_name:obj,task:task||'Аванс',
+        amount:amt,currency:cur,due_date:due||null,
+        stage_names:JSON.stringify(['Старт','Закупка','Доставка','Сдача']),
+        status:'active'
+      });
+      if(ae){showToast('Ошибка: '+ae.message,true);return;}
+      // Save as operation
+      const{error:oe}=await SB.from('operations').insert({
+        type:'advance',date:today(),object_name:obj,
+        category_name:'Аванс снабженцу',description:'Аванс → '+w,
+        amount:amt,currency:cur,method:'cash',
+        amount_tjs:cur==='USD'?amt*rate:amt,
+        amount_usd:cur==='TJS'?amt/rate:amt,
+        usd_rate:rate,worker_name:USER?.name||'',created_by:USER?.id
+      });
+      if(oe){showToast('Аванс записан, но операция: '+oe.message,true);}
+      closeModal();showToast('✓ Аванс '+fmtN(amt)+' '+cur+' → '+w+' выдан');
+      renderPage('snabs');
+    },'Выдать аванс →'
+  );
+  // Live total update
+  setTimeout(()=>{
+    const ai=document.getElementById('na-a');
+    const ci=document.getElementById('na-c');
+    function upd(){
+      const v=parseFloat(ai?.value)||0;
+      const c=ci?.value||'TJS';
+      const el=document.getElementById('na-total');
+      if(el){el.textContent=fmtN(v)+' '+c;}
     }
+    if(ai)ai.oninput=upd;
+    if(ci)ci.onchange=upd;
+  },100);
+}
+
+async function advReturn(id){
+  const amt=parseFloat(prompt('Сумма возврата (TJS):'));
+  if(!amt||amt<=0){return;}
+  const desc=prompt('Примечание (необязательно):')||'Возврат аванса';
+  const rate=COMPANY.usd_rate||10.92;
+  // Add as income operation (return of advance)
+  await SB.from('operations').insert({
+    type:'income',date:today(),category_name:'Возврат аванса',
+    description:desc,amount:amt,currency:'TJS',method:'cash',
+    amount_tjs:amt,amount_usd:amt/rate,usd_rate:rate,
+    worker_name:USER?.name||'',created_by:USER?.id
+  });
+  // Check if fully returned - get advance
+  const{data:adv}=await SB.from('advances').select('amount,currency').eq('id',id).single();
+  showToast('✓ Возврат '+fmtN(amt)+' TJS зафиксирован');
+  renderPage('snabs');
+}
+
+async function advDone(id){
+  if(!confirm('Отметить аванс как выполненный? Карточка перейдёт в раздел закрытых.'))return;
+  const{error}=await SB.from('advances').update({status:'done',stage:4}).eq('id',id);
+  if(error){showToast(error.message,true);return;}
+  showToast('✓ Аванс закрыт — работа выполнена');
+  renderPage('snabs');
+}
+
+async function reopenAdv(id){
+  await SB.from('advances').update({status:'active'}).eq('id',id);
+  showToast('Аванс переоткрыт');renderPage('snabs');
+}
+
+async function advAddExpense(workerName, objName){
+  OP_TYPE='expense';SEL_OBJ=objName||'';SEL_CUR='TJS';
+  const expCats=CATEGORIES.filter(c=>c.type==='expense');
+  SEL_CAT=expCats[0]?.name||'';
+  openModal('Расход снабженца: '+workerName,`
+    <div class="fg f2">
+      <div class="fld s2">
+        <div class="fld-l">Объект</div>
+        <select class="fi fi-sel" id="ae-obj" onchange="SEL_OBJ=this.value">
+          <option value="${objName||''}">${objName||'— Без объекта —'}</option>
+          ${OBJECTS.filter(o=>o.name!==objName).map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fld s2">
+        <div class="fld-l">Категория расхода</div>
+        <select class="fi fi-sel" id="ae-cat" onchange="SEL_CAT=this.value">
+          ${expCats.map((c,i)=>`<option value="${c.name}" ${i===0?'selected':''}>${c.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fld"><div class="fld-l">Дата</div><input class="fi" type="date" id="ae-date" value="${today()}"></div>
+      <div class="fld"><div class="fld-l">Валюта</div>
+        <div class="cur-tog" style="margin-top:2px;">
+          <button class="cur-btn on" id="ae-tjs" onclick="SEL_CUR='TJS';this.className='cur-btn on';document.getElementById('ae-usd').className='cur-btn';">TJS</button>
+          <button class="cur-btn" id="ae-usd" onclick="SEL_CUR='USD';this.className='cur-btn on';document.getElementById('ae-tjs').className='cur-btn';">USD</button>
+        </div>
+      </div>
+      <div class="fld s2"><div class="fld-l">Описание</div><input class="fi" id="ae-desc" placeholder="Что куплено..."></div>
+      <div class="fld"><div class="fld-l">Количество</div><input class="fi" id="ae-qty" type="number" placeholder="0"></div>
+      <div class="fld"><div class="fld-l">Единица</div><select class="fi fi-sel" id="ae-unit">${UNITS.map(u=>`<option>${u.name}</option>`).join('')}</select></div>
+      <div class="fld"><div class="fld-l">Цена за ед.</div><input class="fi" id="ae-price" type="number" placeholder="0"></div>
+      <div class="fld"><div class="fld-l">Итого</div><input class="fi fi-lg" id="ae-total" type="number" placeholder="0"></div>
+    </div>`,
+    async()=>{
+      const q2=parseFloat(document.getElementById('ae-qty')?.value)||0;
+      const p=parseFloat(document.getElementById('ae-price')?.value)||0;
+      const tot=document.getElementById('ae-total');
+      const amt=tot?.value?parseFloat(tot.value)||q2*p:q2*p;
+      if(!amt){showToast('Введите сумму',true);return;}
+      const rate=COMPANY.usd_rate||10.92;
+      const{error}=await SB.from('operations').insert({
+        type:'expense',date:document.getElementById('ae-date')?.value||today(),
+        object_name:SEL_OBJ||'',category_name:SEL_CAT||'Прочее',
+        description:document.getElementById('ae-desc')?.value||'',
+        amount:amt,currency:SEL_CUR,method:'cash',
+        amount_tjs:SEL_CUR==='USD'?amt*rate:amt,
+        amount_usd:SEL_CUR==='TJS'?amt/rate:amt,
+        usd_rate:rate,worker_name:workerName,
+        qty:q2||null,unit:document.getElementById('ae-unit')?.value||null,
+        price:p||null,created_by:USER?.id
+      });
+      if(error){showToast(error.message,true);return;}
+      closeModal();showToast('✓ Расход '+fmtN(amt)+' '+SEL_CUR+' записан');
+      renderPage('snabs');
+    },'Сохранить расход →'
   );
 }
+
+
 async function addMasterWork(id){
   openModal(t('add_w'),`
     <div class="fg"><div class="fld"><div class="fld-l">Сумма (TJS)</div><input class="fi fi-lg" id="mw-a" type="number" placeholder="0"></div><div class="fld"><div class="fld-l">Описание</div><input class="fi" id="mw-d" placeholder="Бетонные работы..."></div></div>`,
@@ -2669,74 +3354,4 @@ function saveSetup(){
 }
 </script>
 </body>
-</html>function buildSupForm(container){
-  SEL_OBJ='';SEL_CUR='TJS';OP_TYPE='expense';
-  const expCats=CATEGORIES.filter(c=>c.type==='expense');
-  SEL_CAT=expCats[0]?.name||'';
-  container.innerHTML=`
-  <div class="form-card">
-    <div class="fg f2">
-      <div class="fld s2">
-        <div class="fld-l">Объект</div>
-        <select class="fi fi-sel" id="so-obj" onchange="SEL_OBJ=this.value">
-          <option value="">— Без объекта —</option>
-          ${OBJECTS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
-        </select>
-      </div>
-      <div class="fld s2">
-        <div class="fld-l">Категория расхода</div>
-        <select class="fi fi-sel" id="so-cat" onchange="SEL_CAT=this.value">
-          ${expCats.map((c,i)=>`<option value="${c.name}" ${i===0?'selected':''}>${c.name}</option>`).join('')}
-        </select>
-      </div>
-      <div class="fld">
-        <div class="fld-l">Дата</div>
-        <input class="fi" type="date" id="so-date" value="${today()}">
-      </div>
-      <div class="fld">
-        <div class="fld-l">Валюта</div>
-        <div class="cur-tog" style="margin-top:2px;">
-          <button class="cur-btn on" id="so-tjs" onclick="sSetCur('TJS')">TJS</button>
-          <button class="cur-btn" id="so-usd" onclick="sSetCur('USD')">USD</button>
-        </div>
-      </div>
-      <div class="fld s2">
-        <div class="fld-l">Описание / наименование</div>
-        <input class="fi" id="so-desc" placeholder="Что куплено или оплачено...">
-      </div>
-      <div class="fld">
-        <div class="fld-l">Количество</div>
-        <input class="fi" id="so-qty" type="number" placeholder="0" oninput="sCalc()">
-      </div>
-      <div class="fld">
-        <div class="fld-l">Единица</div>
-        <select class="fi fi-sel" id="so-unit">
-          ${UNITS.map(u=>`<option>${u.name}</option>`).join('')}
-        </select>
-      </div>
-      <div class="fld">
-        <div class="fld-l">Цена за ед.</div>
-        <input class="fi" id="so-price" type="number" placeholder="0" oninput="sCalc()">
-      </div>
-      <div class="fld">
-        <div class="fld-l">Итого (или ввести)</div>
-        <input class="fi fi-lg" id="so-total" type="number" placeholder="0" oninput="sCalcT()">
-      </div>
-      <div class="fld s2">
-        <div class="fld-l">Примечание</div>
-        <input class="fi" id="so-note" placeholder="Необязательно">
-      </div>
-    </div>
-    <div class="total-box" style="margin-top:14px;margin-bottom:14px;">
-      <div class="total-l">Итого расход</div>
-      <div class="total-v" id="so-tv">0 TJS</div>
-      <div class="total-h" id="so-th"></div>
-    </div>
-    <div style="display:flex;gap:9px;flex-wrap:wrap;">
-      <button class="btn btn-p" onclick="sSubmit()">Сохранить расход →</button>
-      <button class="btn btn-s" onclick="go('myexp')">Отмена</button>
-    </div>
-  </div>`;
-}
-
-
+</html>
