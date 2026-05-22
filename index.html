@@ -1094,6 +1094,24 @@ function exportPDF(title,ops){
 .pulse-prog{flex:1;height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;min-width:60px;margin:0 8px;}
 .pulse-prog-fill{height:100%;border-radius:2px;background:var(--a);transition:width .8s cubic-bezier(.22,1,.36,1);}
 
+/* ── GLOBAL ANIMATE COUNTER ── */
+function animateCounter(el, target, duration, prefix, suffix){
+  if(!el) return;
+  prefix = prefix||''; suffix = suffix||'';
+  const startTime = performance.now();
+  const absTarget = Math.abs(target);
+  function step(now){
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(absTarget * ease);
+    el.textContent = prefix + current.toLocaleString('ru') + suffix;
+    if(progress < 1) requestAnimationFrame(step);
+    else el.textContent = prefix + absTarget.toLocaleString('ru') + suffix;
+  }
+  requestAnimationFrame(step);
+}
+
 /* ── ANIMATED COUNTERS ── */
 @keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .sc-val{animation:countUp .5s ease both;}
@@ -2371,129 +2389,129 @@ snabs:async()=>{
 
     if(isDone){
       // Compact done card
-      return \`<div class="pc" style="animation-delay:\${i*.05}s;opacity:.7;padding:10px 14px;">
+      return `<div class="pc" style="animation-delay:${i*.05}s;opacity:.7;padding:10px 14px;">
         <div style="display:flex;align-items:center;gap:10px;">
-          <div class="ava" style="width:34px;height:34px;background:\${bg};color:\${clr};font-size:11px;">\${(a.worker_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+          <div class="ava" style="width:34px;height:34px;background:${bg};color:${clr};font-size:11px;">${(a.worker_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:600;color:var(--t2);">\${a.worker_name}</div>
-            <div style="font-size:10px;color:var(--t4);">\${a.task||'—'} · \${a.object_name||'—'}</div>
+            <div style="font-size:12px;font-weight:600;color:var(--t2);">${a.worker_name}</div>
+            <div style="font-size:10px;color:var(--t4);">${a.task||'—'} · ${a.object_name||'—'}</div>
           </div>
           <span class="badge bg" style="font-size:10px;">✓ Закрыт</span>
           <div style="text-align:right;font-size:11px;">
-            <div style="color:var(--t3);">Выдано: \${fmtN(a.amount)} \${a.currency}</div>
-            <div style="color:var(--t4);">Потрачено: \${fmtN(spentTJS)} TJS\${spentUSD>0?' / $'+fmtN(spentUSD)+' USD':''}</div>
+            <div style="color:var(--t3);">Выдано: ${fmtN(a.amount)} ${a.currency}</div>
+            <div style="color:var(--t4);">Потрачено: ${fmtN(spentTJS)} TJS${spentUSD>0?' / $'+fmtN(spentUSD)+' USD':''}</div>
           </div>
-          \${canWrite()?\`<button onclick="reopenAdv(\${a.id})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);font-size:11px;cursor:pointer;font-family:var(--ff);color:var(--t3);">↺</button>\`:''}
+          ${canWrite()?`<button onclick="reopenAdv(${a.id})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);font-size:11px;cursor:pointer;font-family:var(--ff);color:var(--t3);">↺</button>`:''}
         </div>
-      </div>\`;
+      </div>`;
     }
 
-    return \`<div class="pc" style="animation-delay:\${i*.07}s;">
+    return `<div class="pc" style="animation-delay:${i*.07}s;">
       <div class="pc-top">
         <div class="pc-lft">
-          <div class="ava" style="width:42px;height:42px;background:\${bg};color:\${clr};">\${(a.worker_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+          <div class="ava" style="width:42px;height:42px;background:${bg};color:${clr};">${(a.worker_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
           <div>
-            <div class="pc-name">\${a.worker_name}</div>
-            <div class="pc-sub">\${a.task||'—'} · \${a.object_name||'—'}</div>
-            <div style="font-size:10px;color:var(--t4);margin-top:1px;">Выдан: \${a.created_at?a.created_at.slice(0,10):'—'}</div>
+            <div class="pc-name">${a.worker_name}</div>
+            <div class="pc-sub">${a.task||'—'} · ${a.object_name||'—'}</div>
+            <div style="font-size:10px;color:var(--t4);margin-top:1px;">Выдан: ${a.created_at?a.created_at.slice(0,10):'—'}</div>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-          <span class="badge \${isOver?'br':pct>80?'by':'bg'}">\${isOver?'Перерасход':pct>80?'Почти всё':'Этап '+(a.stage||0)+'/'+(a.stages||4)}</span>
-          <div style="font-size:12px;font-weight:700;color:var(--t);">\${fmtN(a.amount)} \${a.currency}</div>
+          <span class="badge ${isOver?'br':pct>80?'by':'bg'}">${isOver?'Перерасход':pct>80?'Почти всё':'Этап '+(a.stage||0)+'/'+(a.stages||4)}</span>
+          <div style="font-size:12px;font-weight:700;color:var(--t);">${fmtN(a.amount)} ${a.currency}</div>
         </div>
       </div>
 
-      \${stageTrack(a.stage||0,a.stages||4,names)}
+      ${stageTrack(a.stage||0,a.stages||4,names)}
 
       <div class="bar-tr mb8">
-        <div class="bar-fi" style="width:\${pct.toFixed(1)}%;background:\${isOver?'var(--red)':pct>80?'var(--yel)':clr};animation-delay:\${.1+i*.07}s;"></div>
+        <div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${isOver?'var(--red)':pct>80?'var(--yel)':clr};animation-delay:${.1+i*.07}s;"></div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px;">
         <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px;text-align:center;">
           <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">Выдано</div>
-          <div style="font-size:13px;font-weight:700;color:var(--ad);">\${fmtN(a.amount)} \${a.currency}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ad);">${fmtN(a.amount)} ${a.currency}</div>
         </div>
         <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px;text-align:center;">
           <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">Потрачено</div>
-          <div style="font-size:13px;font-weight:700;color:var(--red);">\${fmtN(spentTJS)} TJS\${spentUSD>0?'<br><span style="font-size:10px;">$'+fmtN(spentUSD)+'</span>':''}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--red);">${fmtN(spentTJS)} TJS${spentUSD>0?'<br><span style="font-size:10px;">$'+fmtN(spentUSD)+'</span>':''}</div>
         </div>
-        <div style="background:var(--bg);border:1px solid \${isOver?'var(--redb)':'var(--bd)'};border-radius:var(--r);padding:8px;text-align:center;">
+        <div style="background:var(--bg);border:1px solid ${isOver?'var(--redb)':'var(--bd)'};border-radius:var(--r);padding:8px;text-align:center;">
           <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">Остаток</div>
-          <div style="font-size:13px;font-weight:700;color:\${isOver?'var(--red)':'var(--adk)'};">\${isOver?'−':''}\${fmtN(Math.abs(rem))} TJS</div>
+          <div style="font-size:13px;font-weight:700;color:${isOver?'var(--red)':'var(--adk)'};">${isOver?'−':''}${fmtN(Math.abs(rem))} TJS</div>
         </div>
       </div>
 
-      \${canWrite()?\`
+      ${canWrite()?`
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
-        <button onclick="advReturn(\${a.id},'money')"
+        <button onclick="advReturn(${a.id},'money')"
           style="padding:8px 4px;border-radius:var(--r);background:var(--al);border:1px solid rgba(57,185,128,.25);color:var(--adk);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
           onmouseover="this.style.background='rgba(57,185,128,.2)'" onmouseout="this.style.background='var(--al)'">
           ↩ Возврат
         </button>
-        <button onclick="advDone(\${a.id})"
+        <button onclick="advDone(${a.id})"
           style="padding:8px 4px;border-radius:var(--r);background:var(--bluel);border:1px solid var(--blueb);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
           onmouseover="this.style.background='#d0e8fa'" onmouseout="this.style.background='var(--bluel)'">
           ✓ Выполнено
         </button>
-        <button onclick="advAddExpense('\${a.worker_name}','\${a.object_name||''}')"
+        <button onclick="advAddExpense('${a.worker_name}','${a.object_name||''}')"
           style="padding:8px 4px;border-radius:var(--r);background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
           onmouseover="this.style.background='#ffe0e0'" onmouseout="this.style.background='var(--redl)'">
           + Расход
         </button>
-        <button onclick="advStage(\${a.id})"
+        <button onclick="advStage(${a.id})"
           style="padding:8px 4px;border-radius:var(--r);background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;">
           Этап →
         </button>
-      </div>\`:''}
+      </div>`:''}
 
-      \${workerOps.length?\`
+      ${workerOps.length?`
       <div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:2px;">
         <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">История расходов</div>
-        \${workerOps.slice(0,4).map(o=>\`
+        ${workerOps.slice(0,4).map(o=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bg2);">
             <div>
-              <span style="font-size:11px;color:var(--t2);">\${o.description||o.category_name||'—'}</span>
-              <span style="font-size:10px;color:var(--t4);margin-left:6px;">\${o.date}</span>
+              <span style="font-size:11px;color:var(--t2);">${o.description||o.category_name||'—'}</span>
+              <span style="font-size:10px;color:var(--t4);margin-left:6px;">${o.date}</span>
             </div>
-            <span style="font-size:11px;font-weight:600;color:var(--red);">−\${fmtN(o.amount)} \${o.currency}</span>
-          </div>\`).join('')}
-        \${workerOps.length>4?\`<div style="font-size:10px;color:var(--t4);text-align:center;padding-top:4px;">+ ещё \${workerOps.length-4} расходов</div>\`:''}
-      </div>\`:''}
-    </div>\`;
+            <span style="font-size:11px;font-weight:600;color:var(--red);">−${fmtN(o.amount)} ${o.currency}</span>
+          </div>`).join('')}
+        ${workerOps.length>4?`<div style="font-size:10px;color:var(--t4);text-align:center;padding-top:4px;">+ ещё ${workerOps.length-4} расходов</div>`:''}
+      </div>`:''}
+    </div>`;
   }
 
-  return \`
+  return `
   <div class="g2 mb16">
     <div class="sc g" style="animation-delay:.03s;">
       <div class="sc-lbl">↑ Выдано авансов</div>
-      <div style="font-size:20px;font-weight:800;color:var(--ad);">\${fmtN(totalAdv)} TJS</div>
-      <div class="sc-val2">\${active.length} активных · \${done.length} закрытых</div>
+      <div style="font-size:20px;font-weight:800;color:var(--ad);">${fmtN(totalAdv)} TJS</div>
+      <div class="sc-val2">${active.length} активных · ${done.length} закрытых</div>
     </div>
     <div class="sc r" style="animation-delay:.06s;">
       <div class="sc-lbl">↓ Потрачено снабженцами</div>
       <div style="display:flex;gap:12px;align-items:baseline;margin-top:3px;">
-        <div style="font-size:20px;font-weight:800;color:var(--red);">\${fmtN(totalSpentTJS)} TJS</div>
-        \${totalSpentUSD>0?\`<div style="font-size:14px;font-weight:700;color:var(--ora);">$\${fmtN(totalSpentUSD)}</div>\`:''}
+        <div style="font-size:20px;font-weight:800;color:var(--red);">${fmtN(totalSpentTJS)} TJS</div>
+        ${totalSpentUSD>0?`<div style="font-size:14px;font-weight:700;color:var(--ora);">$${fmtN(totalSpentUSD)}</div>`:''}
       </div>
     </div>
   </div>
 
   <div class="sh">
-    <div class="sh-t">Активные авансы (\${active.length})</div>
-    \${canWrite()?\`<button class="btn btn-p btn-sm" onclick="openNewAdv()" style="display:flex;align-items:center;gap:5px;">
+    <div class="sh-t">Активные авансы (${active.length})</div>
+    ${canWrite()?`<button class="btn btn-p btn-sm" onclick="openNewAdv()" style="display:flex;align-items:center;gap:5px;">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 1v11M1 6.5h11"/></svg>
       Выдать аванс
-    </button>\`:''}
+    </button>`:''}
   </div>
-  \${active.map((a,i)=>advCard(a,i)).join('')||\`<div class="empty"><div class="empty-icon">👷</div>Нет активных авансов</div>\`}
+  ${active.map((a,i)=>advCard(a,i)).join('')||`<div class="empty"><div class="empty-icon">👷</div>Нет активных авансов</div>`}
 
-  \${done.length?\`
-  <div class="sh" style="margin-top:12px;"><div class="sh-t" style="color:var(--t3);">Закрытые (\${done.length})</div></div>
-  \${done.map((a,i)=>advCard(a,active.length+i)).join('')}
-  \`:''}
-  \`;
+  ${done.length?`
+  <div class="sh" style="margin-top:12px;"><div class="sh-t" style="color:var(--t3);">Закрытые (${done.length})</div></div>
+  ${done.map((a,i)=>advCard(a,active.length+i)).join('')}
+  `:''}
+  `;
 },
 
 
