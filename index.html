@@ -2182,22 +2182,7 @@ home:async()=>{
       // Pulse bar
       renderPulseBar();
     },100);
-  </script>
 
-  <!-- animate counters after render -->
-  <script>
-  setTimeout(()=>{
-    const els=[
-      ['h-inc-tjs',${incTJS},'+',''],
-      ['h-exp-tjs',${expTJS},'-',''],
-      ['h-bal-tjs',${Math.abs(balTJS)},${balTJS>=0?"'+'":"'-'"},''],
-    ];
-    els.forEach(([id,val,pre,suf])=>{
-      const el=document.getElementById(id);
-      if(el)animateCounter(el,val,900,pre,suf);
-    });
-  },100);
-  <\/script>
 
 <!-- MONEY MAP -->
   <div class="sh"><div class="sh-t">Карта денег</div></div>
