@@ -1046,7 +1046,7 @@ function exportPDF(title,ops){
     <td>${o.worker_name&&o.worker_name!=='Бухгалтер'?o.worker_name:''}</td>
   </tr>`).join('');
 
-  w.document.write(`<!DOCTYPE html>
+  const pdfSrc=`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>${title} — ZAKI ERP</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -1147,9 +1147,8 @@ function exportPDF(title,ops){
   ${COMPANY.name||'ZAKI ERP'} &nbsp;·&nbsp; ${COMPANY.phone||''} &nbsp;·&nbsp; ${COMPANY.email||''}<br>
   Разработчик: +992 103 005 003 · iammirzozoda@gmail.com
 </footer>
-<script>window.print();<\/script>
-</body></html>`);
-  w.document.close();
+</body></html>`;
+  w.document.write(pdfSrc);w.document.close();setTimeout(()=>w.print(),500);
   showToast('✓ PDF: '+ops.length+' записей');
 }
 
@@ -2065,6 +2064,18 @@ home:async()=>{
         }
       }});
     }
+    // Animated counters
+    setTimeout(()=>{
+      [['cnt-incTJS',incTJS,'+',' TJS'],['cnt-incUSD',incUSD,'$',' USD'],
+       ['cnt-expTJS',expTJS,'-',' TJS'],['cnt-expUSD',expUSD,'$',' USD'],
+       ['cnt-balTJS',Math.abs(balTJS),balTJS>=0?'+':'-',' TJS'],
+       ['cnt-balUSD',Math.abs(balUSD),balUSD>=0?'$':'-$',' USD'],
+       ['cnt-deb',deb,'',' TJS'],['cnt-cred',cred,'',' TJS'],
+      ].forEach(([id,v,pre,suf])=>{const el=document.getElementById(id);if(el)animateCounter(el,v,900,pre,'');});
+      drawSparkline('spark-inc',mInc.slice(-7),'#39B980');
+      drawSparkline('spark-exp',mExp.slice(-7),'#E53E3E');
+      renderPulseBar();
+    },150);
   },80);
 
   return `
@@ -2157,32 +2168,6 @@ home:async()=>{
       <div class="sc-val2" style="margin-top:3px;">Нетто: ${fmtN(deb-cred)} TJS</div>
     </div>
   </div>
-  <script>
-    setTimeout(()=>{
-      // Animate all counters
-      [
-        {id:'cnt-incTJS',val:${incTJS},pre:'+'},
-        {id:'cnt-incUSD',val:${incUSD},pre:'$'},
-        {id:'cnt-expTJS',val:${expTJS},pre:'-'},
-        {id:'cnt-expUSD',val:${expUSD},pre:'$'},
-        {id:'cnt-balTJS',val:Math.abs(${balTJS}),pre:'${balTJS>=0?"+":"−"}'},
-        {id:'cnt-balUSD',val:Math.abs(${balUSD}),pre:'${balUSD>=0?"$":"−$"}'},
-        {id:'cnt-deb',val:${deb},pre:''},
-        {id:'cnt-cred',val:${cred},pre:''},
-      ].forEach(({id,val,pre})=>{
-        const el=document.getElementById(id);
-        if(!el)return;
-        animateCounter(el,val,900,pre,'');
-      });
-      // Sparklines (7-day trend)
-      const mInc7=[${mInc.slice(-7).join(',')}];
-      const mExp7=[${mExp.slice(-7).join(',')}];
-      drawSparkline('spark-inc',mInc7,'#39B980');
-      drawSparkline('spark-exp',mExp7,'#E53E3E');
-      // Pulse bar
-      renderPulseBar();
-    },100);
-
 
 <!-- MONEY MAP -->
   <div class="sh"><div class="sh-t">Карта денег</div></div>
