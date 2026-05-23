@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(gh repo *)",
+      "PowerShell(gh repo list --limit 10 2>&1)"
+    ]
+  }
+}

@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+
+    <!-- Z segment: bright green (доходы / income) -->
+    <linearGradient id="gz" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#6EE8B5"/>
+      <stop offset="50%" stop-color="#39B980"/>
+      <stop offset="100%" stop-color="#1E7A50"/>
+    </linearGradient>
+
+    <!-- A segment: blue-gray (расходы / expense) -->
+    <linearGradient id="ga" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F2F7FC"/>
+      <stop offset="55%" stop-color="#DDE8F2"/>
+      <stop offset="100%" stop-color="#BDCFDF"/>
+    </linearGradient>
+
+    <!-- K segment: deep green (управление / management) -->
+    <linearGradient id="gk" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#155C38"/>
+      <stop offset="50%" stop-color="#228C5C"/>
+      <stop offset="100%" stop-color="#30AF78"/>
+    </linearGradient>
+
+    <!-- I segment: pale mint (простота / simplicity) -->
+    <linearGradient id="gi" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#AEDED0"/>
+      <stop offset="100%" stop-color="#79CBAE"/>
+    </linearGradient>
+
+    <!-- Inner circle: frosted glass -->
+    <radialGradient id="rig" cx="38%" cy="32%" r="68%">
+      <stop offset="0%"   stop-color="#FFFFFF"/>
+      <stop offset="48%"  stop-color="#F1F7FC"/>
+      <stop offset="100%" stop-color="#D4E4EF"/>
+    </radialGradient>
+
+    <!-- Gloss overlay for green segments -->
+    <linearGradient id="gloss" x1="0%" y1="0%" x2="60%" y2="100%">
+      <stop offset="0%"   stop-color="rgba(255,255,255,0.30)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+
+    <!-- Drop shadow for donut ring -->
+    <filter id="fds" x="-22%" y="-18%" width="144%" height="150%">
+      <feDropShadow dx="0" dy="14" stdDeviation="20"
+                    flood-color="rgb(0,55,30)" flood-opacity="0.22"/>
+    </filter>
+
+    <!-- Soft shadow for inner ball -->
+    <filter id="fis" x="-14%" y="-12%" width="128%" height="128%">
+      <feDropShadow dx="2" dy="5" stdDeviation="9"
+                    flood-color="rgb(60,110,170)" flood-opacity="0.20"/>
+    </filter>
+
+    <filter id="fb5"><feGaussianBlur stdDeviation="5"/></filter>
+    <filter id="fb12"><feGaussianBlur stdDeviation="12"/></filter>
+
+  </defs>
+
+  <!-- Ground ambient shadow -->
+  <ellipse cx="258" cy="490" rx="180" ry="16"
+           fill="rgba(0,50,25,0.15)" filter="url(#fb12)"/>
+
+  <!-- ══════════════ 4 DONUT SEGMENTS ══════════════ -->
+  <!--
+    Layout (clockwise from top, SVG angles):
+      Z  275°→35°   span=120°  green     (income / доходы)
+      gap 35°→38°
+      A   38°→118°  span=80°   gray-blue (expenses / расходы)
+      gap 118°→121°
+      K  121°→211°  span=90°   dark-green(management / управление)
+      gap 211°→214°
+      I  214°→274°  span=60°   pale-mint (simplicity / простота)
+      gap 274°→275°
+
+    R=210 (outer)  r=135 (inner)  cx=cy=256
+
+    Computed arc endpoints:
+      275°: outer(274.3, 46.8)   inner(267.8,121.1)
+       35°: outer(428.0,376.5)   inner(366.6,333.4)
+       38°: outer(421.5,385.4)   inner(362.4,339.2)
+      118°: outer(157.5,441.4)   inner(192.7,375.2)
+      121°: outer(147.8,435.9)   inner(186.5,371.7)
+      211°: outer( 76.1,147.8)   inner(140.3,186.5)
+      214°: outer( 81.9,138.6)   inner(144.1,180.5)
+      274°: outer(270.7, 46.5)   inner(265.5,121.3)
+  -->
+  <g filter="url(#fds)">
+
+    <!-- Z — доходы (green, 120° CW, large-arc=0) -->
+    <path d="M274.3,46.8
+             A210,210 0 0,1 428.0,376.5
+             L366.6,333.4
+             A135,135 0 0,0 267.8,121.1 Z"
+          fill="url(#gz)"/>
+
+    <!-- A — расходы (gray-blue, 80° CW, large-arc=0) -->
+    <path d="M421.5,385.4
+             A210,210 0 0,1 157.5,441.4
+             L192.7,375.2
+             A135,135 0 0,0 362.4,339.2 Z"
+          fill="url(#ga)"/>
+
+    <!-- K — управление (dark-green, 90° CW, large-arc=0) -->
+    <path d="M147.8,435.9
+             A210,210 0 0,1  76.1,147.8
+             L140.3,186.5
+             A135,135 0 0,0 186.5,371.7 Z"
+          fill="url(#gk)"/>
+
+    <!-- I — простота (pale-mint, 60° CW, large-arc=0) -->
+    <path d="M81.9,138.6
+             A210,210 0 0,1 270.7, 46.5
+             L265.5,121.3
+             A135,135 0 0,0 144.1,180.5 Z"
+          fill="url(#gi)"/>
+
+  </g>
+
+  <!-- Specular gloss on top of Z segment -->
+  <path d="M274.3,46.8 A210,210 0 0,1 390,240 L340,230 A135,135 0 0,0 267.8,121.1 Z"
+        fill="url(#gloss)"/>
+
+  <!-- ══════════════ LETTERS on segments — rotated along arc ══════════════ -->
+  <!-- Z on bright-green — white, rotate 65° -->
+  <text x="412" y="183" text-anchor="middle" dominant-baseline="central"
+        font-family="'Arial Black','Impact',sans-serif" font-weight="900"
+        font-size="52" fill="#FFFFFF" opacity="0.95"
+        transform="rotate(65,412,183)">Z</text>
+
+  <!-- A on light-gray — dark blue text for contrast, rotate 168° -->
+  <text x="292" y="425" text-anchor="middle" dominant-baseline="central"
+        font-family="'Arial Black','Impact',sans-serif" font-weight="900"
+        font-size="48" fill="#4A6A88" opacity="0.90"
+        transform="rotate(168,292,425)">A</text>
+
+  <!-- K on dark-green — white, rotate 256° -->
+  <text x="89" y="298" text-anchor="middle" dominant-baseline="central"
+        font-family="'Arial Black','Impact',sans-serif" font-weight="900"
+        font-size="50" fill="#FFFFFF" opacity="0.95"
+        transform="rotate(256,89,298)">K</text>
+
+  <!-- I on pale-mint — deep green text, rotate 334° -->
+  <text x="180" y="101" text-anchor="middle" dominant-baseline="central"
+        font-family="'Arial Black','Impact',sans-serif" font-weight="900"
+        font-size="44" fill="#1A6040" opacity="0.90"
+        transform="rotate(334,180,101)">I</text>
+
+  <!-- ══════════════ INNER FROSTED BALL ══════════════ -->
+  <circle cx="256" cy="256" r="128" fill="url(#rig)" filter="url(#fis)"/>
+
+  <!-- Specular reflection highlight -->
+  <ellipse cx="213" cy="206" rx="56" ry="36"
+           fill="rgba(255,255,255,0.58)"
+           transform="rotate(-38,213,206)"
+           filter="url(#fb5)"/>
+
+  <!-- Thin inner rim -->
+  <circle cx="256" cy="256" r="126"
+          fill="none" stroke="rgba(100,140,180,0.15)" stroke-width="3"/>
+
+  <!-- ══════════════ CENTER: income ↑ and expense ↓ separated ══════════════ -->
+  <!-- Income arrow ↑ (upper half) -->
+  <path d="M256,196 L238,218 L248,218 L248,248 L264,248 L264,218 L274,218 Z"
+        fill="#39B980" opacity="0.92"/>
+  <!-- Thin separator line -->
+  <line x1="234" y1="256" x2="278" y2="256"
+        stroke="rgba(150,180,210,0.35)" stroke-width="1.5"/>
+  <!-- Expense arrow ↓ (lower half) -->
+  <path d="M256,316 L238,294 L248,294 L248,264 L264,264 L264,294 L274,294 Z"
+        fill="#7A9DB8" opacity="0.72"/>
+
+</svg>
