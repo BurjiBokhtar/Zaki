@@ -920,6 +920,8 @@ const T={
     cash_give:'Выдано из кассы',cash_give_sub:'Автоматически списать выданную сумму из кассы',
     cash_got:'Возврат в кассу',cash_got_sub:'Автоматически добавить возврат в кассу',
     no_funds:'Недостаточно средств в кассе',no_funds_detail:'Баланс кассы',need:'нужно',
+    adv_close_deny:'⛔ Только бухгалтер может закрыть аванс',
+    adv_over:'❌ Превышает выданный аванс!',adv_over_detail:'Остаток аванса',
     cat_l:'Категория',no_obj:'— Без объекта —',
     adv_to:'Кому выдаётся',adv_task:'Задача / Назначение',
     adv_amt:'Сумма аванса',optional:'Необязательно',
@@ -1010,6 +1012,8 @@ const T={
     cash_give:'Аз хазина дода шуд',cash_give_sub:'Маблағи додашударо аз хазина ба таври худкор ҳисоб кунед',
     cash_got:'Ба хазина баргашт',cash_got_sub:'Ба таври худкор баргаштро ба хазина илова кунед',
     no_funds:'Маблағ дар хазина кофӣ нест',no_funds_detail:'Баланси хазина',need:'лозим',
+    adv_close_deny:'⛔ Танҳо ҳисобдор метавонад пешпардохтро пӯшад',
+    adv_over:'❌ Маблағ аз пешпардохт зиёд аст!',adv_over_detail:'Боқимондаи пешпардохт',
     cat_l:'Категория',no_obj:'— Бе объект —',
     adv_to:'Ба кӣ дода мешавад',adv_task:'Вазифа / Таъинот',
     adv_amt:'Маблағи пешпардохт',optional:'Ихтиёрӣ',
@@ -2028,6 +2032,12 @@ async function fSubmit(isSupplier){
     amt=ti?.value?parseFloat(ti.value)||q*p:q*p;
     desc=document.getElementById('f-desc')?.value||'';
     if(!desc&&!amt){showToast(t('fill_fields'),true);return;}
+    // Supplier: block if expense exceeds remaining advance balance
+    if(isSupplier||isSup()){
+      const amtTJS=SEL_CUR==='USD'?amt*(COMPANY.usd_rate||10.92):amt;
+      const rem=await getSupplierRemaining(USER?.name||'');
+      if(amtTJS>rem){showToast(`${t('adv_over')} ${t('adv_over_detail')}: ${fmtN(rem)} TJS, ${t('need')}: ${fmtN(amtTJS)} TJS`,true);return;}
+    }
   }else if(OP_TYPE==='income'){
     amt=parseFloat(document.getElementById('f-amount')?.value)||0;
     desc=document.getElementById('f-desc')?.value||'';
@@ -3239,7 +3249,7 @@ tasks:async()=>{
       <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${pct>80?'var(--red)':'var(--a)'};"></div></div>
       <div class="pc-nums"><span style="color:var(--red);">${t('spent_lbl')}: ${fmtN(spent)}</span><span style="color:var(--ad);">${t('rest_lbl')}: ${fmtN(rem)}</span></div>
       <div class="a-btns">
-        <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="advStage(${a.id})">Следующий этап →</button>
+        ${(a.stage||0)+1<(a.stages||4)?`<button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="advStage(${a.id})">Следующий этап →</button>`:`<div class="a-btn" style="background:var(--bg);border-color:var(--bd);color:var(--t4);cursor:default;text-align:center;">✓ Ждёт закрытия бухгалтером</div>`}
         <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="go('addexp')">+ Расход</button>
       </div>
     </div>`;
@@ -3297,6 +3307,20 @@ masters:async()=>{
 ══════════════════════════════════════════════ */
 /* ── ADVANCE HELPERS ── */
 function canAdmin(){return USER?.role==='accountant'||USER?.role==='admin';}
+
+/* Returns remaining advance balance for a supplier (advance amount − already spent) */
+async function getSupplierRemaining(workerName){
+  const[{data:advs},{data:spentOps}]=await Promise.all([
+    SB.from('advances').select('amount,currency').eq('worker_name',workerName).in('status',['active','partial']),
+    SB.from('operations').select('amount_tjs').eq('type','expense').eq('worker_name',workerName)
+  ]);
+  const rate=COMPANY.usd_rate||10.92;
+  const totalAdv=(advs||[]).reduce((s,a)=>{
+    const tjs=a.currency==='USD'?a.amount*rate:a.amount;return s+tjs;
+  },0);
+  const totalSpent=(spentOps||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
+  return Math.round((totalAdv-totalSpent)*100)/100;
+}
 
 /* Returns current cash balance in TJS (income − direct_expenses − advances) */
 async function getCashBalance(){
@@ -3440,7 +3464,10 @@ function openNewAdvanceFull(){
 async function advStage(id){
   const{data:a}=await SB.from('advances').select('stage,stages').eq('id',id).single();
   const newStage=Math.min((a.stage||0)+1,a.stages||4);
-  const{error}=await SB.from('advances').update({stage:newStage,status:newStage>=(a.stages||4)?'done':'active'}).eq('id',id);
+  const wouldClose=newStage>=(a.stages||4);
+  // Only accountant/admin can close an advance
+  if(wouldClose&&isSup()){showToast(t('adv_close_deny'),true);return;}
+  const{error}=await SB.from('advances').update({stage:newStage,status:wouldClose?'done':'active'}).eq('id',id);
   if(error){showToast(error.message,true);return;}
   showToast('✓ Этап обновлён');renderPage(CUR_PAGE);
 }
@@ -3588,6 +3615,7 @@ async function advReturn(id){
 }
 
 async function advDone(id){
+  if(isSup()){showToast(t('adv_close_deny'),true);return;}
   showConfirm('Отметить аванс как выполненный? Карточка перейдёт в раздел закрытых.',async()=>{
     const{error}=await SB.from('advances').update({status:'done',stage:4}).eq('id',id);
     if(error){showToast(error.message,true);return;}
@@ -3637,11 +3665,15 @@ async function advAddExpense(workerName, objName){
       const amt=tot?.value?parseFloat(tot.value)||q2*p:q2*p;
       if(!amt){showToast(t('enter_amt'),true);return;}
       const rate=COMPANY.usd_rate||10.92;
+      // Block if expense exceeds remaining advance balance
+      const amtTJS_ae=SEL_CUR==='USD'?amt*rate:amt;
+      const rem_ae=await getSupplierRemaining(workerName);
+      if(amtTJS_ae>rem_ae){showToast(`${t('adv_over')} ${t('adv_over_detail')}: ${fmtN(rem_ae)} TJS, ${t('need')}: ${fmtN(amtTJS_ae)} TJS`,true);return;}
       const{error}=await SB.from('operations').insert({
         type:'expense',date:document.getElementById('ae-date')?.value||today(),
         object_name:SEL_OBJ||'',category_name:SEL_CAT||'Прочее',
         description:document.getElementById('ae-desc')?.value||'',
-        amount:amt,currency:SEL_CUR,method:'cash',
+        amount:amt,currency:SEL_CUR,method:'from_advance',
         amount_tjs:SEL_CUR==='USD'?amt*rate:amt,
         amount_usd:SEL_CUR==='TJS'?amt/rate:amt,
         usd_rate:rate,worker_name:workerName,
