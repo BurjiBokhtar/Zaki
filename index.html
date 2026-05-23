@@ -42,9 +42,12 @@
 @keyframes sunPulse{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
 
 /* Mobile login */
-@media(max-width:640px){
+@media(max-width:700px){
   #lp-left{display:none!important;}
   #login-page>div:last-child{padding:28px 20px!important;}
+}
+@media(max-width:900px) and (min-width:701px){
+  #lp-left{flex:0 0 44%!important;}
 }
 @keyframes orbFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-20px) scale(1.02)}}
 @keyframes loginCardIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -241,6 +244,16 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 #login-page input:-webkit-autofill{-webkit-box-shadow:0 0 0 100px rgba(255,255,255,.07) inset!important;-webkit-text-fill-color:#fff!important;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes orb{0%,100%{transform:scale(1) translate(0,0)}50%{transform:scale(1.1) translate(10px,-10px)}}
+/* Weather sky animations */
+@keyframes wxSunPulse{0%,100%{box-shadow:0 0 50px rgba(255,200,0,.7),0 0 110px rgba(255,140,0,.3)}50%{box-shadow:0 0 75px rgba(255,210,0,.9),0 0 160px rgba(255,150,0,.5)}}
+@keyframes wxSunRay{0%,100%{opacity:.5;transform:rotate(0deg) scaleX(1)}50%{opacity:.8;transform:rotate(4deg) scaleX(1.15)}}
+@keyframes wxCloudA{0%,100%{transform:translateX(0)}50%{transform:translateX(18px)}}
+@keyframes wxCloudB{0%,100%{transform:translateX(0)}50%{transform:translateX(-14px)}}
+@keyframes wxFogA{0%,100%{transform:translateX(-30px);opacity:.6}50%{transform:translateX(30px);opacity:.9}}
+@keyframes wxFogB{0%,100%{transform:translateX(20px);opacity:.5}50%{transform:translateX(-20px);opacity:.8}}
+@keyframes wxLightning{0%,85%,100%{background:transparent}87%{background:rgba(190,220,255,.18)}88%{background:transparent}91%{background:rgba(190,220,255,.14)}92%,100%{background:transparent}}
+@keyframes wxStar{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes wxMoonGlow{0%,100%{box-shadow:0 0 20px rgba(200,210,240,.4),0 0 50px rgba(180,200,240,.15)}50%{box-shadow:0 0 30px rgba(210,220,250,.5),0 0 70px rgba(180,200,240,.2)}}
 
 /* ══ COMPONENTS ══ */
 .card{background:var(--w);border:1px solid var(--bd);border-radius:var(--r2);padding:16px 18px;box-shadow:var(--sh);}
@@ -458,53 +471,189 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 <body>
 
 <!-- ══ LOGIN ══ -->
-<div id="login-page" style="display:none;position:fixed;inset:0;z-index:9998;background:#F5F7FA;align-items:center;justify-content:center;padding:20px;overflow:auto;">
-<div style="width:100%;max-width:400px;animation:fadeUp .4s ease both;">
-  <div style="text-align:center;margin-bottom:28px;">
-    <div style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:#39B980;border-radius:16px;margin-bottom:12px;box-shadow:0 4px 16px rgba(57,185,128,.25);">
-      <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M6 13C6 9.134 9.134 6 13 6" stroke="white" stroke-width="2.5" stroke-linecap="round"/><path d="M20 13C20 16.866 16.866 20 13 20" stroke="rgba(255,255,255,.5)" stroke-width="2.5" stroke-linecap="round"/><circle cx="13" cy="13" r="3.5" fill="white"/></svg>
+<div id="login-page" style="display:none;position:fixed;inset:0;z-index:9998;flex-direction:row;align-items:stretch;overflow:hidden;">
+
+  <!-- LEFT: animated dark panel with city skyline and rain -->
+  <div id="lp-left" style="flex:0 0 56%;position:relative;background:linear-gradient(170deg,#152235 0%,#0C1A2E 55%,#091525 100%);overflow:hidden;display:flex;flex-direction:column;">
+
+    <!-- Rain canvas -->
+    <canvas id="lp-rain" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></canvas>
+
+    <!-- City skyline SVG -->
+    <div style="position:absolute;bottom:0;left:0;right:0;z-index:2;pointer-events:none;">
+      <svg width="100%" viewBox="0 0 900 300" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="cgTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#091525" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#091525" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- Background far buildings -->
+        <rect x="0" y="155" width="75" height="145" fill="#0D1C2F"/>
+        <rect x="70" y="125" width="50" height="175" fill="#0D1C2F"/>
+        <rect x="820" y="145" width="80" height="155" fill="#0D1C2F"/>
+        <rect x="755" y="110" width="70" height="190" fill="#0D1C2F"/>
+        <!-- Building 1 left -->
+        <rect x="20" y="170" width="105" height="130" fill="#112031"/>
+        <rect x="33" y="183" width="13" height="9" rx="1" fill="#E8A020" opacity=".6"/>
+        <rect x="52" y="183" width="13" height="9" rx="1" fill="#E8A020" opacity=".35"/>
+        <rect x="71" y="183" width="13" height="9" rx="1" fill="#E8A020" opacity=".7"/>
+        <rect x="90" y="183" width="13" height="9" rx="1" fill="#E8A020" opacity=".45"/>
+        <rect x="33" y="200" width="13" height="9" rx="1" fill="#E8A020" opacity=".25"/>
+        <rect x="71" y="200" width="13" height="9" rx="1" fill="#E8A020" opacity=".6"/>
+        <rect x="90" y="200" width="13" height="9" rx="1" fill="#E8A020" opacity=".4"/>
+        <rect x="33" y="217" width="13" height="9" rx="1" fill="#E8A020" opacity=".5"/>
+        <rect x="52" y="217" width="13" height="9" rx="1" fill="#E8A020" opacity=".3"/>
+        <rect x="90" y="217" width="13" height="9" rx="1" fill="#E8A020" opacity=".55"/>
+        <!-- Building 2 center-left tall -->
+        <rect x="155" y="85" width="115" height="215" fill="#142540"/>
+        <rect x="168" y="98" width="15" height="11" rx="1" fill="#F0B030" opacity=".7"/>
+        <rect x="190" y="98" width="15" height="11" rx="1" fill="#F0B030" opacity=".45"/>
+        <rect x="212" y="98" width="15" height="11" rx="1" fill="#F0B030" opacity=".8"/>
+        <rect x="234" y="98" width="15" height="11" rx="1" fill="#F0B030" opacity=".35"/>
+        <rect x="168" y="118" width="15" height="11" rx="1" fill="#F0B030" opacity=".4"/>
+        <rect x="190" y="118" width="15" height="11" rx="1" fill="#F0B030" opacity=".75"/>
+        <rect x="212" y="118" width="15" height="11" rx="1" fill="#F0B030" opacity=".55"/>
+        <rect x="168" y="138" width="15" height="11" rx="1" fill="#F0B030" opacity=".6"/>
+        <rect x="234" y="138" width="15" height="11" rx="1" fill="#F0B030" opacity=".5"/>
+        <rect x="190" y="158" width="15" height="11" rx="1" fill="#F0B030" opacity=".35"/>
+        <rect x="212" y="158" width="15" height="11" rx="1" fill="#F0B030" opacity=".65"/>
+        <rect x="168" y="178" width="15" height="11" rx="1" fill="#F0B030" opacity=".5"/>
+        <rect x="234" y="178" width="15" height="11" rx="1" fill="#F0B030" opacity=".4"/>
+        <rect x="190" y="198" width="15" height="11" rx="1" fill="#F0B030" opacity=".6"/>
+        <!-- Building 3 center tallest -->
+        <rect x="305" y="42" width="135" height="258" fill="#162A44"/>
+        <rect x="318" y="56" width="17" height="12" rx="1" fill="#F5C842" opacity=".72"/>
+        <rect x="343" y="56" width="17" height="12" rx="1" fill="#F5C842" opacity=".48"/>
+        <rect x="368" y="56" width="17" height="12" rx="1" fill="#F5C842" opacity=".82"/>
+        <rect x="393" y="56" width="17" height="12" rx="1" fill="#F5C842" opacity=".38"/>
+        <rect x="318" y="78" width="17" height="12" rx="1" fill="#F5C842" opacity=".42"/>
+        <rect x="343" y="78" width="17" height="12" rx="1" fill="#F5C842" opacity=".78"/>
+        <rect x="368" y="78" width="17" height="12" rx="1" fill="#F5C842" opacity=".32"/>
+        <rect x="393" y="78" width="17" height="12" rx="1" fill="#F5C842" opacity=".62"/>
+        <rect x="318" y="100" width="17" height="12" rx="1" fill="#F5C842" opacity=".58"/>
+        <rect x="368" y="100" width="17" height="12" rx="1" fill="#F5C842" opacity=".52"/>
+        <rect x="343" y="122" width="17" height="12" rx="1" fill="#F5C842" opacity=".68"/>
+        <rect x="393" y="122" width="17" height="12" rx="1" fill="#F5C842" opacity=".45"/>
+        <rect x="318" y="144" width="17" height="12" rx="1" fill="#F5C842" opacity=".38"/>
+        <rect x="368" y="144" width="17" height="12" rx="1" fill="#F5C842" opacity=".66"/>
+        <rect x="318" y="166" width="17" height="12" rx="1" fill="#F5C842" opacity=".54"/>
+        <rect x="343" y="166" width="17" height="12" rx="1" fill="#F5C842" opacity=".32"/>
+        <rect x="393" y="166" width="17" height="12" rx="1" fill="#F5C842" opacity=".7"/>
+        <rect x="343" y="188" width="17" height="12" rx="1" fill="#F5C842" opacity=".58"/>
+        <rect x="368" y="188" width="17" height="12" rx="1" fill="#F5C842" opacity=".42"/>
+        <!-- Building 4 center-right -->
+        <rect x="470" y="105" width="105" height="195" fill="#132440"/>
+        <rect x="483" y="118" width="15" height="11" rx="1" fill="#F0B030" opacity=".68"/>
+        <rect x="504" y="118" width="15" height="11" rx="1" fill="#F0B030" opacity=".42"/>
+        <rect x="525" y="118" width="15" height="11" rx="1" fill="#F0B030" opacity=".65"/>
+        <rect x="546" y="118" width="15" height="11" rx="1" fill="#F0B030" opacity=".33"/>
+        <rect x="483" y="137" width="15" height="11" rx="1" fill="#F0B030" opacity=".38"/>
+        <rect x="504" y="137" width="15" height="11" rx="1" fill="#F0B030" opacity=".72"/>
+        <rect x="525" y="137" width="15" height="11" rx="1" fill="#F0B030" opacity=".52"/>
+        <rect x="483" y="156" width="15" height="11" rx="1" fill="#F0B030" opacity=".6"/>
+        <rect x="546" y="156" width="15" height="11" rx="1" fill="#F0B030" opacity=".48"/>
+        <rect x="504" y="175" width="15" height="11" rx="1" fill="#F0B030" opacity=".64"/>
+        <rect x="525" y="175" width="15" height="11" rx="1" fill="#F0B030" opacity=".38"/>
+        <!-- Building 5 right -->
+        <rect x="600" y="125" width="125" height="175" fill="#112031"/>
+        <rect x="613" y="138" width="15" height="10" rx="1" fill="#E8A020" opacity=".62"/>
+        <rect x="634" y="138" width="15" height="10" rx="1" fill="#E8A020" opacity=".38"/>
+        <rect x="655" y="138" width="15" height="10" rx="1" fill="#E8A020" opacity=".74"/>
+        <rect x="676" y="138" width="15" height="10" rx="1" fill="#E8A020" opacity=".48"/>
+        <rect x="697" y="138" width="15" height="10" rx="1" fill="#E8A020" opacity=".28"/>
+        <rect x="613" y="156" width="15" height="10" rx="1" fill="#E8A020" opacity=".44"/>
+        <rect x="655" y="156" width="15" height="10" rx="1" fill="#E8A020" opacity=".6"/>
+        <rect x="697" y="156" width="15" height="10" rx="1" fill="#E8A020" opacity=".52"/>
+        <rect x="634" y="174" width="15" height="10" rx="1" fill="#E8A020" opacity=".36"/>
+        <rect x="676" y="174" width="15" height="10" rx="1" fill="#E8A020" opacity=".64"/>
+        <rect x="613" y="192" width="15" height="10" rx="1" fill="#E8A020" opacity=".48"/>
+        <rect x="655" y="192" width="15" height="10" rx="1" fill="#E8A020" opacity=".32"/>
+        <!-- Ground -->
+        <rect x="0" y="278" width="900" height="22" fill="#091525"/>
+      </svg>
     </div>
-    <div style="font-size:28px;font-weight:800;color:#1A2332;letter-spacing:-1px;font-family:var(--ff);">ZAKI<span style="color:#39B980;">.</span></div>
-    <div style="font-size:13px;color:#6B7A99;margin-top:4px;font-family:var(--ff);" id="lp-sys">Низоми идоракунии молияи сохтмон</div>
-  </div>
-  <div style="background:#fff;border-radius:20px;padding:28px;box-shadow:0 4px 24px rgba(26,35,50,.08);border:1px solid #E4E9F0;">
-    <div style="font-size:18px;font-weight:700;color:#1A2332;margin-bottom:4px;font-family:var(--ff);" id="lt-h">Хуш омадед</div>
-    <div style="font-size:13px;color:#6B7A99;margin-bottom:20px;font-family:var(--ff);" id="lt-s">Ворид шавед ба суратҳисоби худ</div>
-    <div id="login-err" style="display:none;background:#FFF5F5;border:1px solid #FED7D7;border-radius:10px;padding:10px 13px;font-size:12px;color:#E53E3E;margin-bottom:14px;font-family:var(--ff);"></div>
-    <div style="margin-bottom:14px;">
-      <label style="display:block;font-size:10px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-family:var(--ff);" id="lt-em">ЛОГИН (EMAIL)</label>
-      <input id="l-email" type="email" autocomplete="email" style="width:100%;padding:11px 13px;background:#F5F7FA;border:1.5px solid #E4E9F0;border-radius:10px;font-size:14px;color:#1A2332;font-family:var(--ff);outline:none;transition:border-color .18s,box-shadow .18s;box-sizing:border-box;" placeholder="email@zaki.tj"
-        onfocus="this.style.borderColor='#39B980';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.1)'"
-        onblur="this.style.borderColor='#E4E9F0';this.style.boxShadow='none'"
-        onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()">
-    </div>
-    <div style="margin-bottom:20px;">
-      <label style="display:block;font-size:10px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-family:var(--ff);" id="lt-pw">ПАРОЛ</label>
-      <div style="position:relative;">
-        <input id="l-pass" type="password" autocomplete="current-password" style="width:100%;padding:11px 42px 11px 13px;background:#F5F7FA;border:1.5px solid #E4E9F0;border-radius:10px;font-size:14px;color:#1A2332;font-family:var(--ff);outline:none;transition:border-color .18s,box-shadow .18s;box-sizing:border-box;" placeholder="••••••••"
-          onfocus="this.style.borderColor='#39B980';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.1)'"
-          onblur="this.style.borderColor='#E4E9F0';this.style.boxShadow='none'"
-          onkeydown="if(event.key==='Enter')doLogin()">
-        <button onclick="togglePass()" type="button" style="position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9AA5B8;padding:4px;line-height:0;">
-          <svg id="eye-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 9s3-5.5 7.5-5.5S16.5 9 16.5 9s-3 5.5-7.5 5.5S1.5 9 1.5 9z"/><circle cx="9" cy="9" r="2.5"/></svg>
-        </button>
+
+    <!-- Gradient overlay bottom of panel -->
+    <div style="position:absolute;bottom:0;left:0;right:0;height:200px;background:linear-gradient(to top,#091525 0%,transparent 100%);z-index:3;pointer-events:none;"></div>
+
+    <!-- Top bar -->
+    <div style="position:relative;z-index:10;padding:22px 24px 0;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <div style="width:38px;height:38px;background:rgba(255,255,255,.12);border-radius:11px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.1);">
+          <img src="logo.png" style="width:30px;height:30px;object-fit:contain;display:block;" onerror="this.style.display='none';this.nextSibling.style.display='block'" alt="">
+          <svg style="display:none;width:20px;height:20px;" viewBox="0 0 20 20" fill="none"><path d="M4 10C4 6.686 6.686 4 10 4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M16 10C16 13.314 13.314 16 10 16" stroke="rgba(255,255,255,.4)" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <span style="color:#fff;font-size:15px;font-weight:700;font-family:var(--ff);text-shadow:0 1px 6px rgba(0,0,0,.4);">Бурчи Бохтар</span>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:26px;font-weight:800;color:#fff;line-height:1;font-family:var(--ff);text-shadow:0 1px 8px rgba(0,0,0,.4);" id="lp-temp">—°</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;font-family:var(--ff);" id="lp-wdesc">—</div>
       </div>
     </div>
-    <button id="l-btn" onclick="doLogin()" style="width:100%;padding:13px;background:#39B980;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:background .18s;box-sizing:border-box;"
-      onmouseover="this.style.background='#2A9066'" onmouseout="this.style.background='#39B980'">
-      <span id="l-btn-txt">Вуруд кардан →</span>
-    </button>
-    <div style="text-align:center;margin-top:14px;font-size:12px;color:#9AA5B8;font-family:var(--ff);">
-      <span id="lt-forgot">Паролро фаромӯш кардед?</span>
-      <span style="color:#39B980;font-weight:600;"> +992 103 005 003</span>
+
+    <!-- Language pills -->
+    <div style="position:relative;z-index:10;padding:12px 24px 0;display:flex;gap:8px;">
+      <button onclick="setLang('ru')" id="ll-ru" style="padding:5px 18px;border-radius:20px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .15s;backdrop-filter:blur(6px);">RU</button>
+      <button onclick="setLang('tj')" id="ll-tj" style="padding:5px 18px;border-radius:20px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .15s;backdrop-filter:blur(6px);">TJ</button>
     </div>
-    <div style="display:flex;gap:6px;justify-content:center;margin-top:14px;">
-      <button onclick="setLang('ru')" id="ll-ru" style="padding:5px 16px;border-radius:20px;border:1px solid #E4E9F0;background:#F5F7FA;color:#6B7A99;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .15s;">RU</button>
-      <button onclick="setLang('tj')" id="ll-tj" style="padding:5px 16px;border-radius:20px;border:1px solid #39B980;background:#39B980;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .15s;">TJ</button>
+
+    <!-- Bottom branding -->
+    <div style="position:relative;z-index:10;margin-top:auto;padding:0 24px 28px;">
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.42);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;" id="lp-co">ЧДММ «БУРЧИ БОХТАР» · БОХТАР</div>
+      <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-.4px;font-family:var(--ff);line-height:1.2;text-shadow:0 2px 14px rgba(0,0,0,.5);" id="lp-greeting">Хуш омадед</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.48);margin-top:6px;font-family:var(--ff);" id="lt-tag">Низоми идоракунии корпоративй</div>
     </div>
   </div>
-  <div style="text-align:center;margin-top:16px;font-size:11px;color:#9AA5B8;font-family:var(--ff);">ZAKI ERP · Системаи идоракунии молия</div>
-</div>
+
+  <!-- RIGHT: login form on white -->
+  <div style="flex:1;background:#fff;display:flex;align-items:center;justify-content:center;padding:48px 40px;overflow:auto;min-width:300px;">
+    <div style="width:100%;max-width:380px;animation:fadeUp .45s ease both;">
+      <div style="font-size:30px;font-weight:800;color:#1A2332;letter-spacing:-.8px;margin-bottom:6px;font-family:var(--ff);" id="lt-h">Хуш омадед</div>
+      <div style="font-size:13px;color:#6B7A99;margin-bottom:30px;font-family:var(--ff);" id="lt-s">Ворид шавед ба суратҳисоби худ</div>
+
+      <div id="login-err" style="display:none;background:#FFF5F5;border:1px solid #FED7D7;border-radius:10px;padding:10px 13px;font-size:12px;color:#E53E3E;margin-bottom:14px;font-family:var(--ff);"></div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:10px;font-weight:700;color:#9AA5B8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-family:var(--ff);" id="lt-em">ЛОГИН (EMAIL)</label>
+        <input id="l-email" type="email" autocomplete="email"
+          style="width:100%;padding:12px 14px;background:#F5F7FA;border:1.5px solid #E4E9F0;border-radius:12px;font-size:14px;color:#1A2332;font-family:var(--ff);outline:none;transition:border-color .18s,box-shadow .18s;box-sizing:border-box;"
+          placeholder="ном@burjibokhtar.tj"
+          onfocus="this.style.borderColor='#39B980';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.1)'"
+          onblur="this.style.borderColor='#E4E9F0';this.style.boxShadow='none'"
+          onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()">
+      </div>
+
+      <div style="margin-bottom:26px;">
+        <label style="display:block;font-size:10px;font-weight:700;color:#9AA5B8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-family:var(--ff);" id="lt-pw">ПАРОЛ</label>
+        <div style="position:relative;">
+          <input id="l-pass" type="password" autocomplete="current-password"
+            style="width:100%;padding:12px 44px 12px 14px;background:#F5F7FA;border:1.5px solid #E4E9F0;border-radius:12px;font-size:14px;color:#1A2332;font-family:var(--ff);outline:none;transition:border-color .18s,box-shadow .18s;box-sizing:border-box;"
+            placeholder="••••••••"
+            onfocus="this.style.borderColor='#39B980';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.1)'"
+            onblur="this.style.borderColor='#E4E9F0';this.style.boxShadow='none'"
+            onkeydown="if(event.key==='Enter')doLogin()">
+          <button onclick="togglePass()" type="button" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9AA5B8;padding:4px;line-height:0;">
+            <svg id="eye-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 9s3-5.5 7.5-5.5S16.5 9 16.5 9s-3 5.5-7.5 5.5S1.5 9 1.5 9z"/><circle cx="9" cy="9" r="2.5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button id="l-btn" onclick="doLogin()"
+        style="width:100%;padding:14px;background:#39B980;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:background .18s,box-shadow .18s;box-sizing:border-box;box-shadow:0 4px 16px rgba(57,185,128,.3);"
+        onmouseover="this.style.background='#2A9066';this.style.boxShadow='0 6px 20px rgba(57,185,128,.4)'"
+        onmouseout="this.style.background='#39B980';this.style.boxShadow='0 4px 16px rgba(57,185,128,.3)'">
+        <span id="l-btn-txt">Вуруд кардан →</span>
+      </button>
+
+      <div style="text-align:center;margin-top:22px;">
+        <div style="font-size:11px;color:#C8CDD8;margin-bottom:5px;font-family:var(--ff);" id="lt-help">ёрдам</div>
+        <span style="font-size:12px;color:#9AA5B8;font-family:var(--ff);" id="lt-forgot">Паролро фаромӯш кардед?</span>
+        <span style="font-size:12px;color:#39B980;font-weight:700;font-family:var(--ff);"> +992 10 300-50-03</span>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 
@@ -513,15 +662,12 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
   <div class="sidebar" id="sidebar">
     <div class="sb-hd">
       <div class="sb-logo">
-        <div class="sb-ico">
-          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-            <path d="M3 8.5C3 5.462 5.462 3 8.5 3" stroke="white" stroke-width="2" stroke-linecap="round"/>
-            <path d="M14 8.5C14 11.538 11.538 14 8.5 14" stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="8.5" cy="8.5" r="2.5" fill="white"/>
-          </svg>
+        <div class="sb-ico" style="background:#fff;border-radius:8px;padding:2px;overflow:hidden;">
+          <img src="logo.png" style="width:30px;height:30px;object-fit:contain;display:block;" onerror="this.style.display='none';this.nextSibling.style.display='block'" alt="">
+          <svg style="display:none;width:17px;height:17px;" viewBox="0 0 17 17" fill="none"><path d="M3 8.5C3 5.462 5.462 3 8.5 3" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M14 8.5C14 11.538 11.538 14 8.5 14" stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-linecap="round"/><circle cx="8.5" cy="8.5" r="2.5" fill="white"/></svg>
         </div>
         <div>
-          <div class="sb-brand">ZAKI<span>.</span></div>
+          <div class="sb-brand">Бурчи<span> Бохтар</span></div>
           <div class="sb-sub" id="sb-sub">Строительные финансы</div>
         </div>
       </div>
@@ -1221,60 +1367,223 @@ function getTimeOfDay(){
   return'night';
 }
 function updateLoginAmbience(){
-  const tod=getTimeOfDay();
-  const bg=document.getElementById('lp-bg');
-  // bg may not exist in new centered login design — that's ok
-  if(bg){
-  const bgs={
-    morning:'linear-gradient(180deg,#FFB347 0%,#FF8C42 30%,#FF6B6B 60%,#4A90D9 100%)',
-    day:'linear-gradient(180deg,#1a3a6b 0%,#2a5a9a 30%,#3a7bbf 60%,#1a2a4a 100%)',
-    evening:'linear-gradient(180deg,#FF6B35 0%,#C0392B 25%,#8E44AD 55%,#1a1a2e 100%)',
-    night:'linear-gradient(180deg,#0a0a1a 0%,#0d1b3e 40%,#1a2a5a 100%)'
+  applyWeatherTheme(63); // default: rain scene until API responds
+  fetchWeatherLP();
+}
+
+function applyWeatherTheme(wc){
+  const left=document.getElementById('lp-left');
+  const canvas=document.getElementById('lp-rain');
+  if(!left)return;
+
+  // Stop current canvas animation
+  if(canvas){canvas._rain=false;canvas._mode=null;}
+
+  // Remove old sky element
+  const old=document.getElementById('lp-sky');if(old)old.remove();
+
+  // --- Weather group detection ---
+  const isClear=wc<=1;
+  const isPartly=wc===2;
+  const isOvercast=wc===3;
+  const isFog=wc===45||wc===48;
+  const isDrizzle=wc>=51&&wc<=55;
+  const isRain=wc>=61&&wc<=67;
+  const isSnow=wc>=71&&wc<=77;
+  const isShower=wc>=80&&wc<=82;
+  const isThunder=wc>=95;
+  const isAnyRain=isDrizzle||isRain||isShower||isThunder;
+
+  // --- Background gradient ---
+  const bg={
+    clear:'linear-gradient(170deg,#0b2a5a 0%,#112e6a 30%,#0a1e45 65%,#060f20 100%)',
+    partly:'linear-gradient(170deg,#112240 0%,#0e1d38 40%,#0b1930 70%,#070f1e 100%)',
+    overcast:'linear-gradient(170deg,#141e2c 0%,#101825 50%,#0c1320 100%)',
+    fog:'linear-gradient(170deg,#17222f 0%,#121c28 50%,#0d1620 100%)',
+    rain:'linear-gradient(170deg,#152235 0%,#0c1a2e 55%,#091525 100%)',
+    snow:'linear-gradient(170deg,#1b2a3e 0%,#142030 50%,#0e1824 100%)',
+    thunder:'linear-gradient(170deg,#070d16 0%,#050b12 55%,#03080f 100%)'
   };
-  bg.style.background=bgs[tod]||bgs.day;
-  const skyObj=document.getElementById('lp-skyobj');
-  if(skyObj){
-    if(tod==='morning'||tod==='day'){
-      skyObj.innerHTML='<div style="width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,#FFE066,#FFB700);box-shadow:0 0 40px rgba(255,200,0,.5);animation:sunPulse 4s ease infinite;"></div>';
-    } else if(tod==='evening'){
-      skyObj.innerHTML='<div style="width:65px;height:65px;border-radius:50%;background:radial-gradient(circle,#FF8C42,#FF5E00);box-shadow:0 0 40px rgba(255,100,0,.4);animation:sunPulse 4s ease infinite;"></div>';
+  left.style.background=
+    isClear?bg.clear:isPartly?bg.partly:isOvercast?bg.overcast:
+    isFog?bg.fog:isSnow?bg.snow:isThunder?bg.thunder:bg.rain;
+
+  // --- Sky decorative element ---
+  const sky=document.createElement('div');
+  sky.id='lp-sky';
+  sky.style.cssText='position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden;';
+
+  if(isClear){
+    // Sun + rays + stars
+    sky.innerHTML=`
+      <div style="position:absolute;top:70px;right:55px;">
+        <div style="width:66px;height:66px;border-radius:50%;background:radial-gradient(circle,#ffe566 0%,#ffb700 55%,rgba(255,183,0,0) 100%);animation:wxSunPulse 4s ease-in-out infinite;"></div>
+        <div style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:2px;height:14px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite;"></div>
+        <div style="position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);width:2px;height:14px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite .5s;"></div>
+        <div style="position:absolute;left:-18px;top:50%;transform:translateY(-50%);width:14px;height:2px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite 1s;"></div>
+        <div style="position:absolute;right:-18px;top:50%;transform:translateY(-50%);width:14px;height:2px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite 1.5s;"></div>
+      </div>
+      <div style="position:absolute;top:55px;left:60px;width:3px;height:3px;border-radius:50%;background:#fff;animation:wxStar 2.2s ease-in-out infinite;opacity:.5;"></div>
+      <div style="position:absolute;top:90px;left:140px;width:2px;height:2px;border-radius:50%;background:#fff;animation:wxStar 3.1s ease-in-out infinite .7s;opacity:.4;"></div>
+      <div style="position:absolute;top:40px;left:220px;width:2px;height:2px;border-radius:50%;background:#fff;animation:wxStar 2.7s ease-in-out infinite 1.2s;opacity:.45;"></div>`;
+  } else if(isPartly){
+    // Partial clouds + dim glow
+    sky.innerHTML=`
+      <div style="position:absolute;top:60px;right:70px;width:50px;height:50px;border-radius:50%;background:radial-gradient(circle,rgba(255,200,80,.25),rgba(255,180,0,0));"></div>
+      <div style="position:absolute;top:55px;right:40px;animation:wxCloudA 9s ease-in-out infinite;">
+        <svg width="180" height="60" viewBox="0 0 180 60" fill="none"><ellipse cx="90" cy="42" rx="88" ry="18" fill="rgba(255,255,255,.06)"/><ellipse cx="70" cy="30" rx="50" ry="22" fill="rgba(255,255,255,.05)"/><ellipse cx="118" cy="28" rx="42" ry="18" fill="rgba(255,255,255,.05)"/></svg>
+      </div>
+      <div style="position:absolute;top:80px;left:20px;animation:wxCloudB 12s ease-in-out infinite .5s;">
+        <svg width="140" height="50" viewBox="0 0 140 50" fill="none"><ellipse cx="70" cy="36" rx="68" ry="14" fill="rgba(255,255,255,.05)"/><ellipse cx="55" cy="24" rx="38" ry="17" fill="rgba(255,255,255,.04)"/><ellipse cx="95" cy="22" rx="32" ry="14" fill="rgba(255,255,255,.04)"/></svg>
+      </div>`;
+  } else if(isOvercast){
+    // Heavy dark clouds
+    sky.innerHTML=`
+      <div style="position:absolute;top:30px;left:-20px;right:-20px;animation:wxCloudA 14s ease-in-out infinite;">
+        <svg width="120%" height="80" viewBox="0 0 900 80" fill="none"><ellipse cx="450" cy="60" rx="460" ry="25" fill="rgba(180,190,210,.06)"/><ellipse cx="280" cy="40" rx="220" ry="30" fill="rgba(160,170,200,.06)"/><ellipse cx="650" cy="38" rx="200" ry="28" fill="rgba(160,170,200,.05)"/></svg>
+      </div>
+      <div style="position:absolute;top:60px;left:-10px;right:-10px;animation:wxCloudB 11s ease-in-out infinite .8s;">
+        <svg width="110%" height="70" viewBox="0 0 900 70" fill="none"><ellipse cx="450" cy="52" rx="455" ry="20" fill="rgba(170,180,205,.05)"/><ellipse cx="200" cy="32" rx="180" ry="24" fill="rgba(155,165,195,.05)"/><ellipse cx="700" cy="30" rx="170" ry="22" fill="rgba(155,165,195,.04)"/></svg>
+      </div>`;
+  } else if(isFog){
+    // Horizontal fog bands
+    sky.innerHTML=`
+      <div style="position:absolute;top:25%;left:-10%;width:120%;height:28px;background:rgba(200,210,225,.05);border-radius:50%;animation:wxFogA 9s ease-in-out infinite;"></div>
+      <div style="position:absolute;top:42%;left:-10%;width:120%;height:22px;background:rgba(200,210,225,.04);border-radius:50%;animation:wxFogB 12s ease-in-out infinite .5s;"></div>
+      <div style="position:absolute;top:58%;left:-10%;width:120%;height:18px;background:rgba(200,210,225,.06);border-radius:50%;animation:wxFogA 10s ease-in-out infinite 1.2s;"></div>
+      <div style="position:absolute;top:72%;left:-10%;width:120%;height:20px;background:rgba(200,210,225,.04);border-radius:50%;animation:wxFogB 8s ease-in-out infinite .8s;"></div>`;
+  } else if(isSnow){
+    // Snow clouds + blue tint overlay
+    sky.innerHTML=`
+      <div style="position:absolute;top:28px;left:-10px;right:-10px;animation:wxCloudA 13s ease-in-out infinite;">
+        <svg width="110%" height="70" viewBox="0 0 900 70" fill="none"><ellipse cx="450" cy="52" rx="455" ry="22" fill="rgba(200,215,235,.07)"/><ellipse cx="220" cy="30" rx="200" ry="26" fill="rgba(190,205,230,.06)"/><ellipse cx="680" cy="28" rx="190" ry="24" fill="rgba(190,205,230,.06)"/></svg>
+      </div>`;
+  } else if(isThunder){
+    // Lightning flash overlay + very dark clouds
+    sky.innerHTML=`
+      <div style="position:absolute;inset:0;animation:wxLightning 5s ease-in-out infinite;"></div>
+      <div style="position:absolute;top:20px;left:-10px;right:-10px;">
+        <svg width="110%" height="80" viewBox="0 0 900 80" fill="none"><ellipse cx="450" cy="62" rx="460" ry="22" fill="rgba(100,110,140,.08)"/><ellipse cx="250" cy="38" rx="230" ry="30" fill="rgba(90,100,130,.08)"/><ellipse cx="680" cy="35" rx="210" ry="28" fill="rgba(90,100,130,.07)"/></svg>
+      </div>
+      <svg style="position:absolute;top:90px;left:55%;width:28px;opacity:.7;" viewBox="0 0 28 70" fill="none"><polyline points="16,0 8,32 16,32 6,70" stroke="rgba(220,235,255,.9)" stroke-width="2.5" stroke-linejoin="round"/></svg>`;
+  }
+  // Rain/drizzle/shower: no extra sky element (just canvas)
+
+  left.insertBefore(sky, left.querySelector('#lp-rain').nextSibling);
+
+  // --- Canvas particle mode ---
+  if(canvas){
+    if(isAnyRain){
+      const mode=isThunder||isShower?'heavyrain':isDrizzle?'drizzle':'rain';
+      setTimeout(()=>startParticleCanvas(mode),60);
+    } else if(isSnow){
+      setTimeout(()=>startParticleCanvas('snow'),60);
     } else {
-      skyObj.innerHTML='<div style="width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,#E8E8C8,#C8C8A0);box-shadow:0 0 30px rgba(200,200,150,.4);position:relative;"><div style="position:absolute;top:10px;right:12px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.15);"></div></div>';
+      canvas.style.opacity='0'; // no canvas for clear/cloudy/fog
     }
   }
-  const greets={morning:LANG==='tj'?'Субҳ бахайр · Хуш омадед':'Доброе утро · Добро пожаловать',day:LANG==='tj'?'Рӯзи нек · Хуш омадед':'Добрый день · Добро пожаловать',evening:LANG==='tj'?'Бегоҳ бахайр · Хуш омадед':'Добрый вечер · Добро пожаловать',night:LANG==='tj'?'Шаб бахайр · Хуш омадед':'Доброй ночи · Добро пожаловать'};
-  const gEl=document.getElementById('lp-greet');if(gEl)gEl.textContent=greets[tod]||greets.day;
-  fetchWeatherLP();
+}
+
+function startParticleCanvas(mode){
+  const c=document.getElementById('lp-rain');
+  if(!c)return;
+  // Stop previous loop
+  c._rain=false;
+  const prevMode=c._mode;
+  c._mode=mode;
+  const ctx=c.getContext('2d');
+  const drops=[];
+
+  function resize(){
+    const p=c.parentElement;
+    const w=p?p.getBoundingClientRect().width||p.offsetWidth:600;
+    const h=p?p.getBoundingClientRect().height||p.offsetHeight:900;
+    if(w>0){c.width=w;c.height=Math.max(h,300);}
   }
-  fetchWeatherLP(); // always fetch weather for strip
+  setTimeout(()=>{
+    resize();
+    c.style.opacity='1';
+    c._rain=true;
+
+    const count=mode==='heavyrain'?150:mode==='drizzle'?55:mode==='snow'?70:100;
+    const isSnow=mode==='snow';
+    for(let i=0;i<count;i++){
+      if(isSnow){
+        drops.push({x:Math.random()*c.width,y:Math.random()*c.height,s:.6+Math.random()*1.4,r:1.5+Math.random()*3,o:.15+Math.random()*.55,drift:Math.random()*Math.PI*2});
+      } else {
+        const fast=mode==='heavyrain';
+        drops.push({x:Math.random()*c.width,y:Math.random()*c.height,s:fast?8+Math.random()*10:mode==='drizzle'?3+Math.random()*4:5+Math.random()*9,l:fast?14+Math.random()*20:mode==='drizzle'?6+Math.random()*10:9+Math.random()*18,o:fast?0.1+Math.random()*.28:0.06+Math.random()*.2});
+      }
+    }
+
+    function draw(){
+      if(!c._rain||c._mode!==mode)return;
+      ctx.clearRect(0,0,c.width,c.height);
+      drops.forEach(d=>{
+        if(isSnow){
+          d.drift+=0.012;d.x+=Math.sin(d.drift)*.6;d.y+=d.s;
+          if(d.y>c.height+10){d.y=-10;d.x=Math.random()*c.width;}
+          ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
+          ctx.fillStyle=`rgba(220,235,255,${d.o})`;ctx.fill();
+        } else {
+          ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.x-d.l*.15,d.y+d.l);
+          ctx.strokeStyle=`rgba(174,214,241,${d.o})`;ctx.lineWidth=mode==='heavyrain'?1:.7;ctx.stroke();
+          d.y+=d.s;d.x-=d.s*.15;
+          if(d.y>c.height+20){d.y=-20;d.x=Math.random()*c.width;}
+        }
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+  },60);
+  window.addEventListener('resize',resize);
 }
 async function fetchWeatherLP(){
-  const tod=getTimeOfDay();
-  // Update greeting based on time
-  const greets={
-    morning:LANG==='tj'?'Субҳ бахайр 🌅':'Доброе утро 🌅',
-    day:LANG==='tj'?'Рӯзи нек ☀️':'Добрый день ☀️',
-    evening:LANG==='tj'?'Бегоҳ бахайр 🌇':'Добрый вечер 🌇',
-    night:LANG==='tj'?'Шаб бахайр 🌙':'Доброй ночи 🌙'
-  };
-  const gEl=document.getElementById('lp-sys');
-  if(gEl) gEl.textContent=greets[tod]||greets.day;
-  try{
-    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=38.56&longitude=68.77&current_weather=true&forecast_days=1');
-    const d=await r.json();
-    const temp=Math.round(d.current_weather?.temperature||30);
-    const wc=d.current_weather?.weathercode||0;
-    const desc=wc===0?'Ясно ☀️':wc<3?'Облачно 🌤':wc<60?'Пасмурно ☁️':'Дождь 🌧';
+  const WX_EN={0:'Clear Sky',1:'Mostly Clear',2:'Partly Cloudy',3:'Overcast',45:'Foggy',48:'Foggy',51:'Light Drizzle',53:'Drizzle',55:'Heavy Drizzle',61:'Light Rain',63:'Rain',65:'Heavy Rain',71:'Light Snow',73:'Snow',75:'Heavy Snow',80:'Rain Showers',81:'Rain Showers',82:'Heavy Showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
+  const WX_TJ={0:'Офтобӣ',1:'Офтобӣ',2:'Абрнок',3:'Абрнок',45:'Туман',48:'Туман',51:'Борони сабук',53:'Борон',55:'Борони сахт',61:'Борони сабук',63:'Борон',65:'Борони сахт',71:'Барфи сабук',73:'Барф',75:'Барфи сахт',80:'Борон',81:'Борон',82:'Борони сахт',95:'Тӯфон',96:'Тӯфон',99:'Тӯфон'};
+  const WX_RU={0:'Ясно',1:'Ясно',2:'Облачно',3:'Пасмурно',45:'Туман',48:'Туман',51:'Морось',53:'Морось',55:'Сильная морось',61:'Лёгкий дождь',63:'Дождь',65:'Сильный дождь',71:'Лёгкий снег',73:'Снег',75:'Сильный снег',80:'Ливень',81:'Ливень',82:'Сильный ливень',95:'Гроза',96:'Гроза',99:'Гроза'};
+  const WELCOME_TJ='Хуш омадед';const WELCOME_RU='Добро пожаловать';
+  function applyWeather(temp,wc,city){
     const te=document.getElementById('lp-temp');
-    const de=document.getElementById('lp-desc');
+    const de=document.getElementById('lp-wdesc');
+    const gr=document.getElementById('lp-greeting');
+    const co=document.getElementById('lp-co');
     if(te)te.textContent=temp+'°C';
-    if(de)de.textContent=desc;
-    // Also update city ico based on weather
-    const ico=document.getElementById('lp-city-ico');
-    if(ico)ico.textContent=wc===0?'☀️':wc<3?'🌤':wc<60?'☁️':'🌧';
-  }catch(e){
-    const te=document.getElementById('lp-temp');if(te)te.textContent='30°C';
-    const de=document.getElementById('lp-desc');if(de)de.textContent='Ясно ☀️';
+    if(de)de.textContent=(WX_EN[wc]||'—');
+    const wxWord=LANG==='tj'?(WX_TJ[wc]||'Хуш омадед'):(WX_RU[wc]||'Добро пожаловать');
+    const welcome=LANG==='tj'?WELCOME_TJ:WELCOME_RU;
+    if(gr)gr.textContent=wxWord+' · '+welcome;
+    if(city&&co){const cur=co.textContent.split('·')[0].trim();co.textContent=cur+(city?' · '+city.toUpperCase():'');}
+  }
+  async function doFetch(lat,lon,city){
+    try{
+      const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&forecast_days=1`);
+      const d=await r.json();
+      const temp=Math.round(d.current_weather?.temperature??20);
+      const wc=d.current_weather?.weathercode??0;
+      applyWeather(temp,wc,city);
+      applyWeatherTheme(wc);
+    }catch(e){applyWeather(20,0,city);applyWeatherTheme(0);}
+  }
+  async function getCityName(lat,lon){
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ru`,{headers:{'Accept-Language':'ru'}});
+      const d=await r.json();
+      return d.address?.city||d.address?.town||d.address?.village||'';
+    }catch(e){return '';}
+  }
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(
+      async pos=>{
+        const{latitude:lat,longitude:lon}=pos.coords;
+        const city=await getCityName(lat,lon);
+        await doFetch(lat,lon,city);
+      },
+      async()=>{ await doFetch(37.8333,69.0833,'Бохтар'); },
+      {timeout:5000}
+    );
+  } else {
+    await doFetch(37.8333,69.0833,'Бохтар');
   }
 }
 
@@ -1347,17 +1656,17 @@ function setLang(l){
   const lbru=document.getElementById('lb-ru'),lbtj=document.getElementById('lb-tj');
   if(lbru)lbru.className='lb'+(l==='ru'?' on':'');
   if(lbtj)lbtj.className='lb'+(l==='tj'?' on':'');
-  // Login buttons (dark bg version)
+  // Login language pills (on dark panel)
   const llru=document.getElementById('ll-ru'),lltj=document.getElementById('ll-tj');
   if(llru){
-    llru.style.background=l==='ru'?'#39B980':'#F5F7FA';
-    llru.style.color=l==='ru'?'#fff':'#6B7A99';
-    llru.style.borderColor=l==='ru'?'#39B980':'#E4E9F0';
+    llru.style.background=l==='ru'?'#39B980':'rgba(255,255,255,.1)';
+    llru.style.color=l==='ru'?'#fff':'rgba(255,255,255,.7)';
+    llru.style.borderColor=l==='ru'?'#39B980':'rgba(255,255,255,.2)';
   }
   if(lltj){
-    lltj.style.background=l==='tj'?'#39B980':'#F5F7FA';
-    lltj.style.color=l==='tj'?'#fff':'#6B7A99';
-    lltj.style.borderColor=l==='tj'?'#39B980':'#E4E9F0';
+    lltj.style.background=l==='tj'?'#39B980':'rgba(255,255,255,.1)';
+    lltj.style.color=l==='tj'?'#fff':'rgba(255,255,255,.7)';
+    lltj.style.borderColor=l==='tj'?'#39B980':'rgba(255,255,255,.2)';
   }
   updateLoginTexts();updatePeriodBtns();
   if(USER){buildNav();renderPage(CUR_PAGE);}
