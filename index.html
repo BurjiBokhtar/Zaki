@@ -489,12 +489,23 @@ html{height:100dvh;}
   .fg.f2,.fg.f3{grid-template-columns:1fr;}
   .s2,.s3{grid-column:span 1;}
   .g4{grid-template-columns:1fr 1fr;}
+  .g3{grid-template-columns:1fr 1fr;}
+  .g2{grid-template-columns:1fr;}
   .money-map{grid-template-columns:1fr 1fr;}
   .dc-amts{grid-template-columns:1fr 1fr;}
   .mc-stats{grid-template-columns:1fr 1fr;}
   .rates-grid{grid-template-columns:1fr 1fr;}
+  .role-grid{grid-template-columns:1fr 1fr;}
+  .mob-2col{grid-template-columns:1fr 1fr!important;}
+  .mob-1col{grid-template-columns:1fr!important;}
 }
-@media(max-width:480px){.g4,.g3,.g2{grid-template-columns:1fr 1fr;}}
+@media(max-width:480px){
+  .g4,.g3{grid-template-columns:1fr 1fr;}
+  .g2{grid-template-columns:1fr;}
+  .money-map{grid-template-columns:1fr 1fr;}
+  .rates-grid{grid-template-columns:1fr 1fr;}
+  .mob-2col{grid-template-columns:1fr 1fr!important;}
+}
 </style>
 </head>
 <body>
@@ -2736,7 +2747,7 @@ ops:async()=>{
   </div>`:``}
 
   <!-- SUMMARY TJS/USD отдельно -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:18px;">
+  <div class="g4 mob-2col" style="gap:10px;margin-bottom:18px;">
     <div class="sc g" style="padding:12px 14px;animation-delay:.02s;">
       <div class="sc-lbl" style="font-size:9px;">↑ TJS</div>
       <div style="font-size:18px;font-weight:800;color:var(--ad);">+${fmtN(incTJS)}</div>
@@ -2874,7 +2885,7 @@ snabs:async()=>{
         <div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${isOver?'var(--red)':pct>80?'var(--yel)':clr};animation-delay:${.1+i*.07}s;"></div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px;">
+      <div class="g3" style="gap:7px;margin-bottom:10px;">
         <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px;text-align:center;">
           <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">${t('adv_issued')}</div>
           <div style="font-size:13px;font-weight:700;color:var(--ad);">${fmtN(a.amount)} ${a.currency}</div>
@@ -2890,7 +2901,7 @@ snabs:async()=>{
       </div>
 
       ${canWrite()?`
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+      <div class="g4 mob-2col" style="gap:6px;margin-bottom:8px;">
         <button onclick="advReturn(${a.id},'money')"
           style="padding:8px 4px;border-radius:var(--r);background:var(--al);border:1px solid rgba(57,185,128,.25);color:var(--adk);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
           onmouseover="this.style.background='rgba(57,185,128,.2)'" onmouseout="this.style.background='var(--al)'">
