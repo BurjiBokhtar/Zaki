@@ -2547,11 +2547,6 @@ home:async()=>{
   },80);
 
   return `
-  <!-- EXCHANGE RATES -->
-  <div class="rates-grid mb20">
-    ${ratesArr.map((r,i)=>`<div class="rate-c" style="background:${r.c};animation-delay:${i*.04}s;"><div class="rate-l">1 ${r.f} / ${r.t2}</div><div class="rate-v">${r.v} ${r.t2}</div><div class="rate-s">НБТ · ${new Date().toLocaleDateString('ru',{day:'numeric',month:'short'})}</div></div>`).join('')}
-  </div>
-
   <!-- OBJECT FILTER — compact select -->
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
     <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:200px;max-width:380px;">
