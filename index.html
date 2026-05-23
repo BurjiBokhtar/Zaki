@@ -2262,12 +2262,12 @@ function openAddOpModal(type){
     const wHid=document.getElementById('mo-worker');
     if(wTr&&wHid){
       SB.from('profiles').select('name,role').in('role',['supplier','accountant','admin','manager']).then(({data})=>{
-        const wItems=(data||[]).map(u=>({value:u.name,label:u.name+' ('+u.role+')'}));
+        const wItems=(data||[]).filter(u=>u.role==='supplier').map(u=>({value:u.name,label:u.name}));
         wTr.addEventListener('click',()=>openSS(t('adv_to'),wItems,wHid.value,(val)=>{
           wHid.value=val;
           wTr.textContent=val;
           wTr.classList.remove('ss-empty-val');
-        },true));
+        }));
       });
     }
   },80);
@@ -3371,10 +3371,10 @@ function openNewAdvanceFull(){
       const naWTr=document.getElementById('na-worker-tr');
       const naWHid=document.getElementById('na-worker');
       if(naWTr&&naWHid){
-        const wItems=(profiles||[]).map(u=>({value:u.name,label:u.name+' ('+u.role+')'}));
+        const wItems=(profiles||[]).filter(u=>u.role==='supplier').map(u=>({value:u.name,label:u.name}));
         naWTr.addEventListener('click',()=>openSS('Получатель',wItems,naWHid.value,(val)=>{
           naWHid.value=val;naWTr.textContent=val;naWTr.classList.remove('ss-empty-val');
-        },true));
+        }));
       }
       const naOTr=document.getElementById('na-obj-tr');
       const naOHid=document.getElementById('na-obj');
@@ -3407,13 +3407,10 @@ async function showWorkerOps(name){
 async function openNewAdv(){
   // Load both profiles (suppliers) and all names from advances
   const[{data:suppliers},{data:existingAdvs}]=await Promise.all([
-    SB.from('profiles').select('name,role').in('role',['supplier','accountant','admin']),
+    SB.from('profiles').select('name,role').eq('role','supplier'),
     SB.from('advances').select('worker_name').neq('worker_name','')
   ]);
-  const allNames=[...new Set([
-    ...(suppliers||[]).map(u=>u.name),
-    ...(existingAdvs||[]).map(a=>a.worker_name)
-  ])].filter(Boolean);
+  const allNames=(suppliers||[]).map(u=>u.name).filter(Boolean);
 
   openModal('Выдать аванс',`
     <div class="fg f2">
@@ -3421,9 +3418,6 @@ async function openNewAdv(){
         <div class="fld-l">Кому выдаётся (выберите или введите)</div>
         <input type="hidden" id="na-w" value="">
         <div class="fi ss-trigger ss-empty-val" id="na-w-tr">Выберите из списка или введите имя...</div>
-        <div style="font-size:10px;color:var(--t4);margin-top:3px;">
-          Снабженцы из системы: ${(suppliers||[]).map(u=>u.name).join(', ')||'—'}
-        </div>
       </div>
       <div class="fld s2">
         <div class="fld-l">Задача / Назначение</div>
