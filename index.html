@@ -106,7 +106,8 @@
 @keyframes toast{0%{opacity:0;transform:translateX(-50%) translateY(12px)}10%,85%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0}}
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);overflow:hidden;-webkit-font-smoothing:antialiased;}
+html,body{height:100%;height:-webkit-fill-available;font-family:var(--ff);background:var(--bg);color:var(--t);overflow:hidden;overscroll-behavior:none;-webkit-font-smoothing:antialiased;}
+html{height:100dvh;}
 
 /* ══ CONFIG SCREEN ══ */
 /*.config-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -167,7 +168,7 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 .lt-btn.on{background:var(--a);color:var(--w);border-color:var(--a);}
 
 /* ══ APP ══ */
-.app{display:none;height:100vh;overflow:hidden;flex-direction:row;}
+.app{display:none;height:100vh;height:100dvh;overflow:hidden;flex-direction:row;}
 
 /* SIDEBAR */
 .sidebar{width:var(--sb);background:#1A2332;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;z-index:50;transition:transform .3s cubic-bezier(.4,0,.2,1);}
@@ -223,18 +224,18 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 .cp-usd{background:var(--bluel);color:var(--blue);border:1px solid var(--blueb);}
 
 /* MOB TABS */
-.mob-tabs{display:none;padding:7px 11px;gap:5px;overflow-x:auto;border-bottom:1px solid var(--bd);background:var(--w);flex-shrink:0;}
+.mob-tabs{display:none;padding:7px 11px;gap:5px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;border-bottom:1px solid var(--bd);background:var(--w);flex-shrink:0;touch-action:pan-x;}
 .mob-tabs::-webkit-scrollbar{display:none;}
 .mob-tab{padding:5px 13px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid var(--bd);color:var(--t3);background:var(--w);transition:all .18s;flex-shrink:0;font-family:var(--ff);}
 .mob-tab.on{background:var(--a);color:var(--w);border-color:var(--a);}
 
 /* CONTENT */
-.content{flex:1;overflow-y:auto;padding:18px;}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:18px;overscroll-behavior-y:contain;}
 .content::-webkit-scrollbar{width:4px;}
 .content::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px;}
 
 /* BOT NAV */
-.bot-nav{display:none;background:var(--w);border-top:1px solid var(--bd);padding:7px 3px 20px;flex-shrink:0;}
+.bot-nav{display:none;background:var(--w);border-top:1px solid var(--bd);padding:7px 3px max(20px,env(safe-area-inset-bottom));flex-shrink:0;position:relative;z-index:10;}
 .bn-row{display:flex;}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;background:transparent;cursor:pointer;padding:4px;font-family:var(--ff);}
 .nb svg{stroke:var(--t4);}
@@ -3624,9 +3625,6 @@ async function debtReturn(id,type){
       const syncCash=!isBarter&&document.getElementById('dr-cash')?.checked;
       if(syncCash){
         const rate=COMPANY.usd_rate||10.92;
-        const uid=(await SB.auth.getUser()).data.user?.id;
-        // creditor return = Мы вернули долг = expense (деньги ушли)
-        // debtor return   = Нам вернули долг = income (деньги пришли)
         const opType=isCreditor?'expense':'income';
         const catName=isCreditor?'Возврат займа':'Получен возврат долга';
         const descTxt=isCreditor?'Возврат займа: '+(dbt?.name||''):'Возврат от: '+(dbt?.name||'');
@@ -3635,9 +3633,10 @@ async function debtReturn(id,type){
           category_name:catName,object_name:dbt?.name||'',description:descTxt,
           amount:amt,amount_tjs:amt,amount_usd:+(amt/rate).toFixed(2),
           currency:'TJS',usd_rate:rate,
-          method:'cash',worker_name:USER?.name||'',user_id:uid
+          method:'cash',worker_name:USER?.name||'',
+          created_by:USER?.id
         });
-        if(opErr)showToast('Долг обновлён, но касса не обновилась: '+opErr.message,true);
+        if(opErr){showToast('Долг обновлён, но касса не обновилась: '+opErr.message,true);closeModal();renderPage('debts');return;}
       }
       closeModal();showToast(t('saved'));renderPage('debts');
     },'Сохранить');
@@ -3671,9 +3670,6 @@ function openNewDebt(){
         const cur=document.getElementById('nd-c').value;
         const rate=COMPANY.usd_rate||10.92;
         const amtTJS=cur==='USD'?a*rate:a;
-        const uid=(await SB.auth.getUser()).data.user?.id;
-        // creditor = Мы Должны = получили деньги = income
-        // debtor   = Нам Должны = выдали деньги = expense
         const opType=dtype==='creditor'?'income':'expense';
         const catName=dtype==='creditor'?'Займ получен':'Займ выдан';
         const descTxt=dtype==='creditor'?'Займ от '+n:'Займ выдан: '+n;
@@ -3684,9 +3680,10 @@ function openNewDebt(){
           amount_tjs:amtTJS,
           amount_usd:cur==='USD'?a:+(a/rate).toFixed(2),
           currency:cur,usd_rate:rate,
-          method:'cash',worker_name:USER?.name||'',user_id:uid
+          method:'cash',worker_name:USER?.name||'',
+          created_by:USER?.id
         });
-        if(opErr)showToast('Долг сохранён, но касса не обновилась: '+opErr.message,true);
+        if(opErr){showToast('Долг сохранён, но касса не обновилась: '+opErr.message,true);closeModal();renderPage('debts');return;}
       }
       closeModal();showToast(t('saved'));renderPage('debts');
     }
