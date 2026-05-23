@@ -68,8 +68,9 @@
 .icon-card{cursor:default;transition:box-shadow .2s,transform .2s;}
 .icon-card:hover{box-shadow:0 4px 16px rgba(57,185,128,.15);transform:translateY(-2px);}
 
-/* Pulse bar */
+/* Pulse bar — hidden */
 .pulse-bar{
+  display:none!important;
   position:sticky;top:0;z-index:30;
   background:linear-gradient(135deg,#0d1f1a,#1a3a2a);
   padding:10px 18px;
@@ -240,8 +241,8 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 .mob-overlay.show{display:block;}
 
 /* Login dark styles */
-#login-page input::placeholder{color:rgba(255,255,255,.2)!important;}
-#login-page input:-webkit-autofill{-webkit-box-shadow:0 0 0 100px rgba(255,255,255,.07) inset!important;-webkit-text-fill-color:#fff!important;}
+#login-page input::placeholder{color:#B0BAC9!important;}
+#login-page input:-webkit-autofill{-webkit-box-shadow:0 0 0 100px #F5F7FA inset!important;-webkit-text-fill-color:#1A2332!important;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes orb{0%,100%{transform:scale(1) translate(0,0)}50%{transform:scale(1.1) translate(10px,-10px)}}
 /* Weather sky animations */
@@ -667,7 +668,7 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
           <svg style="display:none;width:17px;height:17px;" viewBox="0 0 17 17" fill="none"><path d="M3 8.5C3 5.462 5.462 3 8.5 3" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M14 8.5C14 11.538 11.538 14 8.5 14" stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-linecap="round"/><circle cx="8.5" cy="8.5" r="2.5" fill="white"/></svg>
         </div>
         <div>
-          <div class="sb-brand">Бурчи<span> Бохтар</span></div>
+          <div class="sb-brand">ZAKI<span>.</span></div>
           <div class="sb-sub" id="sb-sub">Строительные финансы</div>
         </div>
       </div>
@@ -699,7 +700,7 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
         <div class="tb-btn" onclick="go('settings')">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="var(--t3)" stroke-width="1.4"><circle cx="7.5" cy="7.5" r="2.2"/><path d="M7.5 1.5v1.2M7.5 12.3v1.2M13 7.5h-1.2M3.2 7.5H2M11.4 3.6l-.85.85M4.45 10.55l-.85.85M11.4 11.4l-.85-.85M4.45 4.45l-.85-.85" stroke-linecap="round"/></svg>
         </div>
-        <div class="tb-btn" onclick="showToast('Уведомлений нет')" style="position:relative;">
+        <div class="tb-btn" onclick="showToast(t('no_notif'))" style="position:relative;">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="var(--t3)" stroke-width="1.4"><path d="M7.5 1.5A4.5 4.5 0 0112 6v2.5l1.5 2.5H2L3.5 8.5V6A4.5 4.5 0 017.5 1.5z" stroke-linejoin="round"/><path d="M6.2 12.5a1.3 1.3 0 002.6 0" stroke-linecap="round"/></svg>
           <div class="notif-pip"></div>
         </div>
@@ -846,6 +847,44 @@ const T={
     users:'Пользователи',add_u:'Добавить',
     add_w:'Добавить работу',m_card:'Карточка',
     overdue:'Просрочено',done_ok:'Выполнено ✓',
+    ops_count:'операций',after_adv:'После авансов снабженцам',
+    net_lbl:'Нетто',issued:'Выдано',
+    deb_tjs:'TJS дебиторка',cred_tjs:'TJS кредиторка',
+    all_obj:'Все объекты',exp_by_cat:'Расходы по категориям',
+    by_obj_tip:'По объектам — нажмите на столбец для фильтра',
+    reset_filter:'✕ Сброс фильтра',
+    all_ops_title:'Все операции',search_ph:'Поиск по описанию, категории, объекту...',
+    all_types:'Все типы',reset:'✕ Сброс',no_ops:'Нет операций за выбранный период',
+    role_acc_edit:'Бухгалтер: редактирование доступно всегда',
+    role_sup_edit:'Снабженец: редактирование только сегодня',
+    new_debt:'+ Новый долг',money:'Деньги',history:'История',
+    rest_lbl:'Остаток',cur_rate:'Текущий',
+    recent_exp:'Последние расходы',stage_lbl:'Этап',
+    spent_lbl:'Потрачено',adv_issued:'Выдано',
+    overspent:'Перерасход',almost:'Почти всё',ret:'↩ Возврат',
+    exp_hist:'История расходов',more_exp:'+ ещё',expenses_sfx:'расходов',
+    active_adv:'Активные авансы',give_adv:'Выдать аванс',
+    no_active_adv:'Нет активных авансов',closed_adv:'Закрытые',
+    active_sfx:'активных',closed_sfx:'закрытых',issued_on:'Выдан',
+    deadline:'Срок',work_hist:'История работ',
+    type_lbl:'Тип',name_org:'Имя / Организация',
+    specialty:'Специальность',adv_tjs:'Аванс (TJS)',
+    fill_name_amt:'Заполните имя и сумму',
+    close:'Закрыть',notes:'Заметка',worked_lbl:'Отработано',
+    enter_amt:'Введите сумму',enter_val:'Введите значение',fill_fields:'Заполните поля',
+    no_exp_data:'Нет данных для экспорта',allow_popup:'Разрешите всплывающие окна в браузере',
+    adv_reopened:'Аванс переоткрыт',invalid_val:'Неверное значение',
+    specify_worker:'Укажите сотрудника и сумму',specify_adv_w:'Укажите кому выдаётся аванс',
+    no_notif:'Уведомлений нет',adv_op_warn:'Аванс создан, но операция не записана',
+    cash_recv:'Получено в кассу',cash_recv_sub:'Автоматически добавить приход в кассу',
+    cash_pay:'Оплачено из кассы',cash_pay_sub:'Автоматически списать расход из кассы',
+    cat_l:'Категория',no_obj:'— Без объекта —',
+    adv_to:'Кому выдаётся',adv_task:'Задача / Назначение',
+    adv_amt:'Сумма аванса',optional:'Необязательно',
+    price_unit:'Цена за ед.',total_or:'Итого (или ввести)',
+    new_inc:'Новый приход',new_exp:'Новый расход',adv_give:'Аванс / Выдать',
+    inc_ph:'Клиент, квартира №, услуга...',exp_ph:'Наименование товара или услуги...',
+    adv_worker_ph:'Введите имя или выберите из списка...',adv_task_ph:'Закупка материалов, доставка...',
   },
   tj:{
     login:'Хуш омадед',login_s:'Ба система ворид шавед',login_btn:'Ворид шудан →',
@@ -895,6 +934,44 @@ const T={
     users:'Корбарон',add_u:'Илова',
     add_w:'Кор илова',m_card:'Карточка',
     overdue:'Гузашта',done_ok:'Иҷро ✓',
+    ops_count:'амалиётҳо',after_adv:'Пас аз пешпардохти таъминотчиён',
+    net_lbl:'Холис',issued:'Дода',
+    deb_tjs:'TJS дебиторӣ',cred_tjs:'TJS кредиторӣ',
+    all_obj:'Ҳама объектҳо',exp_by_cat:'Харҷ аз рӯи категория',
+    by_obj_tip:'Аз рӯи объект — рӯи сутун пахш кунед',
+    reset_filter:'✕ Тоза кардан',
+    all_ops_title:'Ҳама амалиётҳо',search_ph:'Ҷустуҷӯ аз рӯи тавсиф, категория, объект...',
+    all_types:'Ҳама навъҳо',reset:'✕ Тоза',no_ops:'Амалиёт барои давраи интихобшуда нест',
+    role_acc_edit:'Ҳисобдор: таҳрир ҳамеша дастрас аст',
+    role_sup_edit:'Таъминотчӣ: таҳрир танҳо имрӯз',
+    new_debt:'+ Қарзи нав',money:'Пул',history:'Таърих',
+    rest_lbl:'Боқимонда',cur_rate:'Ҷорӣ',
+    recent_exp:'Харҷҳои охирин',stage_lbl:'Марҳила',
+    spent_lbl:'Харҷ шуда',adv_issued:'Дода шуда',
+    overspent:'Зиёда харҷ',almost:'Қариб тамом',ret:'↩ Баргардонидан',
+    exp_hist:'Таърихи харҷҳо',more_exp:'+ боз',expenses_sfx:'харҷ',
+    active_adv:'Пешпардохтҳои фаъол',give_adv:'Пешпардохт додан',
+    no_active_adv:'Пешпардохти фаъол нест',closed_adv:'Пӯшида',
+    active_sfx:'фаъол',closed_sfx:'пӯшида',issued_on:'Дода',
+    deadline:'Мӯҳлат',work_hist:'Таърихи корҳо',
+    type_lbl:'Навъ',name_org:'Ном / Созмон',
+    specialty:'Ихтисос',adv_tjs:'Пешпардохт (TJS)',
+    fill_name_amt:'Ном ва маблағро пур кунед',
+    close:'Пӯшидан',notes:'Эзоҳ',worked_lbl:'Кор карда',
+    enter_amt:'Маблағро ворид кунед',enter_val:'Арзишро ворид кунед',fill_fields:'Майдонҳоро пур кунед',
+    no_exp_data:'Маълумот барои содироти нест',allow_popup:'Дарпӯшакро дар браузер иҷозат диҳед',
+    adv_reopened:'Пешпардохт аз нав кушода шуд',invalid_val:'Арзиши нодуруст',
+    specify_worker:'Корманд ва маблағро нишон диҳед',specify_adv_w:'Нишон диҳед ба кӣ пешпардохт дода мешавад',
+    no_notif:'Огоҳинома нест',adv_op_warn:'Пешпардохт сохта шуд, аммо амалиёт навишта нашуд',
+    cash_recv:'Ба хазина гирифта шуд',cash_recv_sub:'Ба таври худкор даромад ба хазина илова кунед',
+    cash_pay:'Аз хазина пардохта шуд',cash_pay_sub:'Ба таври худкор харҷ аз хазина ҳисоб кунед',
+    cat_l:'Категория',no_obj:'— Бе объект —',
+    adv_to:'Ба кӣ дода мешавад',adv_task:'Вазифа / Таъинот',
+    adv_amt:'Маблағи пешпардохт',optional:'Ихтиёрӣ',
+    price_unit:'Нарх барои воҳид',total_or:'Ҷамъ (ё ворид кунед)',
+    new_inc:'Даромади нав',new_exp:'Харҷи нав',adv_give:'Пешпардохт / Додан',
+    inc_ph:'Муштарӣ, хонаи №, хизмат...',exp_ph:'Номи молу хизмат...',
+    adv_worker_ph:'Номро ворид кунед ё интихоб кунед...',adv_task_ph:'Харидани арматура, расонидан...',
   }
 };
 
@@ -973,7 +1050,7 @@ function showPrompt(title,label,defVal,onOk){
     </div>`,
     ()=>{
       const val=(document.getElementById('sp-inp')?.value||'').trim();
-      if(!val){showToast('Введите значение',true);return;}
+      if(!val){showToast(t('enter_val'),true);return;}
       closeModal();onOk&&onOk(val);
     },'Сохранить'
   );
@@ -1055,7 +1132,7 @@ function stageTrack(stage,stages,names){
 
 /* ── EXPORT ── */
 function exportXL(ops,filename){
-  if(!ops||!ops.length){showToast('Нет данных для экспорта',true);return;}
+  if(!ops||!ops.length){showToast(t('no_exp_data'),true);return;}
   const rate=COMPANY.usd_rate||10.92;
   const rows=ops.map(o=>({
     'Дата': o.date||'',
@@ -1114,10 +1191,10 @@ function exportXL(ops,filename){
 
 
 function exportPDF(title,ops){
-  if(!ops||!ops.length){showToast('Нет данных для экспорта',true);return;}
+  if(!ops||!ops.length){showToast(t('no_exp_data'),true);return;}
   const rate=COMPANY.usd_rate||10.92;
   const w=window.open('','_blank');
-  if(!w){showToast('Разрешите всплывающие окна в браузере',true);return;}
+  if(!w){showToast(t('allow_popup'),true);return;}
   const incTJS=ops.filter(o=>o.type==='income'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const incUSD=ops.filter(o=>o.type==='income'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
   const expTJS=ops.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
@@ -1298,9 +1375,11 @@ function buildNav(){
   }).join('');
   // Mob tabs
   document.getElementById('mob-tabs').innerHTML=pages.map(p=>`<div class="mob-tab ${p.id===CUR_PAGE?'on':''}" onclick="go('${p.id}')">${t(NAV_K[p.id])}</div>`).join('');
-  // Bottom nav
-  const s2=pages.slice(0,2),l2=pages.slice(-2);
+  // Bottom nav — exclude the FAB page from the regular nav items to avoid duplicates
   const fab=role==='supplier'?'addexp':'ops';
+  const bnPages=pages.filter(p=>p.id!==fab);
+  const half=Math.ceil(bnPages.length/2);
+  const s2=bnPages.slice(0,half),l2=bnPages.slice(half);
   document.getElementById('bn-row').innerHTML=
     s2.map(p=>`<button class="nb ${p.id===CUR_PAGE?'on':''}" onclick="go('${p.id}')">${NAV_ICO[p.id]||''}<span class="nb-l">${t(NAV_K[p.id])}</span></button>`).join('')+
     `<div class="nb-fw"><div class="nb-fab" onclick="go('${fab}')"><svg width="19" height="19" viewBox="0 0 19 19" fill="none"><path d="M9.5 3v13M3 9.5h13" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>`+
@@ -1320,6 +1399,9 @@ function buildNav(){
   document.getElementById('sb-logout').textContent=t('logout');
   const _tbo=document.getElementById('tb-online');if(_tbo)_tbo.textContent=t('online');
   document.getElementById('sb-sub').textContent=LANG==='tj'?'Системаи молия':'Строительные финансы';
+  // Period bar labels
+  const pbMap={today:'pb-today',month:'pb-month',year:'pb-year',all:'pb-all'};
+  Object.entries(pbMap).forEach(([k,id])=>{const el=document.getElementById(id);if(el)el.textContent=t(k);});
   // Period bar
   const showP=['home','ops','stats'].includes(CUR_PAGE);
   document.getElementById('period-bar').style.display=showP?'flex':'none';
@@ -1394,9 +1476,16 @@ function applyWeatherTheme(wc){
   const isThunder=wc>=95;
   const isAnyRain=isDrizzle||isRain||isShower||isThunder;
 
+  // --- Time of day ---
+  const _h=new Date().getHours();
+  const _isNight=_h>=21||_h<5;
+  const _isDusk=(_h>=18&&_h<21)||(_h>=5&&_h<7);
+
   // --- Background gradient ---
   const bg={
-    clear:'linear-gradient(170deg,#0b2a5a 0%,#112e6a 30%,#0a1e45 65%,#060f20 100%)',
+    clearDay:'linear-gradient(170deg,#0b2a5a 0%,#112e6a 30%,#0a1e45 65%,#060f20 100%)',
+    clearDusk:'linear-gradient(170deg,#1a0e30 0%,#3a1a50 25%,#7a2a40 55%,#c05020 75%,#080e18 100%)',
+    clearNight:'linear-gradient(170deg,#040a14 0%,#070f1c 40%,#030810 100%)',
     partly:'linear-gradient(170deg,#112240 0%,#0e1d38 40%,#0b1930 70%,#070f1e 100%)',
     overcast:'linear-gradient(170deg,#141e2c 0%,#101825 50%,#0c1320 100%)',
     fog:'linear-gradient(170deg,#17222f 0%,#121c28 50%,#0d1620 100%)',
@@ -1405,7 +1494,8 @@ function applyWeatherTheme(wc){
     thunder:'linear-gradient(170deg,#070d16 0%,#050b12 55%,#03080f 100%)'
   };
   left.style.background=
-    isClear?bg.clear:isPartly?bg.partly:isOvercast?bg.overcast:
+    isClear?(_isNight?bg.clearNight:_isDusk?bg.clearDusk:bg.clearDay):
+    isPartly?bg.partly:isOvercast?bg.overcast:
     isFog?bg.fog:isSnow?bg.snow:isThunder?bg.thunder:bg.rain;
 
   // --- Sky decorative element ---
@@ -1414,18 +1504,38 @@ function applyWeatherTheme(wc){
   sky.style.cssText='position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden;';
 
   if(isClear){
-    // Sun + rays + stars
-    sky.innerHTML=`
-      <div style="position:absolute;top:70px;right:55px;">
-        <div style="width:66px;height:66px;border-radius:50%;background:radial-gradient(circle,#ffe566 0%,#ffb700 55%,rgba(255,183,0,0) 100%);animation:wxSunPulse 4s ease-in-out infinite;"></div>
-        <div style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:2px;height:14px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite;"></div>
-        <div style="position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);width:2px;height:14px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite .5s;"></div>
-        <div style="position:absolute;left:-18px;top:50%;transform:translateY(-50%);width:14px;height:2px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite 1s;"></div>
-        <div style="position:absolute;right:-18px;top:50%;transform:translateY(-50%);width:14px;height:2px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite 1.5s;"></div>
-      </div>
-      <div style="position:absolute;top:55px;left:60px;width:3px;height:3px;border-radius:50%;background:#fff;animation:wxStar 2.2s ease-in-out infinite;opacity:.5;"></div>
-      <div style="position:absolute;top:90px;left:140px;width:2px;height:2px;border-radius:50%;background:#fff;animation:wxStar 3.1s ease-in-out infinite .7s;opacity:.4;"></div>
-      <div style="position:absolute;top:40px;left:220px;width:2px;height:2px;border-radius:50%;background:#fff;animation:wxStar 2.7s ease-in-out infinite 1.2s;opacity:.45;"></div>`;
+    if(_isNight){
+      // Moon + many stars
+      sky.innerHTML=`
+        <div style="position:absolute;top:55px;right:60px;">
+          <div style="width:54px;height:54px;border-radius:50%;background:radial-gradient(circle,#d8e4f0 0%,#b0c8e0 60%,rgba(180,210,240,0) 100%);animation:wxMoonGlow 5s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:8px;right:10px;width:18px;height:18px;border-radius:50%;background:#070f1c;"></div>
+        </div>
+        ${[{x:12,y:30,s:2.5,d:2.1},{x:60,y:55,s:1.5,d:3.4},{x:110,y:28,s:2,d:2.8},{x:160,y:62,s:1.5,d:1.9},{x:220,y:38,s:2,d:3.2},{x:280,y:50,s:1.5,d:2.5},{x:340,y:25,s:2.5,d:1.7},{x:40,y:90,s:1.5,d:3.8},{x:180,y:90,s:2,d:2.3},{x:320,y:80,s:1.5,d:3.1},{x:140,y:15,s:2,d:2.7},{x:260,y:15,s:1.5,d:1.6}]
+          .map(s=>`<div style="position:absolute;top:${s.y}px;left:${s.x}px;width:${s.s}px;height:${s.s}px;border-radius:50%;background:#fff;animation:wxStar ${s.d}s ease-in-out infinite;opacity:.7;"></div>`)
+          .join('')}`;
+    } else if(_isDusk){
+      // Sunset — warm gradient sky + fading sun
+      sky.innerHTML=`
+        <div style="position:absolute;top:80px;right:50px;">
+          <div style="width:58px;height:58px;border-radius:50%;background:radial-gradient(circle,#ff9a3c 0%,#ff5e00 55%,rgba(255,80,0,0) 100%);animation:wxSunPulse 4s ease-in-out infinite;"></div>
+        </div>
+        <div style="position:absolute;top:50px;left:30px;width:2px;height:2px;border-radius:50%;background:#ffcc88;animation:wxStar 3s ease-in-out infinite;opacity:.4;"></div>
+        <div style="position:absolute;top:80px;left:160px;width:1.5px;height:1.5px;border-radius:50%;background:#ffcc88;animation:wxStar 2.5s ease-in-out infinite .8s;opacity:.35;"></div>`;
+    } else {
+      // Day — sun + rays + faint stars
+      sky.innerHTML=`
+        <div style="position:absolute;top:70px;right:55px;">
+          <div style="width:66px;height:66px;border-radius:50%;background:radial-gradient(circle,#ffe566 0%,#ffb700 55%,rgba(255,183,0,0) 100%);animation:wxSunPulse 4s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:2px;height:14px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite;"></div>
+          <div style="position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);width:2px;height:14px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite .5s;"></div>
+          <div style="position:absolute;left:-18px;top:50%;transform:translateY(-50%);width:14px;height:2px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite 1s;"></div>
+          <div style="position:absolute;right:-18px;top:50%;transform:translateY(-50%);width:14px;height:2px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite 1.5s;"></div>
+        </div>
+        <div style="position:absolute;top:55px;left:60px;width:3px;height:3px;border-radius:50%;background:#fff;animation:wxStar 2.2s ease-in-out infinite;opacity:.5;"></div>
+        <div style="position:absolute;top:90px;left:140px;width:2px;height:2px;border-radius:50%;background:#fff;animation:wxStar 3.1s ease-in-out infinite .7s;opacity:.4;"></div>
+        <div style="position:absolute;top:40px;left:220px;width:2px;height:2px;border-radius:50%;background:#fff;animation:wxStar 2.7s ease-in-out infinite 1.2s;opacity:.45;"></div>`;
+    }
   } else if(isPartly){
     // Partial clouds + dim glow
     sky.innerHTML=`
@@ -1776,21 +1886,21 @@ function buildOpForm(container,isSupplier){
         </div>
       </div>
       ${OP_TYPE==='advance'?`
-      <div class="fld s2"><div class="fld-l">Снабженец</div><select class="fi fi-sel" id="f-worker">${OBJECTS.map(()=>'').join('')}</select></div>
+      <div class="fld s2"><div class="fld-l">${t('sup')}</div><select class="fi fi-sel" id="f-worker">${OBJECTS.map(()=>'').join('')}</select></div>
       <div class="fld s2"><div class="fld-l">${t('amount')}</div><input class="fi fi-lg" id="f-amount" type="number" placeholder="0" oninput="fCalcD()"></div>
       `:`
-      <div class="fld s2"><div class="fld-l">${t('desc')}</div><input class="fi" id="f-desc" placeholder="${OP_TYPE==='income'?'Клиент, описание...':'Наименование...'}"></div>
+      <div class="fld s2"><div class="fld-l">${t('desc')}</div><input class="fi" id="f-desc" placeholder="${OP_TYPE==='income'?t('inc_ph'):t('exp_ph')}"></div>
       ${OP_TYPE==='expense'?`
       <div class="fld"><div class="fld-l">${t('qty')}</div><input class="fi" id="f-qty" type="number" placeholder="0" oninput="fCalc()"></div>
       <div class="fld"><div class="fld-l">${t('unit')}</div><select class="fi fi-sel" id="f-unit">${UNITS.map(u=>`<option>${u.name}</option>`).join('')}</select></div>
       <div class="fld"><div class="fld-l">${t('price')}</div><input class="fi" id="f-price" type="number" placeholder="0" oninput="fCalc()"></div>
-      <div class="fld"><div class="fld-l">Итого (или ввести)</div><input class="fi" id="f-ti" type="number" placeholder="0" oninput="fCalcT()"></div>
+      <div class="fld"><div class="fld-l">${t('total_or')}</div><input class="fi" id="f-ti" type="number" placeholder="0" oninput="fCalcT()"></div>
       `:`
       <div class="fld s2"><div class="fld-l">${t('amount')}</div><input class="fi fi-lg" id="f-amount" type="number" placeholder="0" oninput="fCalcD()"></div>
       <div class="fld s2"><div class="fld-l">${t('method')}</div><select class="fi fi-sel" id="f-method"><option value="cash">${t('cash')}</option><option value="transfer">${t('transfer')}</option><option value="card">${t('card')}</option></select></div>
       `}
       `}
-      <div class="fld s2"><div class="fld-l">${t('note')}</div><input class="fi" id="f-note" placeholder="Необязательно"></div>
+      <div class="fld s2"><div class="fld-l">${t('note')}</div><input class="fi" id="f-note" placeholder="${t('optional')}"></div>
     </div>
     <div class="total-box mb12"><div class="total-l">${OP_TYPE==='income'?t('income'):OP_TYPE==='advance'?t('adv_op'):t('expense')}</div><div class="total-v" id="f-tv">0 TJS</div><div class="total-h" id="f-th"></div></div>
     <div style="display:flex;gap:9px;flex-wrap:wrap;">
@@ -1839,17 +1949,17 @@ async function fSubmit(isSupplier){
     const ti=document.getElementById('f-ti');
     amt=ti?.value?parseFloat(ti.value)||q*p:q*p;
     desc=document.getElementById('f-desc')?.value||'';
-    if(!desc&&!amt){showToast('Заполните описание и сумму',true);return;}
+    if(!desc&&!amt){showToast(t('fill_fields'),true);return;}
   }else if(OP_TYPE==='income'){
     amt=parseFloat(document.getElementById('f-amount')?.value)||0;
     desc=document.getElementById('f-desc')?.value||'';
     method=document.getElementById('f-method')?.value||'cash';
-    if(!amt){showToast('Введите сумму',true);return;}
+    if(!amt){showToast(t('enter_amt'),true);return;}
   }else{
     amt=parseFloat(document.getElementById('f-amount')?.value)||0;
     const w=document.getElementById('f-worker')?.value||'';
     desc='Аванс → '+w;
-    if(!amt||!w){showToast('Укажите сотрудника и сумму',true);return;}
+    if(!amt||!w){showToast(t('specify_worker'),true);return;}
     // Also save to advances table
     await SB.from('advances').insert({worker_name:w,object_name:SEL_OBJ,task:SEL_CAT,amount:amt,currency:SEL_CUR});
   }
@@ -1889,16 +1999,16 @@ function openAddOpModal(type){
   const expCats=CATEGORIES.filter(c=>c.type==='expense');
   const cats=type==='income'?incCats:expCats;
   SEL_CAT=cats[0]?.name||'';
-  const typeLabel=type==='income'?'Новый приход':type==='advance'?'Аванс / Выдать':'Новый расход';
+  const typeLabel=type==='income'?t('new_inc'):type==='advance'?t('adv_give'):t('new_exp');
   const typeColor=type==='income'?'var(--a)':type==='advance'?'var(--blue)':'var(--red)';
 
   openModal(typeLabel,`
     <div class="fg f2">
       <!-- Объект — выпадающий список -->
       <div class="fld s2">
-        <div class="fld-l">Объект</div>
+        <div class="fld-l">${t('obj_l')}</div>
         <select class="fi fi-sel" id="mo-obj" onchange="SEL_OBJ=this.value">
-          <option value="">— Без объекта —</option>
+          <option value="">${t('no_obj')}</option>
           ${OBJECTS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
         </select>
       </div>
@@ -1906,19 +2016,18 @@ function openAddOpModal(type){
       ${type!=='advance'?`
       <!-- Категория — выпадающий список -->
       <div class="fld s2">
-        <div class="fld-l">Категория</div>
+        <div class="fld-l">${t('cat_l')}</div>
         <select class="fi fi-sel" id="mo-cat" onchange="SEL_CAT=this.value">
           ${cats.map((c,i)=>`<option value="${c.name}" ${i===0?'selected':''}>${c.name}</option>`).join('')}
         </select>
       </div>`:''}
 
-      <!-- Дата и валюта -->
       <div class="fld">
-        <div class="fld-l">Дата</div>
+        <div class="fld-l">${t('date')}</div>
         <input class="fi" type="date" id="mo-date" value="${today()}">
       </div>
       <div class="fld">
-        <div class="fld-l">Валюта</div>
+        <div class="fld-l">${t('currency')}</div>
         <div class="cur-tog" style="margin-top:2px;">
           <button class="cur-btn on" id="mo-tjs" onclick="mSetCur('TJS')">TJS</button>
           <button class="cur-btn" id="mo-usd" onclick="mSetCur('USD')">USD</button>
@@ -1928,67 +2037,66 @@ function openAddOpModal(type){
       ${type==='advance'?`
       <!-- Аванс: имя сотрудника — свободный ввод + список -->
       <div class="fld s2">
-        <div class="fld-l">Кому выдаётся (сотрудник или компания)</div>
+        <div class="fld-l">${t('adv_to')}</div>
         <input class="fi" id="mo-worker" list="workers-list"
-          placeholder="Введите имя или выберите из списка..."
+          placeholder="${t('adv_worker_ph')}"
           style="font-weight:500;">
         <datalist id="workers-list" id="workers-datalist"></datalist>
       </div>
       <div class="fld s2">
-        <div class="fld-l">Задача / Назначение</div>
-        <input class="fi" id="mo-task" placeholder="Закупка материалов, доставка...">
+        <div class="fld-l">${t('adv_task')}</div>
+        <input class="fi" id="mo-task" placeholder="${t('adv_task_ph')}">
       </div>
       <div class="fld s2">
-        <div class="fld-l">Сумма аванса</div>
+        <div class="fld-l">${t('adv_amt')}</div>
         <input class="fi fi-lg" id="mo-amount" type="number" placeholder="0" oninput="mCalcD()">
       </div>
       `:`
       <!-- Описание -->
       <div class="fld s2">
-        <div class="fld-l">Описание</div>
-        <input class="fi" id="mo-desc" placeholder="${type==='income'?'Клиент, квартира №, услуга...':'Наименование товара или услуги...'}">
+        <div class="fld-l">${t('desc')}</div>
+        <input class="fi" id="mo-desc" placeholder="${type==='income'?t('inc_ph'):t('exp_ph')}">
       </div>
 
       ${type==='expense'?`
       <!-- Расход: кол-во × цена -->
       <div class="fld">
-        <div class="fld-l">Количество</div>
+        <div class="fld-l">${t('qty')}</div>
         <input class="fi" id="mo-qty" type="number" placeholder="0" oninput="mCalc()">
       </div>
       <div class="fld">
-        <div class="fld-l">Единица</div>
+        <div class="fld-l">${t('unit')}</div>
         <select class="fi fi-sel" id="mo-unit">
           ${UNITS.map(u=>`<option>${u.name}</option>`).join('')}
         </select>
       </div>
       <div class="fld">
-        <div class="fld-l">Цена за ед.</div>
+        <div class="fld-l">${t('price_unit')}</div>
         <input class="fi" id="mo-price" type="number" placeholder="0" oninput="mCalc()">
       </div>
       <div class="fld">
-        <div class="fld-l">Итого (или ввести)</div>
+        <div class="fld-l">${t('total_or')}</div>
         <input class="fi fi-lg" id="mo-total" type="number" placeholder="0" oninput="mCalcT()">
       </div>
       `:`
-      <!-- Приход: сумма и способ оплаты -->
       <div class="fld s2">
-        <div class="fld-l">Сумма</div>
+        <div class="fld-l">${t('amount')}</div>
         <input class="fi fi-lg" id="mo-amount" type="number" placeholder="0" oninput="mCalcD()">
       </div>
       <div class="fld s2">
-        <div class="fld-l">Способ оплаты</div>
+        <div class="fld-l">${t('method')}</div>
         <select class="fi fi-sel" id="mo-method">
-          <option value="cash">Наличные</option>
-          <option value="transfer">Перевод</option>
-          <option value="card">Карта</option>
+          <option value="cash">${t('cash')}</option>
+          <option value="transfer">${t('transfer')}</option>
+          <option value="card">${t('card')}</option>
         </select>
       </div>
       `}
       `}
 
       <div class="fld s2">
-        <div class="fld-l">Примечание</div>
-        <input class="fi" id="mo-note" placeholder="Необязательно">
+        <div class="fld-l">${t('note')}</div>
+        <input class="fi" id="mo-note" placeholder="${t('optional')}">
       </div>
     </div>
 
@@ -2016,19 +2124,19 @@ function openAddOpModal(type){
         const tot=document.getElementById('mo-total');
         amt=tot?.value?parseFloat(tot.value)||q2*p:q2*p;
         desc=document.getElementById('mo-desc')?.value?.trim()||'';
-        if(!amt){showToast('Введите сумму или кол-во × цену',true);return;}
+        if(!amt){showToast(t('enter_amt'),true);return;}
       } else if(OP_TYPE==='income'){
         amt=parseFloat(document.getElementById('mo-amount')?.value)||0;
         desc=document.getElementById('mo-desc')?.value?.trim()||'';
         method=document.getElementById('mo-method')?.value||'cash';
-        if(!amt){showToast('Введите сумму',true);return;}
+        if(!amt){showToast(t('enter_amt'),true);return;}
       } else {
         // Аванс
         amt=parseFloat(document.getElementById('mo-amount')?.value)||0;
         const w=(document.getElementById('mo-worker')?.value||'').trim();
         const task=(document.getElementById('mo-task')?.value||'').trim();
-        if(!amt){showToast('Введите сумму аванса',true);return;}
-        if(!w){showToast('Укажите кому выдаётся аванс',true);return;}
+        if(!amt){showToast(t('enter_amt'),true);return;}
+        if(!w){showToast(t('specify_adv_w'),true);return;}
         desc='Аванс → '+w;
         // Save to advances table
         const{error:ae}=await SB.from('advances').insert({
@@ -2036,7 +2144,7 @@ function openAddOpModal(type){
           amount:amt,currency:SEL_CUR,
           stage_names:JSON.stringify(['Старт','Закупка','Доставка','Сдача'])
         });
-        if(ae){showToast('Ошибка записи аванса: '+ae.message,true);return;}
+        if(ae){showToast(t('err')+': '+ae.message,true);return;}
       }
 
       const{error}=await SB.from('operations').insert({
@@ -2054,7 +2162,7 @@ function openAddOpModal(type){
         note:document.getElementById('mo-note')?.value||'',
         created_by:USER?.id
       });
-      if(error){showToast('Ошибка: '+error.message,true);return;}
+      if(error){showToast(t('err')+': '+error.message,true);return;}
       closeModal();
       showToast('✓ '+typeLabel+' сохранён');
       window._opsFilter={q:'',type:'all',date:'',currency:'all'};
@@ -2232,7 +2340,7 @@ home:async()=>{
 
     // Net debt label
     const netEl=document.getElementById('cnt-net');
-    if(netEl) setTimeout(()=>{ netEl.textContent='Нетто: '+fmtN(deb-cred)+' TJS'; }, 700);
+    if(netEl) setTimeout(()=>{ netEl.textContent=t('net_lbl')+': '+fmtN(deb-cred)+' TJS'; }, 700);
 
     /* ── SPARKLINES ── */
     // Get last 7 days
@@ -2295,8 +2403,8 @@ home:async()=>{
     /* ── CHARTS ── */
     // Cash flow line chart
     mkChart('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[
-      {label:'Приход TJS',data:mInc,borderColor:'#39B980',backgroundColor:'rgba(57,185,128,.08)',fill:true,tension:.4,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'white',pointBorderColor:'#39B980',pointBorderWidth:2},
-      {label:'Расход TJS',data:mExp,borderColor:'#E53E3E',backgroundColor:'rgba(229,62,62,.05)',fill:true,tension:.4,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'white',pointBorderColor:'#E53E3E',pointBorderWidth:2}
+      {label:t('income')+' TJS',data:mInc,borderColor:'#39B980',backgroundColor:'rgba(57,185,128,.08)',fill:true,tension:.4,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'white',pointBorderColor:'#39B980',pointBorderWidth:2},
+      {label:t('expense')+' TJS',data:mExp,borderColor:'#E53E3E',backgroundColor:'rgba(229,62,62,.05)',fill:true,tension:.4,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'white',pointBorderColor:'#E53E3E',pointBorderWidth:2}
     ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
       plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:10,padding:10,usePointStyle:true}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},
       scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
@@ -2312,8 +2420,8 @@ home:async()=>{
     // Bar chart — by object
     if(objKeys.length){
       mkChart('ch-obj',{type:'bar',data:{labels:objKeys,datasets:[
-        {label:'Приход',data:objKeys.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.8)',borderRadius:5,borderSkipped:false},
-        {label:'Расход',data:objKeys.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.75)',borderRadius:5,borderSkipped:false}
+        {label:t('income'),data:objKeys.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.8)',borderRadius:5,borderSkipped:false},
+        {label:t('expense'),data:objKeys.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.75)',borderRadius:5,borderSkipped:false}
       ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
         plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:9,padding:8}},
           tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},
@@ -2347,16 +2455,17 @@ home:async()=>{
     ${ratesArr.map((r,i)=>`<div class="rate-c" style="background:${r.c};animation-delay:${i*.04}s;"><div class="rate-l">1 ${r.f} / ${r.t2}</div><div class="rate-v">${r.v} ${r.t2}</div><div class="rate-s">НБТ · ${new Date().toLocaleDateString('ru',{day:'numeric',month:'short'})}</div></div>`).join('')}
   </div>
 
-  <!-- OBJECT FILTER -->
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-    <span style="font-size:12px;color:var(--t3);font-weight:600;">Фильтр по объекту:</span>
-    <div class="chips">
-      <div class="chip ${!window._homeObj?'sel':''}"
-        onclick="window._homeObj='';destroyCharts();renderPage('home')">Все объекты</div>
-      ${OBJECTS.map(o=>`<div class="chip ${window._homeObj===o.name?'sel':''}"
-        onclick="window._homeObj='${o.name}';destroyCharts();renderPage('home')">${o.name}</div>`).join('')}
+  <!-- OBJECT FILTER — compact select -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:200px;max-width:380px;">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--t3)" stroke-width="1.5" stroke-linecap="round" style="flex-shrink:0;"><circle cx="6" cy="6" r="4"/><path d="M10 10l2.5 2.5"/></svg>
+      <select onchange="window._homeObj=this.value;destroyCharts();renderPage('home')"
+        style="flex:1;padding:8px 12px;background:var(--w);border:1.5px solid ${window._homeObj?'var(--a)':'var(--bd)'};border-radius:10px;font-size:13px;font-weight:${window._homeObj?'700':'400'};color:${window._homeObj?'var(--adk)':'var(--t)'};font-family:var(--ff);outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%239AA5B8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;">
+        <option value="">${t('all_obj')}</option>
+        ${OBJECTS.map(o=>`<option value="${o.name.replace(/"/g,'&quot;')}" ${window._homeObj===o.name?'selected':''}>${o.name}</option>`).join('')}
+      </select>
     </div>
-    ${window._homeObj?`<span class="badge bg" style="margin-left:4px;">📍 ${window._homeObj}</span>`:''}
+    ${window._homeObj?`<button onclick="window._homeObj='';destroyCharts();renderPage('home')" style="padding:7px 12px;background:var(--redl);border:1px solid rgba(229,62,62,.2);border-radius:8px;font-size:11px;font-weight:700;color:var(--red);cursor:pointer;font-family:var(--ff);white-space:nowrap;">✕ ${window._homeObj}</button>`:''}
   </div>
 
   <!-- STAT CARDS: анимированные счётчики + sparklines -->
@@ -2367,7 +2476,7 @@ home:async()=>{
         <div style="flex:1;">
           <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 11V2M2 6.5l4.5-4.5 4.5 4.5"/></svg>
-            Приходы
+            ${t('income')}
           </div>
           <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
             <div><div style="font-size:10px;color:var(--t4);">TJS</div>
@@ -2376,7 +2485,7 @@ home:async()=>{
             <div><div style="font-size:10px;color:var(--t4);">USD</div>
               <div style="font-size:20px;font-weight:800;color:var(--blue);" id="cnt-incUSD">$${fmtN(incUSD)}</div></div>
           </div>
-          <div class="sc-val2" style="margin-top:3px;">${inc.length} операций${window._homeObj?' · '+window._homeObj:''}</div>
+          <div class="sc-val2" style="margin-top:3px;">${inc.length} ${t('ops_count')}${window._homeObj?' · '+window._homeObj:''}</div>
         </div>
         <canvas id="spark-inc" width="56" height="32" style="flex-shrink:0;opacity:.75;margin-top:4px;"></canvas>
       </div>
@@ -2386,7 +2495,7 @@ home:async()=>{
         <div style="flex:1;">
           <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v9M2 6.5l4.5 4.5 4.5-4.5"/></svg>
-            Расходы
+            ${t('expense')}
           </div>
           <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
             <div><div style="font-size:10px;color:var(--t4);">TJS</div>
@@ -2395,7 +2504,7 @@ home:async()=>{
             <div><div style="font-size:10px;color:var(--t4);">USD</div>
               <div style="font-size:20px;font-weight:800;color:var(--ora);" id="cnt-expUSD">$${fmtN(expUSD)}</div></div>
           </div>
-          <div class="sc-val2" style="margin-top:3px;">${exp.length} операций</div>
+          <div class="sc-val2" style="margin-top:3px;">${exp.length} ${t('ops_count')}</div>
         </div>
         <canvas id="spark-exp" width="56" height="32" style="flex-shrink:0;opacity:.75;margin-top:4px;"></canvas>
       </div>
@@ -2405,7 +2514,7 @@ home:async()=>{
     <div class="sc g" style="animation-delay:.1s;">
       <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round"><rect x="1" y="3" width="11" height="8" rx="1.5"/><path d="M1 6h11"/></svg>
-        Баланс кассы
+        ${t('balance')}
       </div>
       <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
         <div><div style="font-size:10px;color:var(--t4);">TJS</div>
@@ -2414,42 +2523,42 @@ home:async()=>{
         <div><div style="font-size:10px;color:var(--t4);">USD</div>
           <div style="font-size:20px;font-weight:800;color:${balUSD>=0?'var(--blue)':'var(--red)'};" id="cnt-balUSD">${balUSD>=0?'+$':'-$'}${fmtN(Math.abs(balUSD))}</div></div>
       </div>
-      <div class="sc-val2" style="margin-top:3px;">После авансов снабженцам</div>
+      <div class="sc-val2" style="margin-top:3px;">${t('after_adv')}</div>
     </div>
     <div class="sc o" style="animation-delay:.13s;">
       <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--ora)" stroke-width="1.8" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 4v3l2 1.5" stroke-linecap="round"/></svg>
-        Долги
+        ${t('debts')}
       </div>
       <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
-        <div><div style="font-size:10px;color:var(--ad);">Нам должны</div>
+        <div><div style="font-size:10px;color:var(--ad);">${t('recv')}</div>
           <div style="font-size:20px;font-weight:800;color:var(--ad);" id="cnt-deb">${fmtN(deb)}</div></div>
         <div style="width:1px;background:var(--bd);height:22px;align-self:center;"></div>
-        <div><div style="font-size:10px;color:var(--red);">Мы должны</div>
+        <div><div style="font-size:10px;color:var(--red);">${t('paybl')}</div>
           <div style="font-size:20px;font-weight:800;color:var(--red);" id="cnt-cred">${fmtN(cred)}</div></div>
       </div>
-      <div class="sc-val2" style="margin-top:3px;">Нетто: ${fmtN(deb-cred)} TJS</div>
+      <div class="sc-val2" style="margin-top:3px;" id="cnt-net">${t('net_lbl')}: ${fmtN(deb-cred)} TJS</div>
     </div>
   </div>
 
 <!-- MONEY MAP -->
-  <div class="sh"><div class="sh-t">Карта денег</div></div>
+  <div class="sh"><div class="sh-t">${t('where')}</div></div>
   <div class="money-map mb20">
-    <div class="mm" style="animation-delay:.04s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div><div class="mm-l">В кассе TJS</div><div class="mm-v" style="color:var(--adk);">${fmtN(balTJS)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(balUSD)} USD</div></div>
-    <div class="mm" style="animation-delay:.07s;"><div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div><div class="mm-l">У снабженцев</div><div class="mm-v" style="color:var(--yel);">${fmtN(Math.max(0,advTot_given-advTot_spent))}</div><div class="mm-v2" style="color:var(--t4);">Выдано: ${fmtN(advTot_given)}</div></div>
-    <div class="mm" style="animation-delay:.1s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">Нам должны</div><div class="mm-v" style="color:var(--ad);">${fmtN(deb)}</div><div class="mm-v2" style="color:var(--t4);">TJS дебиторка</div></div>
-    <div class="mm" style="animation-delay:.13s;"><div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">Мы должны</div><div class="mm-v" style="color:var(--red);">${fmtN(cred)}</div><div class="mm-v2" style="color:var(--t4);">TJS кредиторка</div></div>
+    <div class="mm" style="animation-delay:.04s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div><div class="mm-l">${t('in_cash')} TJS</div><div class="mm-v" style="color:var(--adk);">${fmtN(balTJS)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(balUSD)} USD</div></div>
+    <div class="mm" style="animation-delay:.07s;"><div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div><div class="mm-l">${t('at_snabs')}</div><div class="mm-v" style="color:var(--yel);">${fmtN(Math.max(0,advTot_given-advTot_spent))}</div><div class="mm-v2" style="color:var(--t4);">${t('issued')}: ${fmtN(advTot_given)}</div></div>
+    <div class="mm" style="animation-delay:.1s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('recv')}</div><div class="mm-v" style="color:var(--ad);">${fmtN(deb)}</div><div class="mm-v2" style="color:var(--t4);">${t('deb_tjs')}</div></div>
+    <div class="mm" style="animation-delay:.13s;"><div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('paybl')}</div><div class="mm-v" style="color:var(--red);">${fmtN(cred)}</div><div class="mm-v2" style="color:var(--t4);">${t('cred_tjs')}</div></div>
   </div>
 
   <!-- CHARTS -->
   <div class="g2 mb20">
     <div class="card" style="animation:fadeUp .3s ease .06s both;">
-      <div class="sh"><div class="sh-t">Cash Flow TJS${window._homeObj?' — '+window._homeObj:' — Все объекты'}</div></div>
+      <div class="sh"><div class="sh-t">${t('cashflow')} TJS${window._homeObj?' — '+window._homeObj:' — '+t('all_obj')}</div></div>
       <div class="ch-wrap ch240"><canvas id="ch-cf"></canvas></div>
     </div>
     <div class="card" style="animation:fadeUp .3s ease .08s both;">
-      <div class="sh"><div class="sh-t">Расходы по категориям</div></div>
-      ${ck.length?`<div class="ch-wrap ch240"><canvas id="ch-cat"></canvas></div>`:`<div class="empty" style="height:200px;"><div class="empty-icon">📋</div>Нет данных</div>`}
+      <div class="sh"><div class="sh-t">${t('exp_by_cat')}</div></div>
+      ${ck.length?`<div class="ch-wrap ch240"><canvas id="ch-cat"></canvas></div>`:`<div class="empty" style="height:200px;"><div class="empty-icon">📋</div>${t('no_data')}</div>`}
     </div>
   </div>
 
@@ -2457,16 +2566,16 @@ home:async()=>{
   ${objKeys.length?`
   <div class="card mb20" style="animation:fadeUp .3s ease .1s both;">
     <div class="sh">
-      <div class="sh-t">По объектам — нажмите на столбец для фильтра</div>
-      ${window._homeObj?`<div class="sh-a" onclick="window._homeObj='';destroyCharts();renderPage('home')">✕ Сброс фильтра</div>`:''}
+      <div class="sh-t">${t('by_obj_tip')}</div>
+      ${window._homeObj?`<div class="sh-a" onclick="window._homeObj='';destroyCharts();renderPage('home')">${t('reset_filter')}</div>`:''}
     </div>
     <div class="ch-wrap ch200"><canvas id="ch-obj"></canvas></div>
   </div>`:''}
 
   <!-- RECENT OPS -->
   <div class="card" style="animation:fadeUp .3s ease .12s both;">
-    <div class="sh"><div class="sh-t">Последние операции${window._homeObj?' — '+window._homeObj:''}</div><div class="sh-a" onclick="go('ops')">Все →</div></div>
-    <div>${ops.slice(0,8).map(o=>txRow(o,false)).join('')||`<div class="empty"><div class="empty-icon">📋</div>Нет данных</div>`}</div>
+    <div class="sh"><div class="sh-t">${t('recent')}${window._homeObj?' — '+window._homeObj:''}</div><div class="sh-a" onclick="go('ops')">${t('all_ops')}</div></div>
+    <div>${ops.slice(0,8).map(o=>txRow(o,false)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
   </div>
   `;
 },
@@ -2499,7 +2608,7 @@ ops:async()=>{
     const oc=document.getElementById('ops-count');
     if(ol) ol.innerHTML=list.length
       ? list.map(o=>txRow(o,true)).join('')
-      : `<div class="empty"><div class="empty-icon">🔍</div>Ничего не найдено — попробуйте изменить фильтры</div>`;
+      : `<div class="empty"><div class="empty-icon">🔍</div>${t('no_data')}</div>`;
     if(oc) oc.textContent=list.length+' из '+window._ops.length;
   };
   window._applyOpsFilter=applyFilter;
@@ -2523,13 +2632,13 @@ ops:async()=>{
       style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--ap);border:1.5px solid rgba(57,185,128,.3);border-radius:var(--r2);cursor:pointer;font-family:var(--ff);font-weight:600;font-size:13px;color:var(--adk);transition:all .18s;"
       onmouseover="this.style.background='var(--al)'" onmouseout="this.style.background='var(--ap)'">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="var(--adk)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 18V4M4 11l7-7 7 7"/></svg>
-      + Приход
+      + ${t('income')}
     </button>
     <button onclick="openAddOpModal('expense')"
       style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--redl);border:1.5px solid var(--redb);border-radius:var(--r2);cursor:pointer;font-family:var(--ff);font-weight:600;font-size:13px;color:var(--red);transition:all .18s;"
       onmouseover="this.style.background='#ffe0e0'" onmouseout="this.style.background='var(--redl)'">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4v14M4 11l7 7 7-7"/></svg>
-      + Расход
+      + ${t('expense')}
     </button>
 
   </div>`:``}
@@ -2556,7 +2665,7 @@ ops:async()=>{
 
   <div class="card" style="animation:fadeUp .3s ease .06s both;">
     <div class="sh">
-      <div class="sh-t">Все операции</div>
+      <div class="sh-t">${t('all_ops_title')}</div>
       <div class="exp-row">
         <button class="eb eb-xl" onclick="exportXL(window._ops||[],'ZAKI_ops')">Excel</button>
         <button class="eb eb-pdf" onclick="exportPDF('Операции',window._ops||[])">PDF</button>
@@ -2567,13 +2676,13 @@ ops:async()=>{
     <div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
       <div style="position:relative;flex:1;min-width:160px;">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--t4)" stroke-width="1.4" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="5.5" cy="5.5" r="3.5"/><path d="M9 9l2 2" stroke-linecap="round"/></svg>
-        <input id="ops-q" class="fi" placeholder="Поиск по описанию, категории, объекту, сотруднику..." style="padding-left:30px;width:100%;">
+        <input id="ops-q" class="fi" placeholder="${t('search_ph')}" style="padding-left:30px;width:100%;">
       </div>
       <select id="ops-type" class="fi fi-sel" style="width:120px;flex-shrink:0;">
-        <option value="all">Все типы</option>
-        <option value="income">↑ Приход</option>
-        <option value="expense">↓ Расход</option>
-        <option value="advance">→ Аванс</option>
+        <option value="all">${t('all_types')}</option>
+        <option value="income">${t('inc_op')}</option>
+        <option value="expense">${t('exp_op')}</option>
+        <option value="advance">${t('adv_op')}</option>
       </select>
       <select id="ops-cur" class="fi fi-sel" style="width:90px;flex-shrink:0;">
         <option value="all">TJS+USD</option>
@@ -2583,18 +2692,18 @@ ops:async()=>{
       <input id="ops-date" class="fi" type="date" style="width:145px;flex-shrink:0;" title="Фильтр по дате">
       <button class="btn btn-s btn-sm" style="flex-shrink:0;"
         onclick="window._opsFilter={q:'',type:'all',date:'',currency:'all'};['ops-q','ops-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});['ops-type','ops-cur'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='all';});if(window._applyOpsFilter)window._applyOpsFilter();">
-        ✕ Сброс
+        ${t('reset')}
       </button>
     </div>
 
     <div style="font-size:11px;color:var(--t4);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;">
-      <span>${USER?.role==='supplier'?'Снабженец: редактирование только сегодня':'Бухгалтер: редактирование доступно всегда'}</span>
+      <span>${USER?.role==='supplier'?t('role_sup_edit'):t('role_acc_edit')}</span>
       <span id="ops-count" style="font-weight:600;color:var(--t2);">${allOps.length} из ${allOps.length}</span>
     </div>
     <div id="ops-list">
       ${allOps.length
         ? allOps.map(o=>txRow(o,true)).join('')
-        : `<div class="empty"><div class="empty-icon">📋</div>Нет операций за выбранный период</div>`}
+        : `<div class="empty"><div class="empty-icon">📋</div>${t('no_ops')}</div>`}
     </div>
   </div>
   `;
@@ -2641,10 +2750,10 @@ snabs:async()=>{
             <div style="font-size:12px;font-weight:600;color:var(--t2);">${a.worker_name}</div>
             <div style="font-size:10px;color:var(--t4);">${a.task||'—'} · ${a.object_name||'—'}</div>
           </div>
-          <span class="badge bg" style="font-size:10px;">✓ Закрыт</span>
+          <span class="badge bg" style="font-size:10px;">✓ ${t('s_done')}</span>
           <div style="text-align:right;font-size:11px;">
-            <div style="color:var(--t3);">Выдано: ${fmtN(a.amount)} ${a.currency}</div>
-            <div style="color:var(--t4);">Потрачено: ${fmtN(spentTJS)} TJS${spentUSD>0?' / $'+fmtN(spentUSD)+' USD':''}</div>
+            <div style="color:var(--t3);">${t('adv_issued')}: ${fmtN(a.amount)} ${a.currency}</div>
+            <div style="color:var(--t4);">${t('spent_lbl')}: ${fmtN(spentTJS)} TJS${spentUSD>0?' / $'+fmtN(spentUSD)+' USD':''}</div>
           </div>
           ${canWrite()?`<button onclick="reopenAdv(${a.id})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);font-size:11px;cursor:pointer;font-family:var(--ff);color:var(--t3);">↺</button>`:''}
         </div>
@@ -2658,11 +2767,11 @@ snabs:async()=>{
           <div>
             <div class="pc-name">${a.worker_name}</div>
             <div class="pc-sub">${a.task||'—'} · ${a.object_name||'—'}</div>
-            <div style="font-size:10px;color:var(--t4);margin-top:1px;">Выдан: ${a.created_at?a.created_at.slice(0,10):'—'}</div>
+            <div style="font-size:10px;color:var(--t4);margin-top:1px;">${t('issued_on')}: ${a.created_at?a.created_at.slice(0,10):'—'}</div>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-          <span class="badge ${isOver?'br':pct>80?'by':'bg'}">${isOver?'Перерасход':pct>80?'Почти всё':'Этап '+(a.stage||0)+'/'+(a.stages||4)}</span>
+          <span class="badge ${isOver?'br':pct>80?'by':'bg'}">${isOver?t('overspent'):pct>80?t('almost'):t('stage_lbl')+' '+(a.stage||0)+'/'+(a.stages||4)}</span>
           <div style="font-size:12px;font-weight:700;color:var(--t);">${fmtN(a.amount)} ${a.currency}</div>
         </div>
       </div>
@@ -2675,15 +2784,15 @@ snabs:async()=>{
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px;">
         <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px;text-align:center;">
-          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">Выдано</div>
+          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">${t('adv_issued')}</div>
           <div style="font-size:13px;font-weight:700;color:var(--ad);">${fmtN(a.amount)} ${a.currency}</div>
         </div>
         <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px;text-align:center;">
-          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">Потрачено</div>
+          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">${t('spent_lbl')}</div>
           <div style="font-size:13px;font-weight:700;color:var(--red);">${fmtN(spentTJS)} TJS${spentUSD>0?'<br><span style="font-size:10px;">$'+fmtN(spentUSD)+'</span>':''}</div>
         </div>
         <div style="background:var(--bg);border:1px solid ${isOver?'var(--redb)':'var(--bd)'};border-radius:var(--r);padding:8px;text-align:center;">
-          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">Остаток</div>
+          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">${t('rest_lbl')}</div>
           <div style="font-size:13px;font-weight:700;color:${isOver?'var(--red)':'var(--adk)'};">${isOver?'−':''}${fmtN(Math.abs(rem))} TJS</div>
         </div>
       </div>
@@ -2693,27 +2802,27 @@ snabs:async()=>{
         <button onclick="advReturn(${a.id},'money')"
           style="padding:8px 4px;border-radius:var(--r);background:var(--al);border:1px solid rgba(57,185,128,.25);color:var(--adk);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
           onmouseover="this.style.background='rgba(57,185,128,.2)'" onmouseout="this.style.background='var(--al)'">
-          ↩ Возврат
+          ${t('ret')}
         </button>
         <button onclick="advDone(${a.id})"
           style="padding:8px 4px;border-radius:var(--r);background:var(--bluel);border:1px solid var(--blueb);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
           onmouseover="this.style.background='#d0e8fa'" onmouseout="this.style.background='var(--bluel)'">
-          ✓ Выполнено
+          ${t('done_ok')}
         </button>
         <button onclick="advAddExpense('${a.worker_name}','${a.object_name||''}')"
           style="padding:8px 4px;border-radius:var(--r);background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
           onmouseover="this.style.background='#ffe0e0'" onmouseout="this.style.background='var(--redl)'">
-          + Расход
+          + ${t('expense')}
         </button>
         <button onclick="advStage(${a.id})"
           style="padding:8px 4px;border-radius:var(--r);background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;">
-          Этап →
+          ${t('stage_lbl')} →
         </button>
       </div>`:''}
 
       ${workerOps.length?`
       <div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:2px;">
-        <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">История расходов</div>
+        <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${t('exp_hist')}</div>
         ${workerOps.slice(0,4).map(o=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bg2);">
             <div>
@@ -2722,7 +2831,7 @@ snabs:async()=>{
             </div>
             <span style="font-size:11px;font-weight:600;color:var(--red);">−${fmtN(o.amount)} ${o.currency}</span>
           </div>`).join('')}
-        ${workerOps.length>4?`<div style="font-size:10px;color:var(--t4);text-align:center;padding-top:4px;">+ ещё ${workerOps.length-4} расходов</div>`:''}
+        ${workerOps.length>4?`<div style="font-size:10px;color:var(--t4);text-align:center;padding-top:4px;">${t('more_exp')} ${workerOps.length-4} ${t('expenses_sfx')}</div>`:''}
       </div>`:''}
     </div>`;
   }
@@ -2730,12 +2839,12 @@ snabs:async()=>{
   return `
   <div class="g2 mb16">
     <div class="sc g" style="animation-delay:.03s;">
-      <div class="sc-lbl">↑ Выдано авансов</div>
+      <div class="sc-lbl">↑ ${t('adv_iss')}</div>
       <div style="font-size:20px;font-weight:800;color:var(--ad);">${fmtN(totalAdv)} TJS</div>
-      <div class="sc-val2">${active.length} активных · ${done.length} закрытых</div>
+      <div class="sc-val2">${active.length} ${t('active_sfx')} · ${done.length} ${t('closed_sfx')}</div>
     </div>
     <div class="sc r" style="animation-delay:.06s;">
-      <div class="sc-lbl">↓ Потрачено снабженцами</div>
+      <div class="sc-lbl">↓ ${t('spent_lbl')}</div>
       <div style="display:flex;gap:12px;align-items:baseline;margin-top:3px;">
         <div style="font-size:20px;font-weight:800;color:var(--red);">${fmtN(totalSpentTJS)} TJS</div>
         ${totalSpentUSD>0?`<div style="font-size:14px;font-weight:700;color:var(--ora);">$${fmtN(totalSpentUSD)}</div>`:''}
@@ -2744,16 +2853,16 @@ snabs:async()=>{
   </div>
 
   <div class="sh">
-    <div class="sh-t">Активные авансы (${active.length})</div>
+    <div class="sh-t">${t('active_adv')} (${active.length})</div>
     ${canWrite()?`<button class="btn btn-p btn-sm" onclick="openNewAdv()" style="display:flex;align-items:center;gap:5px;">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 1v11M1 6.5h11"/></svg>
-      Выдать аванс
+      ${t('give_adv')}
     </button>`:''}
   </div>
-  ${active.map((a,i)=>advCard(a,i)).join('')||`<div class="empty"><div class="empty-icon">👷</div>Нет активных авансов</div>`}
+  ${active.map((a,i)=>advCard(a,i)).join('')||`<div class="empty"><div class="empty-icon">👷</div>${t('no_active_adv')}</div>`}
 
   ${done.length?`
-  <div class="sh" style="margin-top:12px;"><div class="sh-t" style="color:var(--t3);">Закрытые (${done.length})</div></div>
+  <div class="sh" style="margin-top:12px;"><div class="sh-t" style="color:var(--t3);">${t('closed_adv')} (${done.length})</div></div>
   ${done.map((a,i)=>advCard(a,active.length+i)).join('')}
   `:''}
   `;
@@ -2785,16 +2894,16 @@ debts:async()=>{
         <div class="da"><div class="da-l">${t('d_paid')}</div><div class="da-v" style="color:var(--ad);">${fmtN(d.paid_amount)}</div></div>
         <div class="da"><div class="da-l">${t('d_rest')}</div><div class="da-v" style="color:var(--ora);">${fmtN(rest)}</div></div>
       </div>
-      ${!isCred?`<div class="dc-amts" style="margin-top:6px;"><div class="da"><div class="da-l">Деньги</div><div class="da-v" style="color:var(--ad);">${fmtN(mP)}</div></div><div class="da"><div class="da-l">${t('barter')}</div><div class="da-v" style="color:var(--pur);">${fmtN(bP)}</div></div><div class="da"><div class="da-l">Всего</div><div class="da-v" style="color:var(--ad);">${fmtN(mP+bP)}</div></div></div>`:''}
+      ${!isCred?`<div class="dc-amts" style="margin-top:6px;"><div class="da"><div class="da-l">${t('money')}</div><div class="da-v" style="color:var(--ad);">${fmtN(mP)}</div></div><div class="da"><div class="da-l">${t('barter')}</div><div class="da-v" style="color:var(--pur);">${fmtN(bP)}</div></div><div class="da"><div class="da-l">${t('total')}</div><div class="da-v" style="color:var(--ad);">${fmtN(mP+bP)}</div></div></div>`:''}
       <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${isCred?'var(--a)':'linear-gradient(90deg,var(--a) 55%,var(--pur))'};animation-delay:${i*.07}s;"></div></div>
-      <div style="font-size:11px;color:var(--t4);margin-bottom:${USER?.role!=='director'?'9px':'0'};">Остаток: ${fmtN(rest)} ${d.currency} · $${fmtN(d.currency==='TJS'?rest/rate:rest)}</div>
+      <div style="font-size:11px;color:var(--t4);margin-bottom:${USER?.role!=='director'?'9px':'0'};">${t('rest_lbl')}: ${fmtN(rest)} ${d.currency} · $${fmtN(d.currency==='TJS'?rest/rate:rest)}</div>
       ${USER?.role!=='director'?`<div class="a-btns">
         <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="debtReturn(${d.id},'money')">${isCred?t('pay_m'):t('got_m')}</button>
         <button class="a-btn" style="background:var(--purl);border-color:var(--purb);color:var(--pur);" onclick="debtReturn(${d.id},'barter')">${t('barter')}</button>
         <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="delDebt(${d.id})">${t('delete')}</button>
       </div>
-      ${(d.debt_returns||[]).length?`<div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--t3);margin-bottom:5px;">История</div>
-      ${(d.debt_returns||[]).map(r=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span>${r.date} · ${r.type==='money'?'Деньги':'Бартер'+(r.description?' ('+r.description+')':'')}</span><span style="font-weight:700;color:${r.type==='money'?'var(--ad)':'var(--pur)'};">+${fmtN(r.amount)}</span></div>`).join('')}`:''}
+      ${(d.debt_returns||[]).length?`<div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--t3);margin-bottom:5px;">${t('history')}</div>
+      ${(d.debt_returns||[]).map(r=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span>${r.date} · ${r.type==='money'?t('money'):t('barter')+(r.description?' ('+r.description+')':'')}</span><span style="font-weight:700;color:${r.type==='money'?'var(--ad)':'var(--pur)'};">+${fmtN(r.amount)}</span></div>`).join('')}`:''}
       `:''}
     </div>`;
   }
@@ -2803,7 +2912,7 @@ debts:async()=>{
     <div class="sc r" style="animation-delay:.03s;"><div class="sc-lbl">${t('paybl')}</div><div class="sc-val" style="color:var(--red);">${fmtN(sumC)}</div><div class="sc-val2">TJS · $${fmtN(sumC/rate)}</div></div>
     <div class="sc g" style="animation-delay:.06s;"><div class="sc-lbl">${t('recv')}</div><div class="sc-val" style="color:var(--ad);">${fmtN(sumD)}</div><div class="sc-val2">TJS · $${fmtN(sumD/rate)}</div></div>
   </div>
-  ${canAdmin()?`<button class="btn btn-p btn-sm mb16" onclick="openNewDebt()">+ Новый долг</button>`:''}
+  ${canAdmin()?`<button class="btn btn-p btn-sm mb16" onclick="openNewDebt()">${t('new_debt')}</button>`:''}
   <div class="sh"><div class="sh-t">${t('cred')}</div></div>
   ${cred.map((d,i)=>dc(d,i)).join('')||`<div class="empty"><div class="empty-icon">💳</div>${t('no_data')}</div>`}
   <div class="sh" style="margin-top:8px;"><div class="sh-t">${t('debt')}</div></div>
@@ -2839,7 +2948,7 @@ stats:async()=>{
     mkChart('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[{label:'Net CF',data:mNet,segment:{borderColor:ctx=>ctx.p1.parsed.y<0?'#E53E3E':'#39B980'},backgroundColor:ctx=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,ctx.chart.height);g.addColorStop(0,'rgba(57,185,128,.12)');g.addColorStop(1,'rgba(57,185,128,0)');return g;},fill:true,tension:.4,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'white',pointBorderWidth:2,pointBorderColor:ctx=>ctx.raw>=0?'#39B980':'#E53E3E'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...CT.tooltip}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
     if(ck.length)mkChart('ch-donut',{type:'doughnut',data:{labels:ck.slice(0,7),datasets:[{data:ck.slice(0,7).map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:0,borderRadius:3,spacing:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS`}}}}});
     if(ok.length)mkChart('ch-obj',{type:'bar',data:{labels:ok,datasets:[{label:t('income'),data:ok.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.75)',borderRadius:4,borderSkipped:false},{label:t('expense'),data:ok.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.7)',borderRadius:4,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:9,padding:8}},tooltip:{...CT.tooltip}},scales:{x:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}},y:{grid:{display:false},ticks:CT.ticks}}}});
-    mkChart('ch-usd',{type:'bar',data:{labels:[t('income'),t('expense'),'Баланс'],datasets:[{data:[incUSD,expUSD,incUSD-expUSD],backgroundColor:['rgba(57,185,128,.8)','rgba(229,62,62,.8)',incUSD-expUSD>=0?'rgba(49,130,206,.8)':'rgba(229,62,62,.8)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`$${fmtN(ctx.raw)}`}}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>'$'+fmtN(v)},border:{display:false}}}}});
+    mkChart('ch-usd',{type:'bar',data:{labels:[t('income'),t('expense'),t('balance')],datasets:[{data:[incUSD,expUSD,incUSD-expUSD],backgroundColor:['rgba(57,185,128,.8)','rgba(229,62,62,.8)',incUSD-expUSD>=0?'rgba(49,130,206,.8)':'rgba(229,62,62,.8)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`$${fmtN(ctx.raw)}`}}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>'$'+fmtN(v)},border:{display:false}}}}});
   },80);
 
   return `
@@ -2870,17 +2979,17 @@ stats:async()=>{
   </div>
   <div class="g2 mb20">
     <div class="card" style="animation:fadeUp .3s ease .09s both;"><div class="sh"><div class="sh-t">${t('by_cat')}</div></div><div class="ch-wrap ch200"><canvas id="ch-donut"></canvas></div></div>
-    <div class="card" style="animation:fadeUp .3s ease .11s both;"><div class="sh"><div class="sh-t">Операции в USD</div></div><div class="ch-wrap ch200"><canvas id="ch-usd"></canvas></div></div>
+    <div class="card" style="animation:fadeUp .3s ease .11s both;"><div class="sh"><div class="sh-t">${t('income')} / ${t('expense')} USD</div></div><div class="ch-wrap ch200"><canvas id="ch-usd"></canvas></div></div>
   </div>
   ${ok.length?`<div class="card mb20" style="animation:fadeUp .3s ease .13s both;"><div class="sh"><div class="sh-t">${t('by_obj')}</div></div><div class="ch-wrap ch200"><canvas id="ch-obj"></canvas></div></div>`:''}
   <div class="card" style="animation:fadeUp .3s ease .15s both;">
     <div class="sh"><div class="sh-t">${t('xl')} / ${t('pdf')}</div></div>
     <div class="exp-row">
-      <button class="eb eb-xl" onclick="exportXL(window._ops||[],'ZAKI_полный')">${t('full')} Excel</button>
-      <button class="eb eb-xl" onclick="exportXL((window._ops||[]).filter(o=>o.type==='income'),'Приходы')">Приходы Excel</button>
-      <button class="eb eb-xl" onclick="exportXL((window._ops||[]).filter(o=>o.type==='expense'),'Расходы')">Расходы Excel</button>
-      <button class="eb eb-pdf" onclick="exportPDF('${t('full')}',window._ops||[])">${t('full')} PDF</button>
-      <button class="eb eb-pdf" onclick="exportPDF('Расходы',(window._ops||[]).filter(o=>o.type==='expense'))">Расходы PDF</button>
+      <button class="eb eb-xl" onclick="exportXL(window._ops||[],'ZAKI_full')">${t('full')} Excel</button>
+      <button class="eb eb-xl" onclick="exportXL((window._ops||[]).filter(o=>o.type==='income'),'income')">${t('income')} Excel</button>
+      <button class="eb eb-xl" onclick="exportXL((window._ops||[]).filter(o=>o.type==='expense'),'expense')">${t('expense')} Excel</button>
+      <button class="eb eb-pdf" onclick="exportPDF(t('full'),window._ops||[])">${t('full')} PDF</button>
+      <button class="eb eb-pdf" onclick="exportPDF(t('expense'),(window._ops||[]).filter(o=>o.type==='expense'))">${t('expense')} PDF</button>
     </div>
   </div>`;
 },
@@ -2919,7 +3028,7 @@ settings:async()=>{
       <input class="fi fi-lg" id="rate-inp" type="number" value="${co?.usd_rate||10.92}" step="0.01" style="max-width:170px;">
       <button class="btn btn-p btn-sm" onclick="saveRate()">${t('save')}</button>
     </div>
-    <div style="font-size:11px;color:var(--t4);margin-top:5px;">Текущий: 1 USD = ${co?.usd_rate||10.92} TJS</div>
+    <div style="font-size:11px;color:var(--t4);margin-top:5px;">${t('cur_rate')}: 1 USD = ${co?.usd_rate||10.92} TJS</div>
   </div>
   <div class="card mb16" style="animation:fadeUp .3s ease .06s both;">
     <div class="sh"><div class="sh-t">Язык / Забон</div></div>
@@ -2935,7 +3044,7 @@ settings:async()=>{
   ${sSection(t('units'),UNITS,"addUnit(UNITS)","editUnit","delUnit")}
   <div class="card mb16" style="animation:fadeUp .3s ease .2s both;">
     <div class="sh"><div class="sh-t">${t('users')}</div><button class="btn btn-p btn-sm" onclick="openNewUser()">${t('add_u')}</button></div>
-    <div>${(users||[]).map(u=>`<div class="si"><div class="si-inf"><div class="si-name">${u.name} <span class="badge bgr" style="font-size:9px;">${u.role==='accountant'||u.role==='admin'?'💼 Бухгалтер/Админ':u.role==='supplier'?'🔧 Снабженец':'📊 Директор'}</span></div><div class="si-sub">${u.phone||'—'}</div></div></div>`).join('')}</div>
+    <div>${(users||[]).map(u=>`<div class="si"><div class="si-inf"><div class="si-name">${u.name} <span class="badge bgr" style="font-size:9px;">${u.role==='accountant'||u.role==='admin'?'💼 '+t('acc'):u.role==='supplier'?'🔧 '+t('sup'):'📊 '+t('dir')}</span></div><div class="si-sub">${u.phone||'—'}</div></div></div>`).join('')}</div>
   </div>`:''}
   <div class="card mb16" style="animation:fadeUp .3s ease .22s both;">
     <div class="sh"><div class="sh-t">${t('roles')}</div></div>
@@ -2968,7 +3077,7 @@ my:async()=>{
       <div style="font-size:12px;color:var(--t4);">≈ $${fmtN(rem/rate)} · из ${fmtN(adv.amount)} TJS</div>
     </div>
     <div class="g2 mb12">
-      <div style="padding:10px 12px;background:var(--ap);border-radius:var(--r);border:1px solid var(--al);"><div class="sc-lbl">Выдано</div><div style="font-size:16px;font-weight:700;color:var(--ad);">${fmtN(adv.amount)}</div><div style="font-size:10px;color:var(--t4);">$${fmtN(adv.amount/rate)}</div></div>
+      <div style="padding:10px 12px;background:var(--ap);border-radius:var(--r);border:1px solid var(--al);"><div class="sc-lbl">${t('adv_issued')}</div><div style="font-size:16px;font-weight:700;color:var(--ad);">${fmtN(adv.amount)}</div><div style="font-size:10px;color:var(--t4);">$${fmtN(adv.amount/rate)}</div></div>
       <div style="padding:10px 12px;background:var(--redl);border-radius:var(--r);border:1px solid var(--redb);"><div class="sc-lbl">${t('spent')}</div><div style="font-size:16px;font-weight:700;color:var(--red);">${fmtN(spent)}</div><div style="font-size:10px;color:var(--t4);">$${fmtN(spent/rate)}</div></div>
     </div>
     <div class="bar-tr" style="height:6px;margin-bottom:4px;"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${pct>80?'var(--red)':pct>60?'var(--yel)':'var(--a)'};"></div></div>
@@ -2976,7 +3085,7 @@ my:async()=>{
     ${stageTrack(adv.stage||0,adv.stages||4,names)}
   </div>
   <div class="card" style="animation:fadeUp .3s ease .05s both;">
-    <div class="sh"><div class="sh-t">Последние расходы</div><div class="sh-a" onclick="go('myexp')">Все →</div></div>
+    <div class="sh"><div class="sh-t">${t('recent_exp')}</div><div class="sh-a" onclick="go('myexp')">${t('all_ops')}</div></div>
     <div>${(ops||[]).slice(0,6).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
   </div>`;
 },
@@ -3008,10 +3117,10 @@ tasks:async()=>{
     const names=Array.isArray(a.stage_names)?a.stage_names:['Старт','Закупка','Доставка','Сдача'];
     return `<div class="pc" style="animation-delay:${i*.06}s;">
       <div class="pc-top"><div class="pc-lft"><div class="ava" style="width:38px;height:38px;background:var(--al);color:var(--adk);">${(a.object_name||'?').slice(-2)}</div><div><div class="pc-name">${a.task||'—'}</div><div class="pc-sub">${a.object_name} · ${fmtN(a.amount)} TJS</div></div></div>
-      <span class="badge ${(a.stage||0)>=(a.stages||4)?'bg':'by'}">${(a.stage||0)>=(a.stages||4)?t('done_ok'):'Этап '+(a.stage||0)+'/'+(a.stages||4)}</span></div>
+      <span class="badge ${(a.stage||0)>=(a.stages||4)?'bg':'by'}">${(a.stage||0)>=(a.stages||4)?t('done_ok'):t('stage_lbl')+' '+(a.stage||0)+'/'+(a.stages||4)}</span></div>
       ${stageTrack(a.stage||0,a.stages||4,names)}
       <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${pct>80?'var(--red)':'var(--a)'};"></div></div>
-      <div class="pc-nums"><span style="color:var(--red);">Потрачено: ${fmtN(spent)}</span><span style="color:var(--ad);">Остаток: ${fmtN(rem)}</span></div>
+      <div class="pc-nums"><span style="color:var(--red);">${t('spent_lbl')}: ${fmtN(spent)}</span><span style="color:var(--ad);">${t('rest_lbl')}: ${fmtN(rem)}</span></div>
       <div class="a-btns">
         <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="advStage(${a.id})">Следующий этап →</button>
         <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="go('addexp')">+ Расход</button>
@@ -3050,16 +3159,16 @@ masters:async()=>{
         <div class="ms"><div class="ms-l">${t('left')}</div><div class="ms-v" style="color:${rem<0?'var(--red)':'var(--adk)'};">${fmtN(rem)}</div></div>
       </div>
       <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${pct>=100?'var(--a)':pct>80?'var(--yel)':'var(--blue)'};"></div></div>
-      <div style="font-size:11px;color:var(--t4);margin-bottom:${canWrite()?'9px':'0'};">Срок: ${m.due_date||'—'} · $${fmtN(m.advance_amount/rate)}</div>
+      <div style="font-size:11px;color:var(--t4);margin-bottom:${canWrite()?'9px':'0'};">${t('deadline')}: ${m.due_date||'—'} · $${fmtN(m.advance_amount/rate)}</div>
       ${canWrite()?`<div class="a-btns">
         <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="addMasterWork(${m.id})">+ ${t('add_w')}</button>
         <button class="a-btn" style="background:var(--bluel);border-color:var(--blueb);color:var(--blue);" onclick="masterCard(${m.id})">${t('m_card')}</button>
         <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="delMaster(${m.id})">${t('delete')}</button>
       </div>`:''}
       ${(m.master_works||[]).length?`<div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:6px;">
-        <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;margin-bottom:5px;">История работ</div>
+        <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;margin-bottom:5px;">${t('work_hist')}</div>
         ${(m.master_works||[]).slice(0,3).map(w=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--bg2);"><span style="color:var(--t2);">${w.description||'—'}</span><span style="color:var(--blue);font-weight:700;">+${fmtN(w.amount)} TJS · ${w.date}</span></div>`).join('')}
-        ${(m.master_works||[]).length>3?`<div style="font-size:10px;color:var(--t4);text-align:center;padding-top:3px;">+ ещё ${(m.master_works||[]).length-3}</div>`:''}
+        ${(m.master_works||[]).length>3?`<div style="font-size:10px;color:var(--t4);text-align:center;padding-top:3px;">${t('more_exp')} ${(m.master_works||[]).length-3}</div>`:''}
       </div>`:''}
     </div>`;
   }).join('')}`;
@@ -3131,8 +3240,8 @@ function openNewAdvanceFull(){
         const obj=document.getElementById('na-obj').value;
         const task=document.getElementById('na-task').value.trim();
         const date=document.getElementById('na-date').value;
-        if(!worker){showToast('Укажите получателя аванса',true);return;}
-        if(!amt){showToast('Введите сумму',true);return;}
+        if(!worker){showToast(t('specify_adv_w'),true);return;}
+        if(!amt){showToast(t('enter_amt'),true);return;}
         const r=COMPANY.usd_rate||10.92;
         const amtTJS=cur==='USD'?amt*r:amt;
         const amtUSD=cur==='TJS'?amt/r:amt;
@@ -3143,7 +3252,7 @@ function openNewAdvanceFull(){
           stage_names:JSON.stringify(['Старт','Закупка','Доставка','Сдача']),
           status:'active'
         });
-        if(ae){showToast('Ошибка: '+ae.message,true);return;}
+        if(ae){showToast(t('err')+': '+ae.message,true);return;}
         // Save as operation
         const{error:oe}=await SB.from('operations').insert({
           type:'advance',date,
@@ -3157,7 +3266,7 @@ function openNewAdvanceFull(){
           note:document.getElementById('na-note').value,
           created_by:USER?.id
         });
-        if(oe){showToast('Аванс создан, но операция не записана: '+oe.message,true);}
+        if(oe){showToast(t('adv_op_warn')+': '+oe.message,true);}
         else showToast('✓ Аванс '+fmtN(amt)+' '+cur+' выдан → '+worker);
         closeModal();
         renderPage('snabs');
@@ -3244,8 +3353,8 @@ async function openNewAdv(){
       const obj=document.getElementById('na-o').value;
       const task=document.getElementById('na-t').value;
       const due=document.getElementById('na-d').value;
-      if(!w){showToast('Укажите получателя аванса',true);return;}
-      if(!amt){showToast('Введите сумму аванса',true);return;}
+      if(!w){showToast(t('specify_adv_w'),true);return;}
+      if(!amt){showToast(t('enter_amt'),true);return;}
       const rate=COMPANY.usd_rate||10.92;
       // Save advance record
       const{error:ae}=await SB.from('advances').insert({
@@ -3254,7 +3363,7 @@ async function openNewAdv(){
         stage_names:JSON.stringify(['Старт','Закупка','Доставка','Сдача']),
         status:'active'
       });
-      if(ae){showToast('Ошибка: '+ae.message,true);return;}
+      if(ae){showToast(t('err')+': '+ae.message,true);return;}
       // Save as operation
       const{error:oe}=await SB.from('operations').insert({
         type:'advance',date:today(),object_name:obj,
@@ -3264,7 +3373,7 @@ async function openNewAdv(){
         amount_usd:cur==='TJS'?amt/rate:amt,
         usd_rate:rate,worker_name:USER?.name||'',created_by:USER?.id
       });
-      if(oe){showToast('Аванс записан, но операция: '+oe.message,true);}
+      if(oe){showToast(t('adv_op_warn')+': '+oe.message,true);}
       closeModal();showToast('✓ Аванс '+fmtN(amt)+' '+cur+' → '+w+' выдан');
       renderPage('snabs');
     },'Выдать аванс →'
@@ -3296,7 +3405,7 @@ async function advReturn(id){
     </div>`,
     async()=>{
       const amt=parseFloat(document.getElementById('ar-amt')?.value||'');
-      if(!amt||amt<=0){showToast('Введите корректную сумму',true);return;}
+      if(!amt||amt<=0){showToast(t('enter_amt'),true);return;}
       const desc=(document.getElementById('ar-desc')?.value||'').trim()||'Возврат аванса';
       const rate=COMPANY.usd_rate||10.92;
       await SB.from('operations').insert({
@@ -3323,47 +3432,47 @@ async function advDone(id){
 
 async function reopenAdv(id){
   await SB.from('advances').update({status:'active'}).eq('id',id);
-  showToast('Аванс переоткрыт');renderPage('snabs');
+  showToast(t('adv_reopened'));renderPage('snabs');
 }
 
 async function advAddExpense(workerName, objName){
   OP_TYPE='expense';SEL_OBJ=objName||'';SEL_CUR='TJS';
   const expCats=CATEGORIES.filter(c=>c.type==='expense');
   SEL_CAT=expCats[0]?.name||'';
-  openModal('Расход снабженца: '+workerName,`
+  openModal(t('expense')+': '+workerName,`
     <div class="fg f2">
       <div class="fld s2">
-        <div class="fld-l">Объект</div>
+        <div class="fld-l">${t('obj_l')}</div>
         <select class="fi fi-sel" id="ae-obj" onchange="SEL_OBJ=this.value">
-          <option value="${objName||''}">${objName||'— Без объекта —'}</option>
+          <option value="${objName||''}">${objName||t('no_obj')}</option>
           ${OBJECTS.filter(o=>o.name!==objName).map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
         </select>
       </div>
       <div class="fld s2">
-        <div class="fld-l">Категория расхода</div>
+        <div class="fld-l">${t('cat_l')}</div>
         <select class="fi fi-sel" id="ae-cat" onchange="SEL_CAT=this.value">
           ${expCats.map((c,i)=>`<option value="${c.name}" ${i===0?'selected':''}>${c.name}</option>`).join('')}
         </select>
       </div>
-      <div class="fld"><div class="fld-l">Дата</div><input class="fi" type="date" id="ae-date" value="${today()}"></div>
-      <div class="fld"><div class="fld-l">Валюта</div>
+      <div class="fld"><div class="fld-l">${t('date')}</div><input class="fi" type="date" id="ae-date" value="${today()}"></div>
+      <div class="fld"><div class="fld-l">${t('currency')}</div>
         <div class="cur-tog" style="margin-top:2px;">
           <button class="cur-btn on" id="ae-tjs" onclick="SEL_CUR='TJS';this.className='cur-btn on';document.getElementById('ae-usd').className='cur-btn';">TJS</button>
           <button class="cur-btn" id="ae-usd" onclick="SEL_CUR='USD';this.className='cur-btn on';document.getElementById('ae-tjs').className='cur-btn';">USD</button>
         </div>
       </div>
-      <div class="fld s2"><div class="fld-l">Описание</div><input class="fi" id="ae-desc" placeholder="Что куплено..."></div>
-      <div class="fld"><div class="fld-l">Количество</div><input class="fi" id="ae-qty" type="number" placeholder="0"></div>
-      <div class="fld"><div class="fld-l">Единица</div><select class="fi fi-sel" id="ae-unit">${UNITS.map(u=>`<option>${u.name}</option>`).join('')}</select></div>
-      <div class="fld"><div class="fld-l">Цена за ед.</div><input class="fi" id="ae-price" type="number" placeholder="0"></div>
-      <div class="fld"><div class="fld-l">Итого</div><input class="fi fi-lg" id="ae-total" type="number" placeholder="0"></div>
+      <div class="fld s2"><div class="fld-l">${t('desc')}</div><input class="fi" id="ae-desc" placeholder="${t('exp_ph')}"></div>
+      <div class="fld"><div class="fld-l">${t('qty')}</div><input class="fi" id="ae-qty" type="number" placeholder="0"></div>
+      <div class="fld"><div class="fld-l">${t('unit')}</div><select class="fi fi-sel" id="ae-unit">${UNITS.map(u=>`<option>${u.name}</option>`).join('')}</select></div>
+      <div class="fld"><div class="fld-l">${t('price_unit')}</div><input class="fi" id="ae-price" type="number" placeholder="0"></div>
+      <div class="fld"><div class="fld-l">${t('total')}</div><input class="fi fi-lg" id="ae-total" type="number" placeholder="0"></div>
     </div>`,
     async()=>{
       const q2=parseFloat(document.getElementById('ae-qty')?.value)||0;
       const p=parseFloat(document.getElementById('ae-price')?.value)||0;
       const tot=document.getElementById('ae-total');
       const amt=tot?.value?parseFloat(tot.value)||q2*p:q2*p;
-      if(!amt){showToast('Введите сумму',true);return;}
+      if(!amt){showToast(t('enter_amt'),true);return;}
       const rate=COMPANY.usd_rate||10.92;
       const{error}=await SB.from('operations').insert({
         type:'expense',date:document.getElementById('ae-date')?.value||today(),
@@ -3377,18 +3486,18 @@ async function advAddExpense(workerName, objName){
         price:p||null,created_by:USER?.id
       });
       if(error){showToast(error.message,true);return;}
-      closeModal();showToast('✓ Расход '+fmtN(amt)+' '+SEL_CUR+' записан');
+      closeModal();showToast('✓ '+t('expense')+' '+fmtN(amt)+' '+SEL_CUR);
       renderPage('snabs');
-    },'Сохранить расход →'
+    },t('sv_exp')
   );
 }
 
 
 async function addMasterWork(id){
   openModal(t('add_w'),`
-    <div class="fg"><div class="fld"><div class="fld-l">Сумма (TJS)</div><input class="fi fi-lg" id="mw-a" type="number" placeholder="0"></div><div class="fld"><div class="fld-l">Описание</div><input class="fi" id="mw-d" placeholder="Бетонные работы..."></div></div>`,
+    <div class="fg"><div class="fld"><div class="fld-l">${t('amount')} (TJS)</div><input class="fi fi-lg" id="mw-a" type="number" placeholder="0"></div><div class="fld"><div class="fld-l">${t('desc')}</div><input class="fi" id="mw-d" placeholder="${t('work_hist')}..."></div></div>`,
     async()=>{
-      const amt=parseFloat(document.getElementById('mw-a').value)||0;if(!amt){showToast('Введите сумму',true);return;}
+      const amt=parseFloat(document.getElementById('mw-a').value)||0;if(!amt){showToast(t('enter_amt'),true);return;}
       const{data:m}=await SB.from('masters').select('worked_amount,advance_amount').eq('id',id).single();
       const nw=(m.worked_amount||0)+amt;
       const status=nw>=m.advance_amount?'done':nw>0?'partial':'active';
@@ -3403,13 +3512,13 @@ async function addMasterWork(id){
 async function masterCard(id){
   const{data:m}=await SB.from('masters').select('*,master_works(*)').eq('id',id).single();
   openModal(m.name,`<div style="font-size:13px;line-height:1.9;color:var(--t2);">
-    <div><b>Телефон:</b> ${m.phone||'—'}</div><div><b>Объект:</b> ${m.object_name} · ${m.specialty}</div>
-    <div><b>Аванс:</b> ${fmtN(m.advance_amount)} TJS</div><div><b>Отработано:</b> ${fmtN(m.worked_amount)} TJS</div>
-    <div><b>Остаток:</b> ${fmtN(m.advance_amount-m.worked_amount)} TJS</div><div><b>Срок:</b> ${m.due_date||'—'}</div>
-    ${m.notes?`<div><b>Заметка:</b> ${m.notes}</div>`:''}
-    ${(m.master_works||[]).length?`<div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:10px;"><b>История:</b>${(m.master_works||[]).map(w=>`<div style="font-size:11px;color:var(--t3);margin-top:3px;">${w.date} · +${fmtN(w.amount)} TJS · ${w.description||'—'}</div>`).join('')}</div>`:''}
-  </div>`,()=>closeModal(),'Закрыть');
-  document.getElementById('m-ft').innerHTML=`<button class="btn btn-p btn-sm" onclick="closeModal()">Закрыть</button>`;
+    <div><b>${t('phone')}:</b> ${m.phone||'—'}</div><div><b>${t('obj_l')}:</b> ${m.object_name} · ${m.specialty}</div>
+    <div><b>${t('adv_tjs')}:</b> ${fmtN(m.advance_amount)} TJS</div><div><b>${t('worked_lbl')}:</b> ${fmtN(m.worked_amount)} TJS</div>
+    <div><b>${t('rest_lbl')}:</b> ${fmtN(m.advance_amount-m.worked_amount)} TJS</div><div><b>${t('deadline')}:</b> ${m.due_date||'—'}</div>
+    ${m.notes?`<div><b>${t('notes')}:</b> ${m.notes}</div>`:''}
+    ${(m.master_works||[]).length?`<div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:10px;"><b>${t('work_hist')}:</b>${(m.master_works||[]).map(w=>`<div style="font-size:11px;color:var(--t3);margin-top:3px;">${w.date} · +${fmtN(w.amount)} TJS · ${w.description||'—'}</div>`).join('')}</div>`:''}
+  </div>`,()=>closeModal(),t('close'));
+  document.getElementById('m-ft').innerHTML=`<button class="btn btn-p btn-sm" onclick="closeModal()">${t('close')}</button>`;
 }
 function openNewMaster(){
   openModal(t('new_m'),`
@@ -3417,14 +3526,14 @@ function openNewMaster(){
       <div class="fld s2"><div class="fld-l">${t('fio')}</div><input class="fi" id="nm-n" placeholder="Хасанов Бобур..."></div>
       <div class="fld"><div class="fld-l">${t('phone')}</div><input class="fi" id="nm-p" placeholder="+992 9..."></div>
       <div class="fld"><div class="fld-l">${t('obj_l')}</div><select class="fi fi-sel" id="nm-o">${OBJECTS.map(o=>`<option>${o.name}</option>`).join('')}</select></div>
-      <div class="fld"><div class="fld-l">Специальность</div><input class="fi" id="nm-s" placeholder="Бетонщик..."></div>
-      <div class="fld"><div class="fld-l">Аванс (TJS)</div><input class="fi fi-lg" id="nm-a" type="number" placeholder="0"></div>
-      <div class="fld"><div class="fld-l">Срок</div><input class="fi" type="date" id="nm-d" value="${today()}"></div>
+      <div class="fld"><div class="fld-l">${t('specialty')}</div><input class="fi" id="nm-s" placeholder="${t('specialty')}..."></div>
+      <div class="fld"><div class="fld-l">${t('adv_tjs')}</div><input class="fi fi-lg" id="nm-a" type="number" placeholder="0"></div>
+      <div class="fld"><div class="fld-l">${t('deadline')}</div><input class="fi" type="date" id="nm-d" value="${today()}"></div>
       <div class="fld s2"><div class="fld-l">${t('note')}</div><input class="fi" id="nm-note"></div>
     </div>`,
     async()=>{
       const name=document.getElementById('nm-n').value.trim(),amt=parseFloat(document.getElementById('nm-a').value)||0;
-      if(!name||!amt){showToast('Заполните имя и сумму',true);return;}
+      if(!name||!amt){showToast(t('fill_name_amt'),true);return;}
       const{error}=await SB.from('masters').insert({name,phone:document.getElementById('nm-p').value,specialty:document.getElementById('nm-s').value,object_name:document.getElementById('nm-o').value,advance_amount:amt,due_date:document.getElementById('nm-d').value,notes:document.getElementById('nm-note').value});
       if(error){showToast(error.message,true);return;}
       closeModal();showToast(t('saved'));renderPage('masters');
@@ -3439,14 +3548,24 @@ async function delMaster(id){
 }
 async function debtReturn(id,type){
   const isBarter=type==='barter';
+  const{data:dbt}=await SB.from('debts').select('paid_amount,total_amount,name,type,currency').eq('id',id).single();
+  const isCreditor=dbt?.type==='creditor';
   openModal(isBarter?'Бартерный расчёт':'Оплата долга',`
     <div class="fld" style="margin-top:4px;">
       <div class="fld-l">${isBarter?'Оценка бартера':'Сумма оплаты'} (TJS)</div>
       <input class="fi fi-lg" id="dr-amt" type="number" min="0.01" step="0.01" placeholder="0.00" autocomplete="off" style="margin-top:6px;">
     </div>
-    ${isBarter?`<div class="fld" style="margin-top:12px;"><div class="fld-l">Описание</div><input class="fi" id="dr-desc" placeholder="Описание бартера" autocomplete="off" style="margin-top:6px;"></div>`:''}`,
+    ${isBarter?`<div class="fld" style="margin-top:12px;"><div class="fld-l">Описание</div><input class="fi" id="dr-desc" placeholder="Описание бартера" autocomplete="off" style="margin-top:6px;"></div>`:''}
+    ${!isBarter&&isCreditor?`
+    <div style="margin-top:12px;padding:10px 13px;background:var(--redl);border:1.5px solid var(--redb);border-radius:var(--r2);display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="var cb=document.getElementById('dr-cash');cb.checked=!cb.checked;">
+      <input type="checkbox" id="dr-cash" style="width:16px;height:16px;accent-color:var(--red);cursor:pointer;" onclick="event.stopPropagation();">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--t);">${t('cash_pay')}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:1px;">${t('cash_pay_sub')}</div>
+      </div>
+    </div>`:''}`,
     async()=>{
-      const amt=parseFloat(document.getElementById('dr-amt')?.value||'');if(!amt||amt<=0){showToast('Введите корректную сумму',true);return;}
+      const amt=parseFloat(document.getElementById('dr-amt')?.value||'');if(!amt||amt<=0){showToast(t('enter_amt'),true);return;}
       const desc=isBarter?(document.getElementById('dr-desc')?.value||'').trim():'';
       const{data:d}=await SB.from('debts').select('paid_amount,total_amount').eq('id',id).single();
       const np=(d.paid_amount||0)+amt;const status=np>=d.total_amount?'closed':'active';
@@ -3454,25 +3573,45 @@ async function debtReturn(id,type){
         SB.from('debt_returns').insert({debt_id:id,type,amount:amt,date:today(),description:desc}),
         SB.from('debts').update({paid_amount:np,status}).eq('id',id)
       ]);
+      const deductFromCash=!isBarter&&isCreditor&&document.getElementById('dr-cash')?.checked;
+      if(deductFromCash){
+        const rate=COMPANY.usd_rate||10.92;
+        await SB.from('operations').insert({type:'expense',date:today(),category_name:'Возврат займа',object_name:dbt?.name||'',description:'Возврат займа: '+(dbt?.name||''),amount_tjs:amt,amount_usd:+(amt/rate).toFixed(2),currency:'TJS',usd_rate:rate,user_id:(await SB.auth.getUser()).data.user?.id});
+      }
       closeModal();showToast(t('saved'));renderPage('debts');
     },'Сохранить');
   setTimeout(()=>{const el=document.getElementById('dr-amt');if(el)el.focus();},120);
 }
 function openNewDebt(){
-  openModal('Новый долг',`
+  openModal(t('new_debt').replace('+ ',''),`
     <div class="fg f2">
-      <div class="fld"><div class="fld-l">Тип</div><select class="fi fi-sel" id="nd-t"><option value="creditor">Мы должны</option><option value="debtor">Нам должны</option></select></div>
-      <div class="fld"><div class="fld-l">Имя / Организация</div><input class="fi" id="nd-n" placeholder="ООО..."></div>
+      <div class="fld"><div class="fld-l">${t('type_lbl')}</div><select class="fi fi-sel" id="nd-t" onchange="(function(v){var cb=document.getElementById('nd-cash-row');if(cb)cb.style.display=v==='creditor'?'':'none';})(this.value)"><option value="creditor">${t('paybl')}</option><option value="debtor">${t('recv')}</option></select></div>
+      <div class="fld"><div class="fld-l">${t('name_org')}</div><input class="fi" id="nd-n" placeholder="ООО..."></div>
       <div class="fld"><div class="fld-l">${t('amount')}</div><input class="fi fi-lg" id="nd-a" type="number" placeholder="0"></div>
       <div class="fld"><div class="fld-l">${t('currency')}</div><select class="fi fi-sel" id="nd-c"><option>TJS</option><option>USD</option></select></div>
-      <div class="fld"><div class="fld-l">Срок</div><input class="fi" type="date" id="nd-d" value="${today()}"></div>
-      <div class="fld"><div class="fld-l">Описание</div><input class="fi" id="nd-desc"></div>
+      <div class="fld"><div class="fld-l">${t('deadline')}</div><input class="fi" type="date" id="nd-d" value="${today()}"></div>
+      <div class="fld"><div class="fld-l">${t('desc')}</div><input class="fi" id="nd-desc"></div>
+    </div>
+    <div id="nd-cash-row" style="margin-top:12px;padding:10px 13px;background:var(--ap);border:1.5px solid var(--al);border-radius:var(--r2);display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="var cb=document.getElementById('nd-cash');cb.checked=!cb.checked;">
+      <input type="checkbox" id="nd-cash" style="width:16px;height:16px;accent-color:var(--a);cursor:pointer;" onclick="event.stopPropagation();">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--t);">${t('cash_recv')}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:1px;">${t('cash_recv_sub')}</div>
+      </div>
     </div>`,
     async()=>{
       const n=document.getElementById('nd-n').value.trim(),a=parseFloat(document.getElementById('nd-a').value)||0;
-      if(!n||!a){showToast('Заполните поля',true);return;}
-      const{error}=await SB.from('debts').insert({type:document.getElementById('nd-t').value,name:n,description:document.getElementById('nd-desc').value,total_amount:a,currency:document.getElementById('nd-c').value,due_date:document.getElementById('nd-d').value});
+      const dtype=document.getElementById('nd-t').value;
+      if(!n||!a){showToast(t('fill_fields'),true);return;}
+      const{error}=await SB.from('debts').insert({type:dtype,name:n,description:document.getElementById('nd-desc').value,total_amount:a,currency:document.getElementById('nd-c').value,due_date:document.getElementById('nd-d').value});
       if(error){showToast(error.message,true);return;}
+      const addToCash=dtype==='creditor'&&document.getElementById('nd-cash')?.checked;
+      if(addToCash){
+        const cur=document.getElementById('nd-c').value;
+        const rate=COMPANY.usd_rate||10.92;
+        const amtTJS=cur==='USD'?a*rate:a;
+        await SB.from('operations').insert({type:'income',date:today(),category_name:'Займ получен',object_name:n,description:'Займ от '+n,amount_tjs:amtTJS,amount_usd:cur==='USD'?a:+(a/rate).toFixed(2),currency:cur,usd_rate:rate,user_id:(await SB.auth.getUser()).data.user?.id});
+      }
       closeModal();showToast(t('saved'));renderPage('debts');
     }
   );
@@ -3493,17 +3632,17 @@ async function saveCo(){
   buildNav();showToast(t('saved'));
 }
 async function saveRate(){
-  const v=parseFloat(document.getElementById('rate-inp').value);if(!v){showToast('Неверное значение',true);return;}
+  const v=parseFloat(document.getElementById('rate-inp').value);if(!v){showToast(t('invalid_val'),true);return;}
   await SB.from('company').update({usd_rate:v}).eq('id',1);
   COMPANY.usd_rate=v;showToast(`✓ 1 USD = ${v} TJS`);renderPage('settings');
 }
 async function addObj(){const n=document.getElementById(`inp-${t('objects')}`)?.value?.trim();if(!n)return;const{error}=await SB.from('objects').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
 async function editObj(id){showPrompt('Переименовать объект','Новое название','',async(n)=>{await SB.from('objects').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
 async function delObj(id){showConfirm(t('del_q'),async()=>{await SB.from('objects').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
-async function addCat(type){const n=document.querySelector(`[id^="inp-"]`)?.value?.trim();if(!n)return;const{error}=await SB.from('categories').insert({name:n,type});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
+async function addCat(type){const key=type==='income'?'inc_c':'exp_c';const n=document.getElementById(`inp-${t(key)}`)?.value?.trim();if(!n){showToast(t('enter_val'),true);return;}const{error}=await SB.from('categories').insert({name:n,type});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
 async function editCat(id){showPrompt('Переименовать категорию','Новое название','',async(n)=>{await SB.from('categories').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
 async function delCat(id){showConfirm(t('del_q'),async()=>{await SB.from('categories').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
-async function addUnit(){const n=document.querySelector(`[id^="inp-"]`)?.value?.trim();if(!n)return;const{error}=await SB.from('units').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
+async function addUnit(){const n=document.getElementById(`inp-${t('units')}`)?.value?.trim();if(!n){showToast(t('enter_val'),true);return;}const{error}=await SB.from('units').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
 async function editUnit(id){showPrompt('Переименовать единицу','Новое название','',async(n)=>{await SB.from('units').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
 async function delUnit(id){showConfirm(t('del_q'),async()=>{await SB.from('units').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
 function openNewUser(){
@@ -3541,10 +3680,10 @@ function openNewUser(){
       const name=document.getElementById('nu-name').value.trim();
       const role=document.getElementById('nu-role').value;
       const phone=document.getElementById('nu-phone').value.trim();
-      if(!uid||!name){showToast('Заполните UUID и имя',true);return;}
+      if(!uid||!name){showToast(t('fill_fields'),true);return;}
       if(uid.length<30){showToast('UUID должен быть длиной 36 символов',true);return;}
       const{error}=await SB.from('profiles').insert({id:uid,name,role,phone});
-      if(error){showToast('Ошибка: '+error.message,true);return;}
+      if(error){showToast(t('err')+': '+error.message,true);return;}
       closeModal();showToast('✓ Пользователь '+name+' добавлен');renderPage('settings');
     }
   );
@@ -3556,7 +3695,7 @@ setTimeout(()=>{
   window.renderPage=function(id){
     origRender(id);
     if(id==='ops'&&USER?.role!=='director'){
-      setTimeout(()=>{const w=document.getElementById('op-form-wrap');if(w)buildOpForm(w,false);window._loadOps=async()=>{const{data}=await getOps();window._ops=data||[];};window._loadOps();},200);
+      setTimeout(()=>{const w=document.getElementById('op-form-wrap');if(w)buildOpForm(w,false);},200);
     }
   };
 },100);
@@ -3650,7 +3789,7 @@ function showAdminSetup(){
 function saveSetup(){
   const url=document.getElementById('setup-url')?.value?.trim();
   const key=document.getElementById('setup-key')?.value?.trim();
-  if(!url||!key){showToast('Заполните оба поля',true);return;}
+  if(!url||!key){showToast(t('fill_fields'),true);return;}
   localStorage.setItem('sb_url',url);
   localStorage.setItem('sb_key',key);
   location.reload();
