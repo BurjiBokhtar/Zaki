@@ -4,8 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ZAKI">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#39B980">
 <title>ZAKI ERP — Строительные финансы</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -580,13 +585,7 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 
     <!-- Top bar -->
     <div style="position:relative;z-index:10;padding:22px 24px 0;display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:11px;">
-        <div style="width:38px;height:38px;background:rgba(255,255,255,.12);border-radius:11px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.1);">
-          <img src="logo.png" style="width:30px;height:30px;object-fit:contain;display:block;" onerror="this.style.display='none';this.nextSibling.style.display='block'" alt="">
-          <svg style="display:none;width:20px;height:20px;" viewBox="0 0 20 20" fill="none"><path d="M4 10C4 6.686 6.686 4 10 4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M16 10C16 13.314 13.314 16 10 16" stroke="rgba(255,255,255,.4)" stroke-width="2" stroke-linecap="round"/></svg>
-        </div>
-        <span style="color:#fff;font-size:15px;font-weight:700;font-family:var(--ff);text-shadow:0 1px 6px rgba(0,0,0,.4);">Бурчи Бохтар</span>
-      </div>
+      <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.5px;font-family:var(--ff);text-shadow:0 1px 8px rgba(0,0,0,.4);">ZAKI<span style="color:#39B980;">.</span></div>
       <div style="text-align:right;">
         <div style="font-size:26px;font-weight:800;color:#fff;line-height:1;font-family:var(--ff);text-shadow:0 1px 8px rgba(0,0,0,.4);" id="lp-temp">—°</div>
         <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;font-family:var(--ff);" id="lp-wdesc">—</div>
@@ -601,9 +600,14 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 
     <!-- Bottom branding -->
     <div style="position:relative;z-index:10;margin-top:auto;padding:0 24px 28px;">
-      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.42);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;" id="lp-co">ЧДММ «БУРЧИ БОХТАР» · БОХТАР</div>
-      <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-.4px;font-family:var(--ff);line-height:1.2;text-shadow:0 2px 14px rgba(0,0,0,.5);" id="lp-greeting">Хуш омадед</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.48);margin-top:6px;font-family:var(--ff);" id="lt-tag">Низоми идоракунии корпоративй</div>
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;" id="lp-co"></div>
+      <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:-1.5px;font-family:var(--ff);line-height:1;margin-bottom:6px;text-shadow:0 2px 16px rgba(0,0,0,.5);">ZAKI<span style="color:#39B980;">.</span></div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:14px;font-family:var(--ff);" id="lt-tag">Система управления строительными финансами</div>
+      <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-.4px;font-family:var(--ff);line-height:1.2;text-shadow:0 2px 14px rgba(0,0,0,.5);" id="lp-greeting">Добро пожаловать</div>
+      <div style="margin-top:18px;padding:14px 16px;background:rgba(255,255,255,.07);border-radius:12px;border-left:3px solid #39B980;backdrop-filter:blur(6px);">
+        <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-family:var(--ff);" id="lp-quote-label">Мудрость дня</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.85);font-style:italic;line-height:1.55;font-family:var(--ff);" id="lp-quote">—</div>
+      </div>
     </div>
   </div>
 
@@ -979,6 +983,7 @@ const T={
 let LANG='ru', USER=null, SB=null, COMPANY={usd_rate:10.92}, CUR_PAGE='home', PERIOD='today';
 let OBJECTS=[], CATEGORIES=[], UNITS=[];
 let SEL_OBJ='', SEL_CAT='', SEL_CUR='TJS', OP_TYPE='income';
+let RATES={USD:null,EUR:null,RUB:null,updated:null};
 let CHARTS={};
 function t(k){return T[LANG][k]||T.ru[k]||k;}
 
@@ -1449,8 +1454,11 @@ function getTimeOfDay(){
   return'night';
 }
 function updateLoginAmbience(){
-  applyWeatherTheme(63); // default: rain scene until API responds
+  applyWeatherTheme(63);
   fetchWeatherLP();
+  setDailyQuote();
+  const ql=document.getElementById('lp-quote-label');
+  if(ql)ql.textContent=LANG==='tj'?'Ҳикмати рӯз':'Мудрость дня';
 }
 
 function applyWeatherTheme(wc){
@@ -1652,28 +1660,27 @@ async function fetchWeatherLP(){
   const WX_EN={0:'Clear Sky',1:'Mostly Clear',2:'Partly Cloudy',3:'Overcast',45:'Foggy',48:'Foggy',51:'Light Drizzle',53:'Drizzle',55:'Heavy Drizzle',61:'Light Rain',63:'Rain',65:'Heavy Rain',71:'Light Snow',73:'Snow',75:'Heavy Snow',80:'Rain Showers',81:'Rain Showers',82:'Heavy Showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
   const WX_TJ={0:'Офтобӣ',1:'Офтобӣ',2:'Абрнок',3:'Абрнок',45:'Туман',48:'Туман',51:'Борони сабук',53:'Борон',55:'Борони сахт',61:'Борони сабук',63:'Борон',65:'Борони сахт',71:'Барфи сабук',73:'Барф',75:'Барфи сахт',80:'Борон',81:'Борон',82:'Борони сахт',95:'Тӯфон',96:'Тӯфон',99:'Тӯфон'};
   const WX_RU={0:'Ясно',1:'Ясно',2:'Облачно',3:'Пасмурно',45:'Туман',48:'Туман',51:'Морось',53:'Морось',55:'Сильная морось',61:'Лёгкий дождь',63:'Дождь',65:'Сильный дождь',71:'Лёгкий снег',73:'Снег',75:'Сильный снег',80:'Ливень',81:'Ливень',82:'Сильный ливень',95:'Гроза',96:'Гроза',99:'Гроза'};
-  const WELCOME_TJ='Хуш омадед';const WELCOME_RU='Добро пожаловать';
   function applyWeather(temp,wc,city){
     const te=document.getElementById('lp-temp');
     const de=document.getElementById('lp-wdesc');
     const gr=document.getElementById('lp-greeting');
     const co=document.getElementById('lp-co');
     if(te)te.textContent=temp+'°C';
-    if(de)de.textContent=(WX_EN[wc]||'—');
-    const wxWord=LANG==='tj'?(WX_TJ[wc]||'Хуш омадед'):(WX_RU[wc]||'Добро пожаловать');
-    const welcome=LANG==='tj'?WELCOME_TJ:WELCOME_RU;
-    if(gr)gr.textContent=wxWord+' · '+welcome;
-    if(city&&co){const cur=co.textContent.split('·')[0].trim();co.textContent=cur+(city?' · '+city.toUpperCase():'');}
+    if(de)de.textContent=LANG==='tj'?(WX_TJ[wc]||'—'):(WX_RU[wc]||'—');
+    if(gr)gr.textContent=LANG==='tj'?'Хуш омадед':'Добро пожаловать';
+    if(co)co.textContent=city?city.toUpperCase():'';
   }
+  window._lastWeather={temp:20,wc:0,city:''};
   async function doFetch(lat,lon,city){
     try{
       const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&forecast_days=1`);
       const d=await r.json();
       const temp=Math.round(d.current_weather?.temperature??20);
       const wc=d.current_weather?.weathercode??0;
+      window._lastWeather={temp,wc,city};
       applyWeather(temp,wc,city);
       applyWeatherTheme(wc);
-    }catch(e){applyWeather(20,0,city);applyWeatherTheme(0);}
+    }catch(e){window._lastWeather={temp:20,wc:0,city};applyWeather(20,0,city);applyWeatherTheme(0);}
   }
   async function getCityName(lat,lon){
     try{
@@ -1747,6 +1754,25 @@ async function logOut(){
   document.getElementById('login-err').style.display='none';
 }
 
+async function fetchNBTRates(){
+  try{
+    const r=await fetch('/api/rates');
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!d.ok||!d.rates?.USD)return;
+    RATES.USD=d.rates.USD.rate;
+    RATES.EUR=d.rates.EUR?.rate||null;
+    RATES.RUB=d.rates.RUB?.rate||null;
+    RATES.updated=d.updated;
+    if(RATES.USD&&Math.abs(RATES.USD-(COMPANY.usd_rate||10.92))>0.001){
+      COMPANY.usd_rate=RATES.USD;
+      if(USER?.role==='accountant'||USER?.role==='admin'){
+        await SB.from('company').update({usd_rate:RATES.USD}).eq('id',1);
+      }
+    }
+  }catch(e){console.warn('NBT rates:',e);}
+}
+
 async function loadBaseData(){
   try{
     const[{data:obs},{data:cats},{data:uns},{data:co}]=await Promise.all([
@@ -1757,6 +1783,7 @@ async function loadBaseData(){
     ]);
     OBJECTS=obs||[];CATEGORIES=cats||[];UNITS=uns||[];
     if(co)COMPANY=co;
+    fetchNBTRates(); // non-blocking, updates RATES and COMPANY.usd_rate in background
   }catch(e){console.error('loadBaseData:',e);}
 }
 
@@ -1792,6 +1819,15 @@ function updateLoginTexts(){
   }
   const tag=document.getElementById('lt-tag');
   if(tag)tag.textContent=LANG==='tj'?'Системаи идоракунии молияи сохтмон':'Система управления строительными финансами';
+  const gr=document.getElementById('lp-greeting');
+  if(gr)gr.textContent=LANG==='tj'?'Хуш омадед':'Добро пожаловать';
+  const de=document.getElementById('lp-wdesc');
+  const WX_TJ={0:'Офтобӣ',1:'Офтобӣ',2:'Абрнок',3:'Абрнок',45:'Туман',48:'Туман',51:'Борони сабук',53:'Борон',55:'Борони сахт',61:'Борони сабук',63:'Борон',65:'Борони сахт',71:'Барфи сабук',73:'Барф',75:'Барфи сахт',80:'Борон',81:'Борон',82:'Борони сахт',95:'Тӯфон',96:'Тӯфон',99:'Тӯфон'};
+  const WX_RU={0:'Ясно',1:'Ясно',2:'Облачно',3:'Пасмурно',45:'Туман',48:'Туман',51:'Морось',53:'Морось',55:'Сильная морось',61:'Лёгкий дождь',63:'Дождь',65:'Сильный дождь',71:'Лёгкий снег',73:'Снег',75:'Сильный снег',80:'Ливень',81:'Ливень',82:'Сильный ливень',95:'Гроза',96:'Гроза',99:'Гроза'};
+  if(de&&window._lastWeather){const wc=window._lastWeather.wc;de.textContent=LANG==='tj'?(WX_TJ[wc]||'—'):(WX_RU[wc]||'—');}
+  const ql=document.getElementById('lp-quote-label');
+  if(ql)ql.textContent=LANG==='tj'?'Ҳикмати рӯз':'Мудрость дня';
+  setDailyQuote();
 }
 function updatePeriodBtns(){
   ['pb-today','pb-month','pb-year','pb-all'].forEach((id,i)=>{
@@ -2216,7 +2252,9 @@ function moUpdTotal(val){
 /* ── FINANCIAL PULSE ── */
 async function renderPulseBar(){
   const bar=document.getElementById('pulse-bar');
-  if(!bar||!window._ops)return;
+  if(!bar)return;
+  bar.innerHTML='';
+  return;
   const t2=today();
   const todayOps=(window._ops||[]).filter(o=>o.date===t2);
   const incT=todayOps.filter(o=>o.type==='income'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
@@ -2301,9 +2339,9 @@ home:async()=>{
   updatePulse();
 
   const ratesArr=[
-    {f:'USD',t2:'TJS',v:rate,c:'linear-gradient(135deg,#39B980,#2A9066)'},
-    {f:'EUR',t2:'TJS',v:(rate*1.08).toFixed(2),c:'linear-gradient(135deg,#3182CE,#2B6CB0)'},
-    {f:'RUB',t2:'TJS',v:(rate/90).toFixed(4),c:'linear-gradient(135deg,#6B46C1,#553C9A)'},
+    {f:'USD',t2:'TJS',v:(RATES.USD||rate).toFixed(4),c:'linear-gradient(135deg,#39B980,#2A9066)'},
+    {f:'EUR',t2:'TJS',v:(RATES.EUR||(rate*1.08)).toFixed(4),c:'linear-gradient(135deg,#3182CE,#2B6CB0)'},
+    {f:'RUB',t2:'TJS',v:(RATES.RUB||(rate/90)).toFixed(4),c:'linear-gradient(135deg,#6B46C1,#553C9A)'},
   ];
 
   setTimeout(()=>{
@@ -3576,7 +3614,7 @@ async function debtReturn(id,type){
       const deductFromCash=!isBarter&&isCreditor&&document.getElementById('dr-cash')?.checked;
       if(deductFromCash){
         const rate=COMPANY.usd_rate||10.92;
-        await SB.from('operations').insert({type:'expense',date:today(),category_name:'Возврат займа',object_name:dbt?.name||'',description:'Возврат займа: '+(dbt?.name||''),amount_tjs:amt,amount_usd:+(amt/rate).toFixed(2),currency:'TJS',usd_rate:rate,user_id:(await SB.auth.getUser()).data.user?.id});
+        await SB.from('operations').insert({type:'expense',date:today(),category_name:'Возврат займа',object_name:dbt?.name||'',description:'Возврат займа: '+(dbt?.name||''),amount:amt,amount_tjs:amt,amount_usd:+(amt/rate).toFixed(2),currency:'TJS',usd_rate:rate,user_id:(await SB.auth.getUser()).data.user?.id});
       }
       closeModal();showToast(t('saved'));renderPage('debts');
     },'Сохранить');
@@ -3610,7 +3648,7 @@ function openNewDebt(){
         const cur=document.getElementById('nd-c').value;
         const rate=COMPANY.usd_rate||10.92;
         const amtTJS=cur==='USD'?a*rate:a;
-        await SB.from('operations').insert({type:'income',date:today(),category_name:'Займ получен',object_name:n,description:'Займ от '+n,amount_tjs:amtTJS,amount_usd:cur==='USD'?a:+(a/rate).toFixed(2),currency:cur,usd_rate:rate,user_id:(await SB.auth.getUser()).data.user?.id});
+        await SB.from('operations').insert({type:'income',date:today(),category_name:'Займ получен',object_name:n,description:'Займ от '+n,amount:amtTJS,amount_tjs:amtTJS,amount_usd:cur==='USD'?a:+(a/rate).toFixed(2),currency:cur,usd_rate:rate,user_id:(await SB.auth.getUser()).data.user?.id});
       }
       closeModal();showToast(t('saved'));renderPage('debts');
     }
@@ -3729,8 +3767,160 @@ function updateLoginClock(){
     el2.textContent=days[now.getDay()]+', '+now.getDate()+' '+months[now.getMonth()];
   }
 }
+const QUOTES_RU=[
+  'Великие дела начинаются с малых шагов.',
+  'Планирование — половина успеха любого строительства.',
+  'Качество помнят долго после того, как забывают цену.',
+  'Деньги приходят к тем, кто умеет их считать.',
+  'Доверие строится годами, разрушается — за минуту.',
+  'Лучший контроль расходов — это их запись.',
+  'Хороший бюджет — это карта к вашей цели.',
+  'Малые утечки топят большие корабли.',
+  'Честный учёт — основа долгосрочного бизнеса.',
+  'Тот, кто не планирует, планирует провал.',
+  'Порядок в финансах — порядок в голове.',
+  'Каждый тариф потраченный без учёта — шаг назад.',
+  'Строить — значит думать наперёд.',
+  'Успех — это сумма правильных решений каждый день.',
+  'Экономия без потери качества — высшее мастерство.',
+  'Отчёт вовремя стоит дороже запоздалых слов.',
+  'Нет ничего дороже потерянного времени и денег.',
+  'Порядок — это не роскошь, а основа.',
+  'Учитывай каждый сомони — и сомони учтут тебя.',
+  'Дисциплина в финансах рождает свободу в жизни.',
+  'Прозрачность в деньгах укрепляет команду.',
+  'Контроль — это не недоверие, а профессионализм.',
+  'Точность расчётов — уважение к партнёрам.',
+  'Маленькие расходы складываются в большие потери.',
+  'Умный строитель считает раньше, чем строит.',
+  'Без учёта нет прибыли — только иллюзия.',
+  'Договор — защита обеих сторон.',
+  'Инвестиции в порядок всегда окупаются.',
+  'Тот, кто экономит с умом, богатеет без спешки.',
+  'Финансовая дисциплина — фундамент любого проекта.',
+  'Бережливость — это не скупость, а мудрость.',
+  'Кто ведёт учёт — тот управляет судьбой.',
+  'Риск управляем, если он посчитан.',
+  'Сила команды — в прозрачности целей.',
+  'Доход без учёта — иллюзия богатства.',
+  'Каждый объект — это история цифр и решений.',
+  'Правильная смета сохраняет репутацию.',
+  'Сначала считай, потом строй.',
+  'Финансы любят тишину и точность.',
+  'Хорошая отчётность — это уважение к себе.',
+  'Не откладывай запись на потом — потом она станет ошибкой.',
+  'Дорогу осилит идущий — и считающий.',
+  'Порядок в цифрах — порядок в делах.',
+  'Деньги — инструмент, а не цель.',
+  'Каждая копейка на счету — это уверенность в завтрашнем дне.',
+  'Лучше горькая правда в отчёте, чем сладкий самообман.',
+  'Скорость без точности — это дорогостоящая спешка.',
+  'Успех строится не из удачи, а из привычек.',
+  'Хороший руководитель всегда знает, куда идут деньги.',
+  'Даже великий дворец начинается с одного кирпича.',
+  'Бюджет — это обещание самому себе.',
+  'Финансовая грамотность — лучшее вложение.',
+  'Расчёт защищает лучше любого адвоката.',
+  'Каждая стройка — это урок управления.',
+  'Автоматизация освобождает время для главного.',
+  'Цифры не лгут — лгут те, кто их прячет.',
+  'Знающий свои расходы никогда не потеряется.',
+  'Учёт сегодня — спокойствие завтра.',
+  'Строитель, считающий материалы, строит быстрее.',
+  'Профессионализм начинается с точности.',
+  'Дисциплина — мать результата.',
+  'В деталях — сила управления.',
+  'Планируй доходы, контролируй расходы.',
+  'Хороший проект — это хорошо посчитанный проект.',
+  'Где порядок, там и прибыль.',
+  'Будущее принадлежит организованным.',
+  'Честный баланс — честный бизнес.',
+  'Знание своих долгов — первый шаг к свободе.',
+];
+const QUOTES_TJ=[
+  'Корҳои бузург аз қадамҳои хурд оғоз мешаванд.',
+  'Нақшарезӣ — нисфи муваффақияти ҳар сохтмон аст.',
+  'Сифатро дер аз баъди нарх фаромӯш мекунанд.',
+  'Пул пеши касе меояд, ки онро ҳисоб карда метавонад.',
+  'Эътимод солҳо сохта мешавад, дар як дақиқа вайрон мешавад.',
+  'Беҳтарин назорати хароҷот — сабти онҳост.',
+  'Буҷаи хуб — харита ба сӯи ҳадафи шумост.',
+  'Нашти хурд киштиҳои бузургро ғарқ мекунад.',
+  'Ҳисоби дуруст — асоси тиҷорати дарозмуддат.',
+  'Он ки нақша намекашад, барои шикаст нақша мекашад.',
+  'Тартиб дар молия — тартиб дар зеҳн.',
+  'Ҳар сомоние, ки бе ҳисоб харҷ мешавад — қадамест ба қафо.',
+  'Сохтан — яъне пеш аз вақт фикр кардан.',
+  'Муваффақият — маҷмӯи қарорҳои дурусти ҳаррӯза.',
+  'Сарфаҷӯӣ бе аз даст додани сифат — маҳорати олист.',
+  'Ҳисобот ба вақт аз суханҳои дер арзандатар аст.',
+  'Чизе аз вақт ва пули гумшуда гаронтар нест.',
+  'Тартиб — ин на тааллуқ, балки асос аст.',
+  'Ҳар сомониро ҳисоб кун — ва сомониҳо туро ҳисоб мекунанд.',
+  'Интизом дар молия дар ҳаёт озодӣ меорад.',
+  'Шаффофият дар пул командаро мустаҳкам мекунад.',
+  'Назорат — ин бебоварӣ нест, балки касбӣ будан аст.',
+  'Дақиқии ҳисоб — эҳтиром ба шарикон.',
+  'Харҷҳои хурд ба зиёнҳои бузург табдил меёбанд.',
+  'Устои зирак пеш аз сохтан ҳисоб мекунад.',
+  'Бе ҳисоб фоида нест — танҳо хаёл.',
+  'Шартнома — ҳимояи ҳар ду тараф.',
+  'Сармоягузорӣ дар тартиб ҳамеша ҷуброн мешавад.',
+  'Он ки бо ақл сарфа мекунад, бе шитоб сарватманд мешавад.',
+  'Интизоми молиявӣ — пойдевори ҳар лоиҳа.',
+  'Сарфакорӣ — хасисӣ нест, ҳикмат аст.',
+  'Он ки ҳисоб мебарад — тақдирашро идора мекунад.',
+  'Хатар идорашаванда аст, агар ҳисоб шуда бошад.',
+  'Қувваи дастаи корӣ — дар равшании ҳадафҳо.',
+  'Даромад бе ҳисоб — хаёли сарват аст.',
+  'Ҳар объект — таърихи рақамҳо ва қарорҳост.',
+  'Сметаи дуруст обрӯро нигоҳ медорад.',
+  'Аввал ҳисоб кун, баъд бисоз.',
+  'Молия ором ва дақиқиро дӯст медорад.',
+  'Ҳисоботи хуб — ин эҳтиром ба худатон аст.',
+  'Сабтро ба баъд нагузор — баъд хато мешавад.',
+  'Роҳро касе тай мекунад, ки меравад — ва мешуморад.',
+  'Тартиб дар рақамҳо — тартиб дар кор.',
+  'Пул — асбоб аст, на мақсад.',
+  'Ҳар дирам дар ҳисоб — боварии фардост.',
+  'Ҳақиқати талхи ҳисобот беҳтар аз худфиребии ширин аст.',
+  'Суръат бе дақиқӣ — шитоби гарон аст.',
+  'Муваффақият аз тасодуф не, аз одат сохта мешавад.',
+  'Раҳбари хуб ҳамеша медонад, ки пул ба куҷо меравад.',
+  'Кохи бузург ҳам аз як хишт оғоз мешавад.',
+  'Буҷа — ваъдаи одам ба худаш.',
+  'Саводнокии молиявӣ — беҳтарин сармоягузорӣ.',
+  'Ҳисоб беҳтар аз ҳар адвокат ҳимоя мекунад.',
+  'Ҳар сохтмон — дарси идоракунӣ аст.',
+  'Автоматикунонӣ барои муҳимтарин кор вақт озод мекунад.',
+  'Рақамҳо дурӯғ намегӯянд — он касоне дурӯғ мегӯянд, ки онҳоро пинҳон мекунанд.',
+  'Он ки харҷҳояшро медонад, ҳеҷ гоҳ гум намешавад.',
+  'Ҳисоби имрӯз — оромии фардо.',
+  'Усто, ки маводро ҳисоб мекунад, зудтар месозад.',
+  'Касбӣ будан аз дақиқӣ оғоз мешавад.',
+  'Интизом — модари натиҷа.',
+  'Дар тафсилот — қувваи идоракунӣ.',
+  'Даромадро нақша кун, харҷро назорат кун.',
+  'Лоиҳаи хуб — лоиҳаи хуб ҳисобшуда.',
+  'Дар куҷо тартиб бошад, он ҷо фоида ҳаст.',
+  'Оянда ба одамони мунтазам тааллуқ дорад.',
+  'Тавозуни ростқавлона — тиҷорати ростқавлона.',
+  'Донистани қарзҳоят — аввалин қадам ба озодӣ.',
+];
+function setDailyQuote(){
+  const el=document.getElementById('lp-quote');
+  if(!el)return;
+  const d=new Date();
+  const idx=(d.getFullYear()*366+Math.floor((d-new Date(d.getFullYear(),0,0))/(86400000)))%QUOTES_RU.length;
+  el.textContent=LANG==='tj'?QUOTES_TJ[idx]:QUOTES_RU[idx];
+}
+
 updateLoginClock();
 setInterval(updateLoginClock,30000);
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
 
 (async()=>{
   /* ── SUPABASE: ключи зашиты напрямую ── */
