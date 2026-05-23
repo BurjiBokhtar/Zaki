@@ -361,6 +361,26 @@ html{height:100dvh;}
 .fi::placeholder{color:var(--t4);}
 .fi-lg{font-size:16px;font-weight:700;padding:10px 13px;}
 .fi-sel{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7' fill='none'%3E%3Cpath d='M1 1l4.5 5L10 1' stroke='%236B7A99' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px;cursor:pointer;}
+/* SEARCH SELECT (bottom-sheet) */
+.ss-bg{position:fixed;inset:0;z-index:600;background:rgba(15,25,35,.55);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;backdrop-filter:blur(3px);animation:fadeIn .18s ease;}
+.ss-sheet{background:var(--w);width:100%;max-width:520px;max-height:72vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:ssUp .22s cubic-bezier(.25,.8,.25,1);}
+@keyframes ssUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ss-handle{width:38px;height:4px;background:var(--bd2);border-radius:2px;margin:10px auto 0;}
+.ss-head{padding:12px 16px 10px;border-bottom:1px solid var(--bd);}
+.ss-title{font-size:14px;font-weight:700;color:var(--t);margin-bottom:8px;}
+.ss-inp{width:100%;box-sizing:border-box;padding:9px 12px 9px 34px;border:1.5px solid var(--bd);border-radius:var(--r);font-size:14px;background:var(--bg);color:var(--t);outline:none;font-family:var(--ff);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 15 15' fill='none'%3E%3Ccircle cx='6.5' cy='6.5' r='4' stroke='%236B7A99' stroke-width='1.5'/%3E%3Cpath d='M10 10l3 3' stroke='%236B7A99' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center;}
+.ss-inp:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(57,185,128,.1);}
+.ss-list{overflow-y:auto;flex:1;padding:4px 0 8px;-webkit-overflow-scrolling:touch;}
+.ss-item{padding:11px 16px;font-size:14px;color:var(--t);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .1s;}
+.ss-item:active{background:var(--bg2);}
+.ss-item.ss-on{color:var(--a);font-weight:600;}
+.ss-item.ss-on::after{content:'✓';margin-left:auto;font-size:13px;color:var(--a);}
+.ss-empty{padding:24px 16px;font-size:13px;color:var(--t4);text-align:center;}
+.ss-custom{border-top:1px solid var(--bd);padding:10px 14px;}
+.ss-custom-btn{width:100%;padding:10px;border:1.5px dashed var(--a);border-radius:var(--r);background:var(--ap);color:var(--adk);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--ff);}
+/* SS trigger button (replaces select/datalist) */
+.ss-trigger{cursor:pointer;text-align:left;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7' fill='none'%3E%3Cpath d='M1 1l4.5 5L10 1' stroke='%236B7A99' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px;user-select:none;}
+.ss-trigger.ss-empty-val{color:var(--t4);}
 .chips{display:flex;gap:6px;flex-wrap:wrap;}
 .chip{padding:6px 13px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid var(--bd);color:var(--t3);background:var(--w);transition:all .18s;font-family:var(--ff);}
 .chip:hover{border-color:var(--a);}
@@ -2051,22 +2071,19 @@ function openAddOpModal(type){
 
   openModal(typeLabel,`
     <div class="fg f2">
-      <!-- Объект — выпадающий список -->
+      <!-- Объект — searchable -->
       <div class="fld s2">
         <div class="fld-l">${t('obj_l')}</div>
-        <select class="fi fi-sel" id="mo-obj" onchange="SEL_OBJ=this.value">
-          <option value="">${t('no_obj')}</option>
-          ${OBJECTS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
-        </select>
+        <input type="hidden" id="mo-obj" value="">
+        <div class="fi ss-trigger ss-empty-val" id="mo-obj-tr">${t('no_obj')}</div>
       </div>
 
       ${type!=='advance'?`
-      <!-- Категория — выпадающий список -->
+      <!-- Категория — searchable -->
       <div class="fld s2">
         <div class="fld-l">${t('cat_l')}</div>
-        <select class="fi fi-sel" id="mo-cat" onchange="SEL_CAT=this.value">
-          ${cats.map((c,i)=>`<option value="${c.name}" ${i===0?'selected':''}>${c.name}</option>`).join('')}
-        </select>
+        <input type="hidden" id="mo-cat" value="${cats[0]?.name||''}">
+        <div class="fi ss-trigger" id="mo-cat-tr">${cats[0]?.name||'—'}</div>
       </div>`:''}
 
       <div class="fld">
@@ -2082,13 +2099,11 @@ function openAddOpModal(type){
       </div>
 
       ${type==='advance'?`
-      <!-- Аванс: имя сотрудника — свободный ввод + список -->
+      <!-- Аванс: имя сотрудника — searchable -->
       <div class="fld s2">
         <div class="fld-l">${t('adv_to')}</div>
-        <input class="fi" id="mo-worker" list="workers-list"
-          placeholder="${t('adv_worker_ph')}"
-          style="font-weight:500;">
-        <datalist id="workers-list" id="workers-datalist"></datalist>
+        <input type="hidden" id="mo-worker" value="">
+        <div class="fi ss-trigger ss-empty-val" id="mo-worker-tr">${t('adv_worker_ph')}</div>
       </div>
       <div class="fld s2">
         <div class="fld-l">${t('adv_task')}</div>
@@ -2218,11 +2233,44 @@ function openAddOpModal(type){
     typeLabel+' →'
   );
 
-  // Fill datalist with existing workers from profiles
-  SB.from('profiles').select('name').in('role',['supplier','accountant','admin']).then(({data})=>{
-    const dl=document.getElementById('workers-datalist');
-    if(dl&&data) dl.innerHTML=data.map(u=>`<option value="${u.name}">`).join('');
-  });
+  // Wire up searchable selects
+  setTimeout(()=>{
+    // Object picker
+    const objTr=document.getElementById('mo-obj-tr');
+    const objHid=document.getElementById('mo-obj');
+    if(objTr&&objHid){
+      const objItems=[{value:'',label:t('no_obj')},...OBJECTS.map(o=>({value:o.name,label:o.name}))];
+      objTr.addEventListener('click',()=>openSS(t('obj_l'),objItems,objHid.value,(val,lbl)=>{
+        objHid.value=val; SEL_OBJ=val;
+        objTr.textContent=lbl||t('no_obj');
+        objTr.classList.toggle('ss-empty-val',!val);
+      }));
+    }
+    // Category picker
+    const catTr=document.getElementById('mo-cat-tr');
+    const catHid=document.getElementById('mo-cat');
+    if(catTr&&catHid){
+      const cats2=type==='income'?CATEGORIES.filter(c=>c.type==='income'):CATEGORIES.filter(c=>c.type==='expense');
+      catTr.addEventListener('click',()=>openSS(t('cat_l'),cats2.map(c=>({value:c.name,label:c.name})),catHid.value,(val,lbl)=>{
+        catHid.value=val; SEL_CAT=val;
+        catTr.textContent=lbl||val;
+        catTr.classList.remove('ss-empty-val');
+      }));
+    }
+    // Worker picker (advance)
+    const wTr=document.getElementById('mo-worker-tr');
+    const wHid=document.getElementById('mo-worker');
+    if(wTr&&wHid){
+      SB.from('profiles').select('name,role').in('role',['supplier','accountant','admin','manager']).then(({data})=>{
+        const wItems=(data||[]).map(u=>({value:u.name,label:u.name+' ('+u.role+')'}));
+        wTr.addEventListener('click',()=>openSS(t('adv_to'),wItems,wHid.value,(val)=>{
+          wHid.value=val;
+          wTr.textContent=val;
+          wTr.classList.remove('ss-empty-val');
+        },true));
+      });
+    }
+  },80);
 }
 
 
@@ -3239,17 +3287,13 @@ function openNewAdvanceFull(){
       <div class="fg f2">
         <div class="fld s2">
           <div class="fld-l">Получатель (снабженец или компания)</div>
-          <input class="fi" id="na-worker" list="na-workers-list"
-            placeholder="Выберите из списка или введите имя..."
-            style="font-weight:500;">
-          <datalist id="na-workers-list">${workerOpts}</datalist>
+          <input type="hidden" id="na-worker" value="">
+          <div class="fi ss-trigger ss-empty-val" id="na-worker-tr">Выберите или введите имя...</div>
         </div>
         <div class="fld s2">
           <div class="fld-l">Объект</div>
-          <select class="fi fi-sel" id="na-obj">
-            <option value="">— Без объекта —</option>
-            ${OBJECTS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
-          </select>
+          <input type="hidden" id="na-obj" value="">
+          <div class="fi ss-trigger ss-empty-val" id="na-obj-tr">— Без объекта —</div>
         </div>
         <div class="fld s2">
           <div class="fld-l">Задача / Назначение аванса</div>
@@ -3322,6 +3366,25 @@ function openNewAdvanceFull(){
       },
       'Выдать аванс →'
     );
+    // Wire searchable selects for advance form
+    setTimeout(()=>{
+      const naWTr=document.getElementById('na-worker-tr');
+      const naWHid=document.getElementById('na-worker');
+      if(naWTr&&naWHid){
+        const wItems=(profiles||[]).map(u=>({value:u.name,label:u.name+' ('+u.role+')'}));
+        naWTr.addEventListener('click',()=>openSS('Получатель',wItems,naWHid.value,(val)=>{
+          naWHid.value=val;naWTr.textContent=val;naWTr.classList.remove('ss-empty-val');
+        },true));
+      }
+      const naOTr=document.getElementById('na-obj-tr');
+      const naOHid=document.getElementById('na-obj');
+      if(naOTr&&naOHid){
+        const objItems=[{value:'',label:'— Без объекта —'},...OBJECTS.map(o=>({value:o.name,label:o.name}))];
+        naOTr.addEventListener('click',()=>openSS(t('obj_l'),objItems,naOHid.value,(val,lbl)=>{
+          naOHid.value=val;naOTr.textContent=lbl||'— Без объекта —';naOTr.classList.toggle('ss-empty-val',!val);
+        }));
+      }
+    },80);
   });
 }
 
@@ -3356,12 +3419,8 @@ async function openNewAdv(){
     <div class="fg f2">
       <div class="fld s2">
         <div class="fld-l">Кому выдаётся (выберите или введите)</div>
-        <input class="fi" id="na-w" list="na-workers-list"
-          placeholder="Выберите из списка или введите имя..."
-          style="font-size:14px;font-weight:500;">
-        <datalist id="na-workers-list">
-          ${allNames.map(n=>`<option value="${n}">`).join('')}
-        </datalist>
+        <input type="hidden" id="na-w" value="">
+        <div class="fi ss-trigger ss-empty-val" id="na-w-tr">Выберите из списка или введите имя...</div>
         <div style="font-size:10px;color:var(--t4);margin-top:3px;">
           Снабженцы из системы: ${(suppliers||[]).map(u=>u.name).join(', ')||'—'}
         </div>
@@ -3372,10 +3431,8 @@ async function openNewAdv(){
       </div>
       <div class="fld">
         <div class="fld-l">Объект</div>
-        <select class="fi fi-sel" id="na-o">
-          <option value="">— Без объекта —</option>
-          ${OBJECTS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
-        </select>
+        <input type="hidden" id="na-o" value="">
+        <div class="fi ss-trigger ss-empty-val" id="na-o-tr">— Без объекта —</div>
       </div>
       <div class="fld">
         <div class="fld-l">Срок сдачи</div>
@@ -3427,6 +3484,23 @@ async function openNewAdv(){
       renderPage('snabs');
     },'Выдать аванс →'
   );
+  // Wire searchable selects
+  setTimeout(()=>{
+    const wTr=document.getElementById('na-w-tr'),wHid=document.getElementById('na-w');
+    if(wTr&&wHid){
+      const wItems=allNames.map(n=>({value:n,label:n}));
+      wTr.addEventListener('click',()=>openSS('Кому выдаётся',wItems,wHid.value,(val)=>{
+        wHid.value=val;wTr.textContent=val;wTr.classList.remove('ss-empty-val');
+      },true));
+    }
+    const oTr=document.getElementById('na-o-tr'),oHid=document.getElementById('na-o');
+    if(oTr&&oHid){
+      const objItems=[{value:'',label:'— Без объекта —'},...OBJECTS.map(o=>({value:o.name,label:o.name}))];
+      oTr.addEventListener('click',()=>openSS(t('obj_l'),objItems,oHid.value,(val,lbl)=>{
+        oHid.value=val;oTr.textContent=lbl||'— Без объекта —';oTr.classList.toggle('ss-empty-val',!val);
+      }));
+    }
+  },80);
   // Live total update
   setTimeout(()=>{
     const ai=document.getElementById('na-a');
@@ -3492,16 +3566,13 @@ async function advAddExpense(workerName, objName){
     <div class="fg f2">
       <div class="fld s2">
         <div class="fld-l">${t('obj_l')}</div>
-        <select class="fi fi-sel" id="ae-obj" onchange="SEL_OBJ=this.value">
-          <option value="${objName||''}">${objName||t('no_obj')}</option>
-          ${OBJECTS.filter(o=>o.name!==objName).map(o=>`<option value="${o.name}">${o.name}</option>`).join('')}
-        </select>
+        <input type="hidden" id="ae-obj" value="${objName||''}">
+        <div class="fi ss-trigger${objName?'':' ss-empty-val'}" id="ae-obj-tr">${objName||t('no_obj')}</div>
       </div>
       <div class="fld s2">
         <div class="fld-l">${t('cat_l')}</div>
-        <select class="fi fi-sel" id="ae-cat" onchange="SEL_CAT=this.value">
-          ${expCats.map((c,i)=>`<option value="${c.name}" ${i===0?'selected':''}>${c.name}</option>`).join('')}
-        </select>
+        <input type="hidden" id="ae-cat" value="${expCats[0]?.name||''}">
+        <div class="fi ss-trigger" id="ae-cat-tr">${expCats[0]?.name||'—'}</div>
       </div>
       <div class="fld"><div class="fld-l">${t('date')}</div><input class="fi" type="date" id="ae-date" value="${today()}"></div>
       <div class="fld"><div class="fld-l">${t('currency')}</div>
@@ -3539,6 +3610,22 @@ async function advAddExpense(workerName, objName){
       renderPage('snabs');
     },t('sv_exp')
   );
+  setTimeout(()=>{
+    const aoTr=document.getElementById('ae-obj-tr'),aoHid=document.getElementById('ae-obj');
+    if(aoTr&&aoHid){
+      const objItems=[{value:'',label:t('no_obj')},...OBJECTS.map(o=>({value:o.name,label:o.name}))];
+      aoTr.addEventListener('click',()=>openSS(t('obj_l'),objItems,aoHid.value,(val,lbl)=>{
+        aoHid.value=val;SEL_OBJ=val;aoTr.textContent=lbl||t('no_obj');aoTr.classList.toggle('ss-empty-val',!val);
+      }));
+    }
+    const acTr=document.getElementById('ae-cat-tr'),acHid=document.getElementById('ae-cat');
+    if(acTr&&acHid){
+      const expCats2=CATEGORIES.filter(c=>c.type==='expense');
+      acTr.addEventListener('click',()=>openSS(t('cat_l'),expCats2.map(c=>({value:c.name,label:c.name})),acHid.value,(val,lbl)=>{
+        acHid.value=val;SEL_CAT=val;acTr.textContent=lbl||val;acTr.classList.remove('ss-empty-val');
+      }));
+    }
+  },80);
 }
 
 
@@ -4027,6 +4114,74 @@ function mSetCur(c){if(typeof moSetCur==='function')moSetCur(c);}
 function mCalc(){if(typeof moCalc==='function')moCalc();}
 function mCalcT(){if(typeof moCalcT==='function')moCalcT();}
 function mCalcD(){if(typeof moCalcD==='function')moCalcD();}
+
+/* ══ SEARCH SELECT (bottom-sheet) ══
+   openSS(title, items, currentVal, onSelect, allowCustom)
+   items: [{value, label}] or string[]
+   onSelect(value, label) called on pick
+*/
+function openSS(title, items, currentVal, onSelect, allowCustom=false){
+  const norm=items.map(i=>typeof i==='string'?{value:i,label:i}:i);
+  const bg=document.createElement('div');
+  bg.className='ss-bg';
+  bg.innerHTML=`
+    <div class="ss-sheet" id="ss-sheet">
+      <div class="ss-handle"></div>
+      <div class="ss-head">
+        <div class="ss-title">${title}</div>
+        <input class="ss-inp" id="ss-search" placeholder="Поиск..." autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="ss-list" id="ss-list"></div>
+      ${allowCustom?`<div class="ss-custom"><button class="ss-custom-btn" id="ss-custom-btn">+ Ввести вручную</button></div>`:''}
+    </div>`;
+  document.body.appendChild(bg);
+  const listEl=bg.querySelector('#ss-list');
+  const searchEl=bg.querySelector('#ss-search');
+
+  function render(q){
+    const f=q?norm.filter(i=>i.label.toLowerCase().includes(q.toLowerCase())):norm;
+    if(!f.length){listEl.innerHTML=`<div class="ss-empty">Ничего не найдено</div>`;return;}
+    listEl.innerHTML=f.map(i=>`
+      <div class="ss-item${i.value===currentVal?' ss-on':''}" data-val="${i.value.replace(/"/g,'&quot;')}" data-lbl="${i.label.replace(/"/g,'&quot;')}">
+        ${i.label}
+      </div>`).join('');
+    listEl.querySelectorAll('.ss-item').forEach(el=>{
+      el.addEventListener('click',()=>{
+        currentVal=el.dataset.val;
+        onSelect(el.dataset.val, el.dataset.lbl);
+        close();
+      });
+    });
+  }
+  function close(){bg.style.animation='none';bg.style.opacity='0';bg.style.transition='opacity .18s';setTimeout(()=>bg.remove(),180);}
+  render('');
+  searchEl.addEventListener('input',()=>render(searchEl.value));
+  setTimeout(()=>searchEl.focus(),220);
+  bg.addEventListener('click',e=>{if(e.target===bg)close();});
+  // custom entry
+  const customBtn=bg.querySelector('#ss-custom-btn');
+  if(customBtn){
+    customBtn.addEventListener('click',()=>{
+      const v=(searchEl.value||'').trim();
+      if(v){onSelect(v,v);close();}
+      else searchEl.focus();
+    });
+  }
+}
+
+/* helper: wire up an .ss-trigger div to openSS and keep a hidden value in sync */
+function ssBind(triggerId, hiddenId, title, getItems, allowCustom){
+  const tr=document.getElementById(triggerId);
+  const hid=document.getElementById(hiddenId);
+  if(!tr||!hid)return;
+  tr.addEventListener('click',()=>{
+    openSS(title, getItems(), hid.value, (val,lbl)=>{
+      hid.value=val;
+      tr.textContent=lbl||val||'';
+      tr.classList.toggle('ss-empty-val',!val);
+    }, allowCustom);
+  });
+}
 </script>
 </body>
 </html>
