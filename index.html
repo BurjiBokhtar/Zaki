@@ -1142,7 +1142,7 @@ function buildNav(){
   document.getElementById('sb-urole').textContent=names[role]||'—';
   const bd=document.getElementById('sb-badge');bd.textContent=names[role]||role||'—';bd.style.background=bgs[role]||'var(--al)';bd.style.color=clrs[role]||'var(--adk)';
   document.getElementById('sb-logout').textContent=t('logout');
-  document.getElementById('tb-online').textContent=t('online');
+  const _tbo=document.getElementById('tb-online');if(_tbo)_tbo.textContent=t('online');
   document.getElementById('sb-sub').textContent=LANG==='tj'?'Системаи молия':'Строительные финансы';
   // Period bar
   const showP=['home','ops','stats'].includes(CUR_PAGE);
@@ -1320,14 +1320,14 @@ function setLang(l){
   // Login buttons (dark bg version)
   const llru=document.getElementById('ll-ru'),lltj=document.getElementById('ll-tj');
   if(llru){
-    llru.style.background=l==='ru'?'#39B980':'rgba(255,255,255,.1)';
-    llru.style.color=l==='ru'?'#fff':'rgba(255,255,255,.6)';
-    llru.style.borderColor=l==='ru'?'#39B980':'rgba(255,255,255,.2)';
+    llru.style.background=l==='ru'?'#39B980':'#F5F7FA';
+    llru.style.color=l==='ru'?'#fff':'#6B7A99';
+    llru.style.borderColor=l==='ru'?'#39B980':'#E4E9F0';
   }
   if(lltj){
-    lltj.style.background=l==='tj'?'#39B980':'rgba(255,255,255,.1)';
-    lltj.style.color=l==='tj'?'#fff':'rgba(255,255,255,.6)';
-    lltj.style.borderColor=l==='tj'?'#39B980':'rgba(255,255,255,.2)';
+    lltj.style.background=l==='tj'?'#39B980':'#F5F7FA';
+    lltj.style.color=l==='tj'?'#fff':'#6B7A99';
+    lltj.style.borderColor=l==='tj'?'#39B980':'#E4E9F0';
   }
   updateLoginTexts();updatePeriodBtns();
   if(USER){buildNav();renderPage(CUR_PAGE);}
@@ -1747,8 +1747,8 @@ function moCalc(){
 function moCalcT(){moUpdTotal(parseFloat(document.getElementById('mo-total')?.value)||0);}
 function moCalcD(){moUpdTotal(parseFloat(document.getElementById('mo-amount')?.value)||0);}
 function moUpdTotal(val){
-  const tv=document.getElementById('mo-total-show');
-  const th=document.getElementById('mo-total-hint');
+  const tv=document.getElementById('mo-tv');
+  const th=document.getElementById('mo-th');
   if(!tv)return;
   let a=val;
   if(a===undefined){const tot=document.getElementById('mo-total'),am=document.getElementById('mo-amount');a=parseFloat((tot||am)?.value)||0;}
@@ -2679,6 +2679,51 @@ tasks:async()=>{
     </div>`;
   }).join('')||`<div class="empty"><div class="empty-icon">✅</div>${t('no_data')}</div>`}`;
 },
+
+masters:async()=>{
+  const{data:masters}=await SB.from('masters').select('*,master_works(*)').order('name');
+  const rate=COMPANY.usd_rate||10.92;
+  if(!masters?.length) return `
+    ${canWrite()?`<button class="btn btn-p btn-sm mb16" onclick="openNewMaster()">+ ${t('new_m')}</button>`:''}
+    <div class="empty"><div class="empty-icon">👷</div>${t('no_data')}</div>`;
+  return `
+  ${canWrite()?`<button class="btn btn-p btn-sm mb16" onclick="openNewMaster()">+ ${t('new_m')}</button>`:''}
+  ${masters.map((m,i)=>{
+    const worked=m.worked_amount||0;
+    const rem=m.advance_amount-worked;
+    const pct=m.advance_amount>0?Math.min(worked/m.advance_amount*100,100):0;
+    const stMap={'active':'by','partial':'bo','done':'bg'};
+    const stLab={'active':t('s_act'),'partial':t('s_par'),'done':t('s_done'),'late':t('s_late')};
+    return `<div class="mc" style="animation-delay:${i*.06}s;">
+      <div class="mc-hd">
+        <div class="mc-ava" style="background:var(--al);color:var(--adk);">${(m.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="mc-name">${m.name}</div>
+          <div class="mc-phone">${m.phone||'—'}</div>
+          <div class="mc-obj">${m.object_name||'—'} · ${m.specialty||'—'}</div>
+        </div>
+        <span class="badge ${stMap[m.status]||'bgr'}">${stLab[m.status]||m.status||'—'}</span>
+      </div>
+      <div class="mc-stats">
+        <div class="ms"><div class="ms-l">${t('got')}</div><div class="ms-v" style="color:var(--ad);">${fmtN(m.advance_amount)}</div></div>
+        <div class="ms"><div class="ms-l">${t('worked')}</div><div class="ms-v" style="color:var(--blue);">${fmtN(worked)}</div></div>
+        <div class="ms"><div class="ms-l">${t('left')}</div><div class="ms-v" style="color:${rem<0?'var(--red)':'var(--adk)'};">${fmtN(rem)}</div></div>
+      </div>
+      <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${pct>=100?'var(--a)':pct>80?'var(--yel)':'var(--blue)'};"></div></div>
+      <div style="font-size:11px;color:var(--t4);margin-bottom:${canWrite()?'9px':'0'};">Срок: ${m.due_date||'—'} · $${fmtN(m.advance_amount/rate)}</div>
+      ${canWrite()?`<div class="a-btns">
+        <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="addMasterWork(${m.id})">+ ${t('add_w')}</button>
+        <button class="a-btn" style="background:var(--bluel);border-color:var(--blueb);color:var(--blue);" onclick="masterCard(${m.id})">${t('m_card')}</button>
+        <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="delMaster(${m.id})">${t('delete')}</button>
+      </div>`:''}
+      ${(m.master_works||[]).length?`<div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:6px;">
+        <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;margin-bottom:5px;">История работ</div>
+        ${(m.master_works||[]).slice(0,3).map(w=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--bg2);"><span style="color:var(--t2);">${w.description||'—'}</span><span style="color:var(--blue);font-weight:700;">+${fmtN(w.amount)} TJS · ${w.date}</span></div>`).join('')}
+        ${(m.master_works||[]).length>3?`<div style="font-size:10px;color:var(--t4);text-align:center;padding-top:3px;">+ ещё ${(m.master_works||[]).length-3}</div>`:''}
+      </div>`:''}
+    </div>`;
+  }).join('')}`;
+},
 };
 
 /* ══════════════════════════════════════════════
@@ -3209,7 +3254,9 @@ setInterval(updateLoginClock,30000);
   }
 
   /* ── Показать страницу входа ── */
-  document.getElementById('login-page').style.display='flex';updateLoginAmbience();
+  document.getElementById('login-page').style.display='flex';
+  setLang(LANG);
+  updateLoginAmbience();
 })();
 
 function showAdminSetup(){
@@ -3245,6 +3292,14 @@ function saveSetup(){
   localStorage.setItem('sb_key',key);
   location.reload();
 }
+
+/* ── STUB FUNCTIONS (referenced but not defined elsewhere) ── */
+function animateAllCounters(){}
+async function updatePulse(){try{await renderPulseBar();}catch(e){}}
+function mSetCur(c){if(typeof moSetCur==='function')moSetCur(c);}
+function mCalc(){if(typeof moCalc==='function')moCalc();}
+function mCalcT(){if(typeof moCalcT==='function')moCalcT();}
+function mCalcD(){if(typeof moCalcD==='function')moCalcD();}
 </script>
 </body>
 </html>
