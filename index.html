@@ -706,11 +706,8 @@ html{height:100dvh;}
   <div class="sidebar" id="sidebar">
     <div class="sb-hd">
       <div class="sb-logo">
-        <div class="sb-ico" style="background:transparent;border-radius:8px;overflow:hidden;">
-          <img src="logo.svg" style="width:36px;height:36px;object-fit:contain;display:block;" onerror="this.src='logo.png'" alt="ZAKI">
-        </div>
-        <div>
-          <div class="sb-brand">ZAKI<span>.</span></div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <img src="logo-banner.svg" style="height:38px;width:auto;max-width:190px;object-fit:contain;display:block;" onerror="this.src='logo.png'" alt="ZAKI ERP">
           <div class="sb-sub" id="sb-sub">Строительные финансы</div>
         </div>
       </div>
@@ -922,6 +919,7 @@ const T={
     cash_pay:'Оплачено из кассы',cash_pay_sub:'Автоматически списать расход из кассы',
     cash_give:'Выдано из кассы',cash_give_sub:'Автоматически списать выданную сумму из кассы',
     cash_got:'Возврат в кассу',cash_got_sub:'Автоматически добавить возврат в кассу',
+    no_funds:'Недостаточно средств в кассе',no_funds_detail:'Баланс кассы',need:'нужно',
     cat_l:'Категория',no_obj:'— Без объекта —',
     adv_to:'Кому выдаётся',adv_task:'Задача / Назначение',
     adv_amt:'Сумма аванса',optional:'Необязательно',
@@ -1011,6 +1009,7 @@ const T={
     cash_pay:'Аз хазина пардохта шуд',cash_pay_sub:'Ба таври худкор харҷ аз хазина ҳисоб кунед',
     cash_give:'Аз хазина дода шуд',cash_give_sub:'Маблағи додашударо аз хазина ба таври худкор ҳисоб кунед',
     cash_got:'Ба хазина баргашт',cash_got_sub:'Ба таври худкор баргаштро ба хазина илова кунед',
+    no_funds:'Маблағ дар хазина кофӣ нест',no_funds_detail:'Баланси хазина',need:'лозим',
     cat_l:'Категория',no_obj:'— Бе объект —',
     adv_to:'Ба кӣ дода мешавад',adv_task:'Вазифа / Таъинот',
     adv_amt:'Маблағи пешпардохт',optional:'Ихтиёрӣ',
@@ -2210,6 +2209,10 @@ function openAddOpModal(type){
         const task=(document.getElementById('mo-task')?.value||'').trim();
         if(!amt){showToast(t('enter_amt'),true);return;}
         if(!w){showToast(t('specify_adv_w'),true);return;}
+        // Cash balance check for advance
+        const needTJS2=SEL_CUR==='USD'?amt*(COMPANY.usd_rate||10.92):amt;
+        const bal2=await getCashBalance();
+        if(needTJS2>bal2){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtN(bal2)} TJS, ${t('need')}: ${fmtN(needTJS2)} TJS`,true);return;}
         desc='Аванс → '+w;
         // Save to advances table
         const{error:ae}=await SB.from('advances').insert({
@@ -3284,6 +3287,19 @@ masters:async()=>{
 /* ── ADVANCE HELPERS ── */
 function canAdmin(){return USER?.role==='accountant'||USER?.role==='admin';}
 
+/* Returns current cash balance in TJS (income − expense − advance) */
+async function getCashBalance(){
+  const rate=COMPANY.usd_rate||10.92;
+  const{data:ops}=await SB.from('operations').select('type,amount_tjs,amount,currency');
+  let bal=0;
+  (ops||[]).forEach(op=>{
+    const tjs=op.amount_tjs!=null?op.amount_tjs:(op.currency==='USD'?(op.amount||0)*rate:(op.amount||0));
+    if(op.type==='income') bal+=tjs;
+    else if(op.type==='expense'||op.type==='advance') bal-=tjs;
+  });
+  return Math.round(bal*100)/100;
+}
+
 function openNewAdvanceFull(){
   const rate=COMPANY.usd_rate||10.92;
   // Build worker list from profiles + existing advance workers
@@ -3344,6 +3360,9 @@ function openNewAdvanceFull(){
         const r=COMPANY.usd_rate||10.92;
         const amtTJS=cur==='USD'?amt*r:amt;
         const amtUSD=cur==='TJS'?amt/r:amt;
+        // Cash balance check
+        const bal=await getCashBalance();
+        if(amtTJS>bal){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtN(bal)} TJS, ${t('need')}: ${fmtN(amtTJS)} TJS`,true);return;}
         // Save to advances table
         const{error:ae}=await SB.from('advances').insert({
           worker_name:worker,object_name:obj,task:task||'Аванс',
@@ -3462,6 +3481,10 @@ async function openNewAdv(){
       if(!w){showToast(t('specify_adv_w'),true);return;}
       if(!amt){showToast(t('enter_amt'),true);return;}
       const rate=COMPANY.usd_rate||10.92;
+      // Cash balance check
+      const needTJS=cur==='USD'?amt*rate:amt;
+      const bal=await getCashBalance();
+      if(needTJS>bal){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtN(bal)} TJS, ${t('need')}: ${fmtN(needTJS)} TJS`,true);return;}
       // Save advance record
       const{error:ae}=await SB.from('advances').insert({
         worker_name:w,object_name:obj,task:task||'Аванс',
@@ -3750,6 +3773,15 @@ function openNewDebt(){
       const n=document.getElementById('nd-n').value.trim(),a=parseFloat(document.getElementById('nd-a').value)||0;
       const dtype=document.getElementById('nd-t').value;
       if(!n||!a){showToast(t('fill_fields'),true);return;}
+      // Cash balance check when we give money (debtor = we lend out)
+      const syncCashPre=document.getElementById('nd-cash')?.checked;
+      if(dtype==='debtor'&&syncCashPre){
+        const curPre=document.getElementById('nd-c').value;
+        const ratePre=COMPANY.usd_rate||10.92;
+        const needPre=curPre==='USD'?a*ratePre:a;
+        const balPre=await getCashBalance();
+        if(needPre>balPre){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtN(balPre)} TJS, ${t('need')}: ${fmtN(needPre)} TJS`,true);return;}
+      }
       const{error}=await SB.from('debts').insert({type:dtype,name:n,description:document.getElementById('nd-desc').value,total_amount:a,currency:document.getElementById('nd-c').value,due_date:document.getElementById('nd-d').value});
       if(error){showToast(error.message,true);return;}
       const syncCash=document.getElementById('nd-cash')?.checked;
