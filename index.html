@@ -159,13 +159,13 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 .app{display:none;height:100vh;overflow:hidden;flex-direction:row;}
 
 /* SIDEBAR */
-.sidebar{width:var(--sb);background:var(--w);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;z-index:50;transition:transform .3s cubic-bezier(.4,0,.2,1);}
+.sidebar{width:var(--sb);background:#1A2332;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;z-index:50;transition:transform .3s cubic-bezier(.4,0,.2,1);}
 .sidebar::-webkit-scrollbar{width:3px;}
 .sidebar::-webkit-scrollbar-thumb{background:rgba(57,185,128,.3);border-radius:2px;}
 .sb-hd{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.06);}
 .sb-logo{display:flex;align-items:center;gap:9px;}
 .sb-ico{width:34px;height:34px;background:var(--a);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.sb-brand{font-size:17px;font-weight:800;color:var(--t);letter-spacing:-.4px;}
+.sb-brand{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.4px;}
 .sb-brand span{color:var(--a);}
 .sb-sub{font-size:9px;color:var(--t4);margin-top:1px;}
 .sb-co{margin:10px 10px 4px;padding:10px 12px;background:rgba(57,185,128,.1);border:1px solid rgba(57,185,128,.2);border-radius:var(--r2);}
@@ -804,6 +804,36 @@ function openModal(title,html,saveFn,saveLabel){
 }
 function closeModal(){document.getElementById('modal').style.display='none';}
 
+function showConfirm(msg,onOk,btnLabel){
+  openModal('Подтверждение',
+    `<div style="display:flex;gap:12px;align-items:flex-start;">
+      <div style="width:38px;height:38px;background:var(--redl);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7v4"/><circle cx="9" cy="13" r=".5" fill="var(--red)"/><path d="M2.5 15L9 3l6.5 12H2.5z"/></svg>
+      </div>
+      <p style="font-size:14px;color:var(--t2);line-height:1.7;margin:5px 0 0;">${msg}</p>
+    </div>`,
+    ()=>{closeModal();onOk&&onOk();},
+    btnLabel||t('delete')
+  );
+  const sb=document.getElementById('m-save');
+  if(sb){sb.style.background='var(--red)';sb.style.boxShadow='none';}
+}
+
+function showPrompt(title,label,defVal,onOk){
+  openModal(title,
+    `<div class="fld" style="margin-top:4px;">
+      <div class="fld-l">${label}</div>
+      <input class="fi fi-lg" id="sp-inp" value="${(defVal||'').toString().replace(/"/g,'&quot;')}" autocomplete="off" style="margin-top:6px;">
+    </div>`,
+    ()=>{
+      const val=(document.getElementById('sp-inp')?.value||'').trim();
+      if(!val){showToast('Введите значение',true);return;}
+      closeModal();onOk&&onOk(val);
+    },'Сохранить'
+  );
+  setTimeout(()=>{const el=document.getElementById('sp-inp');if(el){el.focus();el.select();}},120);
+}
+
 /* ── HELPERS ── */
 function fmtN(n){return Number(n||0).toLocaleString('ru',{maximumFractionDigits:0});}
 function today(){return new Date().toISOString().slice(0,10);}
@@ -1365,12 +1395,13 @@ async function getOps(extra={}){
   return data||[];
 }
 async function delOp(id){
-  if(!confirm(t('del_q')))return;
-  const{data:op}=await SB.from('operations').select('date,worker_name').eq('id',id).single();
-  if(op&&!isEditable(op.date)){showToast(USER?.role==='supplier'?t('ed_today'):t('ed_2d'),true);return;}
-  const{error}=await SB.from('operations').delete().eq('id',id);
-  if(error){showToast(error.message,true);return;}
-  showToast(t('deleted'));renderPage(CUR_PAGE);
+  showConfirm(t('del_q'),async()=>{
+    const{data:op}=await SB.from('operations').select('date,worker_name').eq('id',id).single();
+    if(op&&!isEditable(op.date)){showToast(USER?.role==='supplier'?t('ed_today'):t('ed_2d'),true);return;}
+    const{error}=await SB.from('operations').delete().eq('id',id);
+    if(error){showToast(error.message,true);return;}
+    showToast(t('deleted'));renderPage(CUR_PAGE);
+  });
 }
 async function editOp(id){
   const{data:op}=await SB.from('operations').select('*').eq('id',id).single();
@@ -2945,29 +2976,40 @@ async function openNewAdv(){
 }
 
 async function advReturn(id){
-  const amt=parseFloat(prompt('Сумма возврата (TJS):'));
-  if(!amt||amt<=0){return;}
-  const desc=prompt('Примечание (необязательно):')||'Возврат аванса';
-  const rate=COMPANY.usd_rate||10.92;
-  // Add as income operation (return of advance)
-  await SB.from('operations').insert({
-    type:'income',date:today(),category_name:'Возврат аванса',
-    description:desc,amount:amt,currency:'TJS',method:'cash',
-    amount_tjs:amt,amount_usd:amt/rate,usd_rate:rate,
-    worker_name:USER?.name||'',created_by:USER?.id
-  });
-  // Check if fully returned - get advance
-  const{data:adv}=await SB.from('advances').select('amount,currency').eq('id',id).single();
-  showToast('✓ Возврат '+fmtN(amt)+' TJS зафиксирован');
-  renderPage('snabs');
+  openModal('Возврат аванса',`
+    <div class="fld" style="margin-top:4px;">
+      <div class="fld-l">Сумма возврата (TJS)</div>
+      <input class="fi fi-lg" id="ar-amt" type="number" min="0.01" step="0.01" placeholder="0.00" autocomplete="off" style="margin-top:6px;">
+    </div>
+    <div class="fld" style="margin-top:12px;">
+      <div class="fld-l">Примечание (необязательно)</div>
+      <input class="fi" id="ar-desc" placeholder="Возврат аванса" autocomplete="off" style="margin-top:6px;">
+    </div>`,
+    async()=>{
+      const amt=parseFloat(document.getElementById('ar-amt')?.value||'');
+      if(!amt||amt<=0){showToast('Введите корректную сумму',true);return;}
+      const desc=(document.getElementById('ar-desc')?.value||'').trim()||'Возврат аванса';
+      const rate=COMPANY.usd_rate||10.92;
+      await SB.from('operations').insert({
+        type:'income',date:today(),category_name:'Возврат аванса',
+        description:desc,amount:amt,currency:'TJS',method:'cash',
+        amount_tjs:amt,amount_usd:amt/rate,usd_rate:rate,
+        worker_name:USER?.name||'',created_by:USER?.id
+      });
+      const{data:adv}=await SB.from('advances').select('amount,currency').eq('id',id).single();
+      closeModal();showToast('✓ Возврат '+fmtN(amt)+' TJS зафиксирован');
+      renderPage('snabs');
+    },'Зафиксировать');
+  setTimeout(()=>{const el=document.getElementById('ar-amt');if(el)el.focus();},120);
 }
 
 async function advDone(id){
-  if(!confirm('Отметить аванс как выполненный? Карточка перейдёт в раздел закрытых.'))return;
-  const{error}=await SB.from('advances').update({status:'done',stage:4}).eq('id',id);
-  if(error){showToast(error.message,true);return;}
-  showToast('✓ Аванс закрыт — работа выполнена');
-  renderPage('snabs');
+  showConfirm('Отметить аванс как выполненный? Карточка перейдёт в раздел закрытых.',async()=>{
+    const{error}=await SB.from('advances').update({status:'done',stage:4}).eq('id',id);
+    if(error){showToast(error.message,true);return;}
+    showToast('✓ Аванс закрыт — работа выполнена');
+    renderPage('snabs');
+  },'Подтвердить');
 }
 
 async function reopenAdv(id){
@@ -3081,20 +3123,31 @@ function openNewMaster(){
   );
 }
 async function delMaster(id){
-  if(!confirm(t('del_q')))return;
-  await SB.from('masters').delete().eq('id',id);
-  showToast(t('deleted'));renderPage('masters');
+  showConfirm(t('del_q'),async()=>{
+    await SB.from('masters').delete().eq('id',id);
+    showToast(t('deleted'));renderPage('masters');
+  });
 }
 async function debtReturn(id,type){
-  const amt=parseFloat(prompt(`${type==='money'?'Сумма оплаты':'Оценка бартера'} (TJS):`));if(!amt)return;
-  let desc='';if(type==='barter')desc=prompt('Описание:')||'';
-  const{data:d}=await SB.from('debts').select('paid_amount,total_amount').eq('id',id).single();
-  const np=(d.paid_amount||0)+amt;const status=np>=d.total_amount?'closed':'active';
-  await Promise.all([
-    SB.from('debt_returns').insert({debt_id:id,type,amount:amt,date:today(),description:desc}),
-    SB.from('debts').update({paid_amount:np,status}).eq('id',id)
-  ]);
-  showToast(t('saved'));renderPage('debts');
+  const isBarter=type==='barter';
+  openModal(isBarter?'Бартерный расчёт':'Оплата долга',`
+    <div class="fld" style="margin-top:4px;">
+      <div class="fld-l">${isBarter?'Оценка бартера':'Сумма оплаты'} (TJS)</div>
+      <input class="fi fi-lg" id="dr-amt" type="number" min="0.01" step="0.01" placeholder="0.00" autocomplete="off" style="margin-top:6px;">
+    </div>
+    ${isBarter?`<div class="fld" style="margin-top:12px;"><div class="fld-l">Описание</div><input class="fi" id="dr-desc" placeholder="Описание бартера" autocomplete="off" style="margin-top:6px;"></div>`:''}`,
+    async()=>{
+      const amt=parseFloat(document.getElementById('dr-amt')?.value||'');if(!amt||amt<=0){showToast('Введите корректную сумму',true);return;}
+      const desc=isBarter?(document.getElementById('dr-desc')?.value||'').trim():'';
+      const{data:d}=await SB.from('debts').select('paid_amount,total_amount').eq('id',id).single();
+      const np=(d.paid_amount||0)+amt;const status=np>=d.total_amount?'closed':'active';
+      await Promise.all([
+        SB.from('debt_returns').insert({debt_id:id,type,amount:amt,date:today(),description:desc}),
+        SB.from('debts').update({paid_amount:np,status}).eq('id',id)
+      ]);
+      closeModal();showToast(t('saved'));renderPage('debts');
+    },'Сохранить');
+  setTimeout(()=>{const el=document.getElementById('dr-amt');if(el)el.focus();},120);
 }
 function openNewDebt(){
   openModal('Новый долг',`
@@ -3116,9 +3169,10 @@ function openNewDebt(){
   );
 }
 async function delDebt(id){
-  if(!confirm(t('del_q')))return;
-  await SB.from('debts').delete().eq('id',id);
-  showToast(t('deleted'));renderPage('debts');
+  showConfirm(t('del_q'),async()=>{
+    await SB.from('debts').delete().eq('id',id);
+    showToast(t('deleted'));renderPage('debts');
+  });
 }
 
 /* SETTINGS */
@@ -3135,14 +3189,14 @@ async function saveRate(){
   COMPANY.usd_rate=v;showToast(`✓ 1 USD = ${v} TJS`);renderPage('settings');
 }
 async function addObj(){const n=document.getElementById(`inp-${t('objects')}`)?.value?.trim();if(!n)return;const{error}=await SB.from('objects').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
-async function editObj(id){const n=prompt('Новое название:');if(!n)return;await SB.from('objects').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');}
-async function delObj(id){if(!confirm(t('del_q')))return;await SB.from('objects').delete().eq('id',id);await loadBaseData();renderPage('settings');}
+async function editObj(id){showPrompt('Переименовать объект','Новое название','',async(n)=>{await SB.from('objects').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
+async function delObj(id){showConfirm(t('del_q'),async()=>{await SB.from('objects').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
 async function addCat(type){const n=document.querySelector(`[id^="inp-"]`)?.value?.trim();if(!n)return;const{error}=await SB.from('categories').insert({name:n,type});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
-async function editCat(id){const n=prompt('Новое название:');if(!n)return;await SB.from('categories').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');}
-async function delCat(id){if(!confirm(t('del_q')))return;await SB.from('categories').delete().eq('id',id);await loadBaseData();renderPage('settings');}
+async function editCat(id){showPrompt('Переименовать категорию','Новое название','',async(n)=>{await SB.from('categories').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
+async function delCat(id){showConfirm(t('del_q'),async()=>{await SB.from('categories').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
 async function addUnit(){const n=document.querySelector(`[id^="inp-"]`)?.value?.trim();if(!n)return;const{error}=await SB.from('units').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
-async function editUnit(id){const n=prompt('Новое название:');if(!n)return;await SB.from('units').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');}
-async function delUnit(id){if(!confirm(t('del_q')))return;await SB.from('units').delete().eq('id',id);await loadBaseData();renderPage('settings');}
+async function editUnit(id){showPrompt('Переименовать единицу','Новое название','',async(n)=>{await SB.from('units').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
+async function delUnit(id){showConfirm(t('del_q'),async()=>{await SB.from('units').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
 function openNewUser(){
   openModal('Добавить пользователя',`
     <div>
