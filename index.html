@@ -2019,7 +2019,8 @@ function fUpdTotal(val){
 }
 async function fSubmit(isSupplier){
   const rate=COMPANY.usd_rate||10.92;
-  let amt=0,desc='',method='cash';
+  // Supplier expenses are funded from advance (not direct cash outflow)
+  let amt=0,desc='',method=(isSupplier&&OP_TYPE==='expense')?'from_advance':'cash';
   const date=document.getElementById('f-date')?.value||today();
   if(OP_TYPE==='expense'){
     const q=parseFloat(document.getElementById('f-qty')?.value)||0,p=parseFloat(document.getElementById('f-price')?.value)||0;
@@ -2351,13 +2352,16 @@ const PAGES={
 /* ── HOME ── */
 home:async()=>{
   const rate=COMPANY.usd_rate||10.92;
-  // Load all data
-  const[opsR,debtsR,advR]=await Promise.all([
+  // Load all data (including supplier profiles for advance-expense identification)
+  const[opsR,debtsR,advR,profR]=await Promise.all([
     (()=>{let q=SB.from('operations').select('*');q=periodFilter(q);return q;})(),
     SB.from('debts').select('*'),
-    SB.from('advances').select('*').eq('status','active')
+    SB.from('advances').select('*').eq('status','active'),
+    SB.from('profiles').select('name,role').eq('role','supplier')
   ]);
   const allOps=opsR.data||[], debts=debtsR.data||[], advs=advR.data||[];
+  // Set of supplier names — used to identify advance-funded expenses in historical data
+  const supplierNames=new Set((profR.data||[]).map(p=>p.name));
 
   // Selected object filter (stored on window)
   window._homeObj = window._homeObj||'';
@@ -2371,19 +2375,26 @@ home:async()=>{
 
   // Strict separate currencies
   const incTJS=inc.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+  // All expenses (for РАСХОДЫ display card)
   const expTJS=exp.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const advTJS=adv.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const incUSD=inc.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
   const expUSD=exp.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
   const advUSD=adv.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
-  const balTJS=incTJS-expTJS-advTJS;
-  const balUSD=incUSD-expUSD-advUSD;
+  // Cash balance: only subtract DIRECT cash expenses (not advance-funded supplier expenses)
+  // An expense is advance-funded if method='from_advance' OR (historical) if created by a supplier
+  const isAdvExp=o=>o.method==='from_advance'||supplierNames.has(o.worker_name);
+  const cashExpTJS=exp.filter(o=>o.currency==='TJS'&&!isAdvExp(o)).reduce((a,o)=>a+o.amount,0);
+  const cashExpUSD=exp.filter(o=>o.currency==='USD'&&!isAdvExp(o)).reduce((a,o)=>a+o.amount,0);
+  const balTJS=incTJS-cashExpTJS-advTJS;
+  const balUSD=incUSD-cashExpUSD-advUSD;
   const bal=balTJS+(balUSD*rate);
 
   const cred=debts.filter(d=>d.type==='creditor').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
   const deb=debts.filter(d=>d.type==='debtor').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
   const advTot_given=advs.reduce((a,x)=>a+x.amount,0);
-  const advTot_spent=allOps.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+  // Advance spending = supplier-submitted expenses (new: method='from_advance', historical: worker_name in supplierNames)
+  const advTot_spent=allOps.filter(o=>o.type==='expense'&&o.currency==='TJS'&&(o.method==='from_advance'||supplierNames.has(o.worker_name))).reduce((a,o)=>a+o.amount,0);
 
   // By category (for selected object or all)
   const byCat={};
@@ -3287,15 +3298,24 @@ masters:async()=>{
 /* ── ADVANCE HELPERS ── */
 function canAdmin(){return USER?.role==='accountant'||USER?.role==='admin';}
 
-/* Returns current cash balance in TJS (income − expense − advance) */
+/* Returns current cash balance in TJS (income − direct_expenses − advances) */
 async function getCashBalance(){
   const rate=COMPANY.usd_rate||10.92;
-  const{data:ops}=await SB.from('operations').select('type,amount_tjs,amount,currency');
+  const[{data:ops},{data:supProfs}]=await Promise.all([
+    SB.from('operations').select('type,amount_tjs,amount,currency,method,worker_name'),
+    SB.from('profiles').select('name').eq('role','supplier')
+  ]);
+  const supNames=new Set((supProfs||[]).map(p=>p.name));
   let bal=0;
   (ops||[]).forEach(op=>{
     const tjs=op.amount_tjs!=null?op.amount_tjs:(op.currency==='USD'?(op.amount||0)*rate:(op.amount||0));
     if(op.type==='income') bal+=tjs;
-    else if(op.type==='expense'||op.type==='advance') bal-=tjs;
+    else if(op.type==='advance') bal-=tjs;
+    // Only subtract expenses that came directly from cash (not advance-funded supplier expenses)
+    else if(op.type==='expense'){
+      const isAdvFunded=op.method==='from_advance'||supNames.has(op.worker_name);
+      if(!isAdvFunded) bal-=tjs;
+    }
   });
   return Math.round(bal*100)/100;
 }
