@@ -587,7 +587,12 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
 
     <!-- Top bar -->
     <div style="position:relative;z-index:10;padding:22px 24px 0;display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.5px;font-family:var(--ff);text-shadow:0 1px 8px rgba(0,0,0,.4);">ZAKI<span style="color:#39B980;">.</span></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:38px;height:38px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.25);flex-shrink:0;">
+          <img src="logo.svg" style="width:32px;height:32px;object-fit:contain;" onerror="this.src='logo.png'" alt="ZAKI">
+        </div>
+        <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.5px;font-family:var(--ff);text-shadow:0 1px 8px rgba(0,0,0,.4);">ZAKI<span style="color:#39B980;">.</span></div>
+      </div>
       <div style="text-align:right;">
         <div style="font-size:26px;font-weight:800;color:#fff;line-height:1;font-family:var(--ff);text-shadow:0 1px 8px rgba(0,0,0,.4);" id="lp-temp">—°</div>
         <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;font-family:var(--ff);" id="lp-wdesc">—</div>
@@ -669,9 +674,8 @@ html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--t);
   <div class="sidebar" id="sidebar">
     <div class="sb-hd">
       <div class="sb-logo">
-        <div class="sb-ico" style="background:#fff;border-radius:8px;padding:2px;overflow:hidden;">
-          <img src="logo.png" style="width:30px;height:30px;object-fit:contain;display:block;" onerror="this.style.display='none';this.nextSibling.style.display='block'" alt="">
-          <svg style="display:none;width:17px;height:17px;" viewBox="0 0 17 17" fill="none"><path d="M3 8.5C3 5.462 5.462 3 8.5 3" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M14 8.5C14 11.538 11.538 14 8.5 14" stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-linecap="round"/><circle cx="8.5" cy="8.5" r="2.5" fill="white"/></svg>
+        <div class="sb-ico" style="background:transparent;border-radius:8px;overflow:hidden;">
+          <img src="logo.svg" style="width:36px;height:36px;object-fit:contain;display:block;" onerror="this.src='logo.png'" alt="ZAKI">
         </div>
         <div>
           <div class="sb-brand">ZAKI<span>.</span></div>
