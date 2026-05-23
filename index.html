@@ -888,6 +888,8 @@ const T={
     no_notif:'Уведомлений нет',adv_op_warn:'Аванс создан, но операция не записана',
     cash_recv:'Получено в кассу',cash_recv_sub:'Автоматически добавить приход в кассу',
     cash_pay:'Оплачено из кассы',cash_pay_sub:'Автоматически списать расход из кассы',
+    cash_give:'Выдано из кассы',cash_give_sub:'Автоматически списать выданную сумму из кассы',
+    cash_got:'Возврат в кассу',cash_got_sub:'Автоматически добавить возврат в кассу',
     cat_l:'Категория',no_obj:'— Без объекта —',
     adv_to:'Кому выдаётся',adv_task:'Задача / Назначение',
     adv_amt:'Сумма аванса',optional:'Необязательно',
@@ -975,6 +977,8 @@ const T={
     no_notif:'Огоҳинома нест',adv_op_warn:'Пешпардохт сохта шуд, аммо амалиёт навишта нашуд',
     cash_recv:'Ба хазина гирифта шуд',cash_recv_sub:'Ба таври худкор даромад ба хазина илова кунед',
     cash_pay:'Аз хазина пардохта шуд',cash_pay_sub:'Ба таври худкор харҷ аз хазина ҳисоб кунед',
+    cash_give:'Аз хазина дода шуд',cash_give_sub:'Маблағи додашударо аз хазина ба таври худкор ҳисоб кунед',
+    cash_got:'Ба хазина баргашт',cash_got_sub:'Ба таври худкор баргаштро ба хазина илова кунед',
     cat_l:'Категория',no_obj:'— Бе объект —',
     adv_to:'Ба кӣ дода мешавад',adv_task:'Вазифа / Таъинот',
     adv_amt:'Маблағи пешпардохт',optional:'Ихтиёрӣ',
@@ -3600,12 +3604,12 @@ async function debtReturn(id,type){
       <input class="fi fi-lg" id="dr-amt" type="number" min="0.01" step="0.01" placeholder="0.00" autocomplete="off" style="margin-top:6px;">
     </div>
     ${isBarter?`<div class="fld" style="margin-top:12px;"><div class="fld-l">Описание</div><input class="fi" id="dr-desc" placeholder="Описание бартера" autocomplete="off" style="margin-top:6px;"></div>`:''}
-    ${!isBarter&&isCreditor?`
-    <div style="margin-top:12px;padding:10px 13px;background:var(--redl);border:1.5px solid var(--redb);border-radius:var(--r2);display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="var cb=document.getElementById('dr-cash');cb.checked=!cb.checked;">
-      <input type="checkbox" id="dr-cash" style="width:16px;height:16px;accent-color:var(--red);cursor:pointer;" onclick="event.stopPropagation();">
+    ${!isBarter?`
+    <div style="margin-top:12px;padding:10px 13px;background:${isCreditor?'var(--redl)':'var(--ap)'};border:1.5px solid ${isCreditor?'var(--redb)':'var(--al)'};border-radius:var(--r2);display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="var cb=document.getElementById('dr-cash');cb.checked=!cb.checked;">
+      <input type="checkbox" id="dr-cash" checked style="width:16px;height:16px;accent-color:${isCreditor?'var(--red)':'var(--a)'};cursor:pointer;" onclick="event.stopPropagation();">
       <div>
-        <div style="font-size:13px;font-weight:600;color:var(--t);">${t('cash_pay')}</div>
-        <div style="font-size:11px;color:var(--t3);margin-top:1px;">${t('cash_pay_sub')}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--t);">${isCreditor?t('cash_pay'):t('cash_got')}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:1px;">${isCreditor?t('cash_pay_sub'):t('cash_got_sub')}</div>
       </div>
     </div>`:''}`,
     async()=>{
@@ -3617,13 +3621,18 @@ async function debtReturn(id,type){
         SB.from('debt_returns').insert({debt_id:id,type,amount:amt,date:today(),description:desc}),
         SB.from('debts').update({paid_amount:np,status}).eq('id',id)
       ]);
-      const deductFromCash=!isBarter&&isCreditor&&document.getElementById('dr-cash')?.checked;
-      if(deductFromCash){
+      const syncCash=!isBarter&&document.getElementById('dr-cash')?.checked;
+      if(syncCash){
         const rate=COMPANY.usd_rate||10.92;
         const uid=(await SB.auth.getUser()).data.user?.id;
+        // creditor return = Мы вернули долг = expense (деньги ушли)
+        // debtor return   = Нам вернули долг = income (деньги пришли)
+        const opType=isCreditor?'expense':'income';
+        const catName=isCreditor?'Возврат займа':'Получен возврат долга';
+        const descTxt=isCreditor?'Возврат займа: '+(dbt?.name||''):'Возврат от: '+(dbt?.name||'');
         const{error:opErr}=await SB.from('operations').insert({
-          type:'expense',date:today(),
-          category_name:'Возврат займа',object_name:dbt?.name||'',description:'Возврат займа: '+(dbt?.name||''),
+          type:opType,date:today(),
+          category_name:catName,object_name:dbt?.name||'',description:descTxt,
           amount:amt,amount_tjs:amt,amount_usd:+(amt/rate).toFixed(2),
           currency:'TJS',usd_rate:rate,
           method:'cash',worker_name:USER?.name||'',user_id:uid
@@ -3637,7 +3646,7 @@ async function debtReturn(id,type){
 function openNewDebt(){
   openModal(t('new_debt').replace('+ ',''),`
     <div class="fg f2">
-      <div class="fld"><div class="fld-l">${t('type_lbl')}</div><select class="fi fi-sel" id="nd-t" onchange="(function(v){var cb=document.getElementById('nd-cash-row');if(cb)cb.style.display=v==='creditor'?'':'none';})(this.value)"><option value="creditor">${t('paybl')}</option><option value="debtor">${t('recv')}</option></select></div>
+      <div class="fld"><div class="fld-l">${t('type_lbl')}</div><select class="fi fi-sel" id="nd-t" onchange="(function(v){var row=document.getElementById('nd-cash-row');var lbl=document.getElementById('nd-cash-lbl');var sub=document.getElementById('nd-cash-sub');if(lbl)lbl.textContent=v==='creditor'?t('cash_recv'):t('cash_give');if(sub)sub.textContent=v==='creditor'?t('cash_recv_sub'):t('cash_give_sub');})(this.value)"><option value="creditor">${t('paybl')}</option><option value="debtor">${t('recv')}</option></select></div>
       <div class="fld"><div class="fld-l">${t('name_org')}</div><input class="fi" id="nd-n" placeholder="ООО..."></div>
       <div class="fld"><div class="fld-l">${t('amount')}</div><input class="fi fi-lg" id="nd-a" type="number" placeholder="0"></div>
       <div class="fld"><div class="fld-l">${t('currency')}</div><select class="fi fi-sel" id="nd-c"><option>TJS</option><option>USD</option></select></div>
@@ -3645,10 +3654,10 @@ function openNewDebt(){
       <div class="fld"><div class="fld-l">${t('desc')}</div><input class="fi" id="nd-desc"></div>
     </div>
     <div id="nd-cash-row" style="margin-top:12px;padding:10px 13px;background:var(--ap);border:1.5px solid var(--al);border-radius:var(--r2);display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="var cb=document.getElementById('nd-cash');cb.checked=!cb.checked;">
-      <input type="checkbox" id="nd-cash" style="width:16px;height:16px;accent-color:var(--a);cursor:pointer;" onclick="event.stopPropagation();">
+      <input type="checkbox" id="nd-cash" checked style="width:16px;height:16px;accent-color:var(--a);cursor:pointer;" onclick="event.stopPropagation();">
       <div>
-        <div style="font-size:13px;font-weight:600;color:var(--t);">${t('cash_recv')}</div>
-        <div style="font-size:11px;color:var(--t3);margin-top:1px;">${t('cash_recv_sub')}</div>
+        <div id="nd-cash-lbl" style="font-size:13px;font-weight:600;color:var(--t);">${t('cash_recv')}</div>
+        <div id="nd-cash-sub" style="font-size:11px;color:var(--t3);margin-top:1px;">${t('cash_recv_sub')}</div>
       </div>
     </div>`,
     async()=>{
@@ -3657,16 +3666,21 @@ function openNewDebt(){
       if(!n||!a){showToast(t('fill_fields'),true);return;}
       const{error}=await SB.from('debts').insert({type:dtype,name:n,description:document.getElementById('nd-desc').value,total_amount:a,currency:document.getElementById('nd-c').value,due_date:document.getElementById('nd-d').value});
       if(error){showToast(error.message,true);return;}
-      const addToCash=dtype==='creditor'&&document.getElementById('nd-cash')?.checked;
-      if(addToCash){
+      const syncCash=document.getElementById('nd-cash')?.checked;
+      if(syncCash){
         const cur=document.getElementById('nd-c').value;
         const rate=COMPANY.usd_rate||10.92;
         const amtTJS=cur==='USD'?a*rate:a;
         const uid=(await SB.auth.getUser()).data.user?.id;
+        // creditor = Мы Должны = получили деньги = income
+        // debtor   = Нам Должны = выдали деньги = expense
+        const opType=dtype==='creditor'?'income':'expense';
+        const catName=dtype==='creditor'?'Займ получен':'Займ выдан';
+        const descTxt=dtype==='creditor'?'Займ от '+n:'Займ выдан: '+n;
         const{error:opErr}=await SB.from('operations').insert({
-          type:'income',date:today(),
-          category_name:'Займ получен',object_name:n,description:'Займ от '+n,
-          amount:a,             // amount in own currency (USD→USD, TJS→TJS)
+          type:opType,date:today(),
+          category_name:catName,object_name:n,description:descTxt,
+          amount:a,
           amount_tjs:amtTJS,
           amount_usd:cur==='USD'?a:+(a/rate).toFixed(2),
           currency:cur,usd_rate:rate,
