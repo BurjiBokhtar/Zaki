@@ -1,4 +1,4 @@
-const CACHE = 'zaki-v2';
+const CACHE = 'burji-v1';
 const SHELL = ['/', '/index.html', '/logo192.png', '/logo512.png', '/logo.png', '/manifest.json', '/offline.html'];
 
 self.addEventListener('install', e => {

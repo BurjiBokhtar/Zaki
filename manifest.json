@@ -1,16 +1,16 @@
 {
   "id": "/",
-  "name": "ZAKI ERP",
-  "short_name": "ZAKI",
-  "description": "Управление строительными финансами",
+  "name": "Бурчи Бохтар",
+  "short_name": "Бурчи Бохтар",
+  "description": "Ширкати Сохтмонй — Управление строительными финансами",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "orientation": "portrait",
-  "background_color": "#0F1923",
-  "theme_color": "#39B980",
-  "lang": "ru",
+  "background_color": "#ffffff",
+  "theme_color": "#E8A020",
+  "lang": "tg",
   "prefer_related_applications": false,
   "icons": [
     {
