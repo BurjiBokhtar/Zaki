@@ -3215,31 +3215,89 @@ settings:async()=>{
 /* ── SUPPLIER PAGES ── */
 my:async()=>{
   const[{data:advs},{data:ops}]=await Promise.all([
-    SB.from('advances').select('*').eq('worker_name',USER?.name),
+    SB.from('advances').select('*').eq('worker_name',USER?.name).eq('status','active').order('created_at',{ascending:false}),
     SB.from('operations').select('*').eq('type','expense').eq('worker_name',USER?.name).order('date',{ascending:false})
   ]);
-  const adv=(advs||[])[0]||{amount:0,stage:0,stages:4,task:'—',object_name:'—',stage_names:['Старт','Закупка','Доставка','Сдача']};
   const rate=COMPANY.usd_rate||10.92;
+  const allAdvs=advs||[];
+  // Sum ALL active advances — fixes bug where only [0] was used
+  const totalGiven=allAdvs.reduce((s,a)=>{
+    const tjs=a.currency==='USD'?a.amount*rate:a.amount;return s+tjs;
+  },0);
   const spent=(ops||[]).reduce((a,o)=>a+(o.amount_tjs||0),0);
-  const rem=adv.amount-spent;const pct=adv.amount>0?Math.min(spent/adv.amount*100,100):0;
-  const names=Array.isArray(adv.stage_names)?adv.stage_names:['Старт','Закупка','Доставка','Сдача'];
+  const rem=totalGiven-spent;
+  const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
+  const pctColor=pct>90?'var(--red)':pct>70?'var(--yel)':'var(--a)';
+
+  if(!allAdvs.length) return `
+    <div class="card" style="animation:fadeUp .3s ease both;text-align:center;padding:40px 20px;">
+      <div style="font-size:40px;margin-bottom:12px;">💳</div>
+      <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:6px;">${t('no_data')}</div>
+      <div style="font-size:13px;color:var(--t4);">Аванс ещё не выдан</div>
+    </div>`;
+
   return `
-  <div class="card mb20" style="animation:fadeUp .3s ease both;">
-    <div class="mb12"><div class="sc-lbl">${t('my')} · ${adv.object_name}</div>
-      <div style="font-size:32px;font-weight:800;color:var(--adk);letter-spacing:-.5px;">${fmtN(rem)} TJS</div>
-      <div style="font-size:12px;color:var(--t4);">≈ $${fmtN(rem/rate)} · из ${fmtN(adv.amount)} TJS</div>
+  <!-- BALANCE CARD -->
+  <div class="card mb16" style="animation:fadeUp .3s ease both;">
+    <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;">💳 ${t('my')}</div>
+
+    <!-- Given row -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:28px;height:28px;background:var(--ap);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;">📥</div>
+        <span style="font-size:14px;color:var(--t2);">${t('adv_issued')}</span>
+      </div>
+      <span style="font-size:16px;font-weight:700;color:var(--ad);">+${fmtN(totalGiven)} TJS</span>
     </div>
-    <div class="g2 mb12">
-      <div style="padding:10px 12px;background:var(--ap);border-radius:var(--r);border:1px solid var(--al);"><div class="sc-lbl">${t('adv_issued')}</div><div style="font-size:16px;font-weight:700;color:var(--ad);">${fmtN(adv.amount)}</div><div style="font-size:10px;color:var(--t4);">$${fmtN(adv.amount/rate)}</div></div>
-      <div style="padding:10px 12px;background:var(--redl);border-radius:var(--r);border:1px solid var(--redb);"><div class="sc-lbl">${t('spent')}</div><div style="font-size:16px;font-weight:700;color:var(--red);">${fmtN(spent)}</div><div style="font-size:10px;color:var(--t4);">$${fmtN(spent/rate)}</div></div>
+
+    <!-- Spent row -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:28px;height:28px;background:var(--redl);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;">📤</div>
+        <span style="font-size:14px;color:var(--t2);">${t('spent')}</span>
+      </div>
+      <span style="font-size:16px;font-weight:700;color:var(--red);">−${fmtN(spent)} TJS</span>
     </div>
-    <div class="bar-tr" style="height:6px;margin-bottom:4px;"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${pct>80?'var(--red)':pct>60?'var(--yel)':'var(--a)'};"></div></div>
-    <div style="font-size:11px;color:var(--t4);">${Math.round(pct)}% · ${adv.task}</div>
-    ${stageTrack(adv.stage||0,adv.stages||4,names)}
+
+    <!-- Remainder -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:28px;height:28px;background:${rem<0?'var(--redl)':'rgba(57,185,128,.12)'};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;">${rem<0?'⚠️':'✅'}</div>
+        <span style="font-size:14px;font-weight:700;color:var(--t1);">${t('rest_lbl')}</span>
+      </div>
+      <span style="font-size:22px;font-weight:800;color:${rem<0?'var(--red)':'var(--adk)'};">${fmtN(rem)} TJS</span>
+    </div>
+
+    <!-- Progress bar -->
+    <div style="background:var(--bg2);border-radius:6px;height:8px;overflow:hidden;margin-bottom:6px;">
+      <div style="height:100%;width:${pct.toFixed(1)}%;background:${pctColor};border-radius:6px;transition:width .6s;"></div>
+    </div>
+    <div style="font-size:11px;color:var(--t4);margin-bottom:16px;">${Math.round(pct)}% ${t('spent')}</div>
+
+    <!-- Add expense button -->
+    <button onclick="go('addexp')" style="width:100%;padding:13px;background:var(--redl);border:1.5px solid var(--redb);border-radius:12px;font-size:15px;font-weight:700;color:var(--red);cursor:pointer;">− ${t('new_exp')}</button>
   </div>
-  <div class="card" style="animation:fadeUp .3s ease .05s both;">
-    <div class="sh"><div class="sh-t">${t('recent_exp')}</div><div class="sh-a" onclick="go('myexp')">${t('all_ops')}</div></div>
-    <div>${(ops||[]).slice(0,6).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
+
+  <!-- ADVANCES HISTORY -->
+  <div class="card mb16" style="animation:fadeUp .3s ease .08s both;">
+    <div class="sh" style="margin-bottom:10px;"><div class="sh-t">📥 История выдач</div></div>
+    ${allAdvs.map(a=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd);">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--t1);">${a.object_name||'—'}</div>
+          <div style="font-size:11px;color:var(--t4);">${a.date||a.created_at?.slice(0,10)||'—'} · ${a.task||'—'}</div>
+        </div>
+        <span style="font-size:14px;font-weight:700;color:var(--ad);">+${fmtN(a.amount)} ${a.currency||'TJS'}</span>
+      </div>`).join('')}
+  </div>
+
+  <!-- RECENT EXPENSES -->
+  <div class="card" style="animation:fadeUp .3s ease .12s both;">
+    <div class="sh" style="margin-bottom:10px;">
+      <div class="sh-t">📋 ${t('recent_exp')}</div>
+      <div class="sh-a" onclick="go('myexp')">${t('all_ops')}</div>
+    </div>
+    <div>${(ops||[]).slice(0,5).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
   </div>`;
 },
 addexp:async()=>{
