@@ -4163,10 +4163,9 @@ if('serviceWorker' in navigator){
       buildNav();updatePeriodBtns();
       CUR_PAGE=USER.role==='supplier'?'my':'home';
       go(CUR_PAGE);
-      // Check PIN: lock if session restored after timeout, or setup if no PIN
+      // Always require PIN on app start/reload
       if(localStorage.getItem(PIN_KEY)){
-        if(Date.now()-_lastAct()>PIN_TIMEOUT) showPinLock('lock');
-        else updateActivity();
+        showPinLock('lock');          // every open → PIN required
       } else {
         setTimeout(()=>showPinLock('setup1'),400);
       }
@@ -4279,7 +4278,7 @@ function openSS(title, items, currentVal, onSelect, allowCustom=false){
 /* ══════════════════════════════════════════════
    PIN-LOCK  —  4-digit lock screen
    ══════════════════════════════════════════════ */
-const PIN_TIMEOUT   = 60 * 60 * 1000; // 1 hour
+const PIN_TIMEOUT   = 2 * 60 * 1000; // 2 min idle while app is open
 const PIN_MAX_ATT   = 3;
 const PIN_KEY       = 'zaki_pin';
 const PIN_ACT_KEY   = 'zaki_last_act';
@@ -4405,12 +4404,29 @@ function initPin(){
 ['click','keydown','touchstart','scroll'].forEach(ev=>{
   document.addEventListener(ev,()=>{ if(USER) updateActivity(); },{passive:true});
 });
-// Check when user returns to the tab/app after being away
+
+// Lock EVERY TIME user returns to the app (switch app, minimize, lock screen)
+let _pinWasHidden = false;
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible') checkPinTimeout();
+  if(document.visibilityState==='hidden'){
+    _pinWasHidden = true;           // app went to background
+  } else if(_pinWasHidden){
+    _pinWasHidden = false;
+    if(USER && localStorage.getItem(PIN_KEY)){
+      showPinLock('lock');           // always lock on return
+    }
+  }
 });
-window.addEventListener('focus', checkPinTimeout);
-setInterval(checkPinTimeout, 60000); // check every minute
+
+// Also lock when browser window regains focus
+window.addEventListener('focus',()=>{
+  if(USER && localStorage.getItem(PIN_KEY)){
+    const ov=document.getElementById('pin-overlay');
+    if(ov && ov.style.display==='none') showPinLock('lock');
+  }
+});
+
+setInterval(checkPinTimeout, 30000); // idle check every 30 sec
 
 /* helper: wire up an .ss-trigger div to openSS and keep a hidden value in sync */
 function ssBind(triggerId, hiddenId, title, getItems, allowCustom){
