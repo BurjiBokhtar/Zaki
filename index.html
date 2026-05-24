@@ -4314,6 +4314,13 @@ function showPinLock(mode='lock'){
 function hidePinLock(){
   const ov=document.getElementById('pin-overlay');
   if(ov) ov.style.display='none';
+  // Reset forgot-confirm state
+  const fc=document.getElementById('pin-forgot-confirm');
+  if(fc) fc.style.display='none';
+  const pm=document.getElementById('pin-main');
+  if(pm) pm.style.display='block';
+  // Close any modal that may have opened behind the overlay
+  if(typeof closeModal==='function') closeModal();
   updateActivity();
 }
 
@@ -4387,7 +4394,21 @@ async function _pinSubmit(){
 }
 
 function pinForgot(){
-  showConfirm(t('pin_forgot_q'), async()=>{ await logOut(); hidePinLock(); }, t('pin_forgot_yes'));
+  // Show inline confirm — NOT showConfirm (which is behind overlay)
+  document.getElementById('pin-main').style.display='none';
+  const fc=document.getElementById('pin-forgot-confirm');
+  fc.style.display='flex';
+}
+function pinForgotCancel(){
+  document.getElementById('pin-forgot-confirm').style.display='none';
+  document.getElementById('pin-main').style.display='block';
+}
+async function pinForgotConfirm(){
+  localStorage.removeItem(PIN_KEY);
+  await logOut();
+  document.getElementById('pin-overlay').style.display='none';
+  document.getElementById('pin-forgot-confirm').style.display='none';
+  document.getElementById('pin-main').style.display='block';
 }
 
 /* ── init after login ── */
@@ -4443,31 +4464,45 @@ function ssBind(triggerId, hiddenId, title, getItems, allowCustom){
 
 <!-- ══ PIN LOCK OVERLAY ══ -->
 <div id="pin-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#0F1923;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <img src="/logo192.png" alt="Бурчи Бохтар" style="width:64px;height:64px;border-radius:16px;margin-bottom:20px;box-shadow:0 4px 20px rgba(232,160,32,.3);">
-  <div id="pin-user" style="font-size:13px;color:#8B9DB0;margin-bottom:6px;"></div>
-  <div id="pin-title" style="font-size:20px;font-weight:700;color:#E8EDF2;margin-bottom:28px;">Введите PIN</div>
 
-  <!-- dots -->
-  <div id="pin-dots" style="display:flex;gap:16px;margin-bottom:14px;"></div>
-  <div id="pin-err" style="font-size:13px;color:#E05C5C;min-height:18px;margin-bottom:20px;"></div>
+  <!-- Main PIN screen -->
+  <div id="pin-main">
+    <img src="/logo192.png" alt="Бурчи Бохтар" style="width:64px;height:64px;border-radius:16px;margin-bottom:20px;box-shadow:0 4px 20px rgba(232,160,32,.3);">
+    <div id="pin-user" style="font-size:13px;color:#8B9DB0;margin-bottom:6px;"></div>
+    <div id="pin-title" style="font-size:20px;font-weight:700;color:#E8EDF2;margin-bottom:28px;">Введите PIN</div>
 
-  <!-- keypad -->
-  <div style="display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(4,72px);gap:12px;">
-    <button onclick="pinKey('1')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">1</button>
-    <button onclick="pinKey('2')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">2</button>
-    <button onclick="pinKey('3')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">3</button>
-    <button onclick="pinKey('4')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">4</button>
-    <button onclick="pinKey('5')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">5</button>
-    <button onclick="pinKey('6')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">6</button>
-    <button onclick="pinKey('7')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">7</button>
-    <button onclick="pinKey('8')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">8</button>
-    <button onclick="pinKey('9')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">9</button>
-    <div></div>
-    <button onclick="pinKey('0')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">0</button>
-    <button onclick="pinDel()" style="background:transparent;border:none;font-size:22px;color:#8B9DB0;cursor:pointer;">⌫</button>
+    <!-- dots -->
+    <div id="pin-dots" style="display:flex;gap:16px;margin-bottom:14px;justify-content:center;"></div>
+    <div id="pin-err" style="font-size:13px;color:#E05C5C;min-height:18px;margin-bottom:20px;"></div>
+
+    <!-- keypad -->
+    <div style="display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(4,72px);gap:12px;margin:0 auto;">
+      <button onclick="pinKey('1')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;" onpointerdown="this.style.background='rgba(232,160,32,.3)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">1</button>
+      <button onclick="pinKey('2')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;" onpointerdown="this.style.background='rgba(232,160,32,.3)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">2</button>
+      <button onclick="pinKey('3')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;" onpointerdown="this.style.background='rgba(232,160,32,.3)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">3</button>
+      <button onclick="pinKey('4')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;" onpointerdown="this.style.background='rgba(232,160,32,.3)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">4</button>
+      <button onclick="pinKey('5')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;" onpointerdown="this.style.background='rgba(232,160,32,.3)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">5</button>
+      <button onclick="pinKey('6')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;" onpointerdown="this.style.background='rgba(232,160,32,.3)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">6</button>
+      <button onclick="pinKey('7')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;" onpointerdown="this.style.background='rgba(232,160,32,.3)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">7</button>
+      <button onclick="pinKey('8')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;" onpointerdown="this.style.background='rgba(232,160,32,.3)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">8</button>
+      <button onclick="pinKey('9')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;" onpointerdown="this.style.background='rgba(232,160,32,.3)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">9</button>
+      <div></div>
+      <button onclick="pinKey('0')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;" onpointerdown="this.style.background='rgba(232,160,32,.3)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">0</button>
+      <button onclick="pinDel()" style="background:transparent;border:none;font-size:22px;color:#8B9DB0;cursor:pointer;">⌫</button>
+    </div>
+
+    <div onclick="pinForgot()" style="margin-top:32px;font-size:13px;color:#8B9DB0;text-decoration:underline;cursor:pointer;">Забыл PIN</div>
   </div>
 
-  <div onclick="pinForgot()" style="margin-top:32px;font-size:13px;color:#8B9DB0;text-decoration:underline;cursor:pointer;">Забыл PIN</div>
+  <!-- Forgot PIN confirm (shown inline, replaces keypad) -->
+  <div id="pin-forgot-confirm" style="display:none;flex-direction:column;align-items:center;gap:16px;max-width:280px;">
+    <div style="width:56px;height:56px;background:rgba(224,92,92,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;">🔓</div>
+    <div style="font-size:18px;font-weight:700;color:#E8EDF2;">Забыли PIN?</div>
+    <div style="font-size:14px;color:#8B9DB0;line-height:1.6;">Для сброса PIN необходимо выйти из системы и войти заново.</div>
+    <button onclick="pinForgotConfirm()" style="width:100%;padding:14px;background:#E05C5C;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;">Выйти и сбросить PIN</button>
+    <button onclick="pinForgotCancel()" style="width:100%;padding:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:12px;font-size:15px;font-weight:600;color:#8B9DB0;cursor:pointer;">Отмена</button>
+  </div>
+
 </div>
 </body>
 </html>
