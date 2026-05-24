@@ -1800,6 +1800,10 @@ async function doLogin(){
 async function logOut(){
   await SB.auth.signOut();
   USER=null;
+  // Clear PIN activity timestamp on logout (force re-PIN-setup for next login)
+  localStorage.removeItem(PIN_ACT_KEY);
+  const ov=document.getElementById('pin-overlay');
+  if(ov) ov.style.display='none';
   document.getElementById('app').style.display='none';
   const lp=document.getElementById('login-page');
   lp.style.display='flex';
@@ -4398,6 +4402,11 @@ function initPin(){
 ['click','keydown','touchstart','scroll'].forEach(ev=>{
   document.addEventListener(ev,()=>{ if(USER) updateActivity(); },{passive:true});
 });
+// Check when user returns to the tab/app after being away
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible') checkPinTimeout();
+});
+window.addEventListener('focus', checkPinTimeout);
 setInterval(checkPinTimeout, 60000); // check every minute
 
 /* helper: wire up an .ss-trigger div to openSS and keep a hidden value in sync */
