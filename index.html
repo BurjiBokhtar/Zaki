@@ -905,7 +905,7 @@ const T={
     exp_hist:'История расходов',more_exp:'+ ещё',expenses_sfx:'расходов',
     active_adv:'Активные авансы',give_adv:'Выдать аванс',
     no_active_adv:'Нет активных авансов',closed_adv:'Закрытые',
-    active_sfx:'активных',closed_sfx:'закрытых',issued_on:'Выдан',
+    active_sfx:'активных',closed_sfx:'закрытых',issued_on:'Выдан',days_sfx:'дней',
     deadline:'Срок',work_hist:'История работ',
     type_lbl:'Тип',name_org:'Имя / Организация',
     specialty:'Специальность',adv_tjs:'Аванс (TJS)',
@@ -1001,7 +1001,7 @@ const T={
     exp_hist:'Таърихи харҷҳо',more_exp:'+ боз',expenses_sfx:'харҷ',
     active_adv:'Пешпардохтҳои фаъол',give_adv:'Пешпардохт додан',
     no_active_adv:'Пешпардохти фаъол нест',closed_adv:'Пӯшида',
-    active_sfx:'фаъол',closed_sfx:'пӯшида',issued_on:'Дода',
+    active_sfx:'фаъол',closed_sfx:'пӯшида',issued_on:'Дода',days_sfx:'рӯз',
     deadline:'Мӯҳлат',work_hist:'Таърихи корҳо',
     type_lbl:'Навъ',name_org:'Ном / Созмон',
     specialty:'Ихтисос',adv_tjs:'Пешпардохт (TJS)',
@@ -2101,6 +2101,12 @@ async function fSubmit(isSupplier){
     created_by:USER?.id
   });
   if(error){showToast(error.message,true);return;}
+  // Auto-close active advances if supplier balance exhausted
+  if(isSupplier||isSup()){
+    const wName=USER.name;
+    const remAfter=await getSupplierRemaining(wName);
+    if(remAfter<=0) await SB.from('advances').update({status:'done'}).eq('worker_name',wName).eq('status','active');
+  }
   showToast(t('saved'));
   setTimeout(()=>go(isSupplier?'myexp':'ops'),350);
 }
@@ -2973,9 +2979,11 @@ snab_detail:async()=>{
   const name=window._viewWorker;
   if(!name){go('snabs');return '';}
   const rate=COMPANY.usd_rate||10.92;
+  // Only last 10 days for expenses to keep page fast
+  const d10=new Date(Date.now()-10*24*60*60*1000).toISOString().slice(0,10);
   const[{data:advs},{data:ops}]=await Promise.all([
     SB.from('advances').select('*').eq('worker_name',name).order('created_at',{ascending:false}),
-    SB.from('operations').select('*').eq('type','expense').eq('worker_name',name).order('date',{ascending:false})
+    SB.from('operations').select('*').eq('type','expense').eq('worker_name',name).gte('date',d10).order('date',{ascending:false})
   ]);
   const allAdvs=advs||[];
   const active=allAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
@@ -2984,88 +2992,93 @@ snab_detail:async()=>{
   const spent=(ops||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
   const rem=totalGiven-spent;
   const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
-  const pctColor=pct>90?'#E53E3E':pct>70?'#D69E2E':'#39B980';
-  const remColor=rem<0?'#E53E3E':rem<totalGiven*.1?'#D69E2E':'#39B980';
+  const pctColor=pct>90?'var(--red)':pct>70?'var(--yel)':'var(--a)';
+  const remColor=rem<0?'var(--red)':pct>90?'var(--yel)':'var(--adk)';
   const ini=name.split(' ').map(x=>x[0]||'').join('').slice(0,2).toUpperCase();
   const safeN=name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
+  // Compact advance card — no stage track, just one row + small action buttons
   function advCard(a,i){
     const isDone=a.status==='done'||a.status==='closed';
-    const names=Array.isArray(a.stage_names)?a.stage_names:['Старт','Закупка','Доставка','Сдача'];
-    const amtTJS=a.currency==='USD'?a.amount*rate:a.amount;
     const safeObj=(a.object_name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const amtTJS=a.currency==='USD'?a.amount*rate:a.amount;
+    if(isDone) return `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg);border-radius:var(--r2);margin-bottom:6px;opacity:.6;">
+      <span class="badge bg" style="font-size:10px;flex-shrink:0;">✓</span>
+      <div style="flex:1;min-width:0;font-size:12px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.task||'Аванс'}${a.object_name?' · '+a.object_name:''}</div>
+      <span style="font-size:12px;font-weight:700;color:var(--t3);flex-shrink:0;">${fmtN(a.amount)} ${a.currency}</span>
+      ${canWrite()?`<button onclick="reopenAdv(${a.id})" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--w);font-size:10px;cursor:pointer;font-family:var(--ff);color:var(--t4);">↺</button>`:''}
+    </div>`;
     return `
-    <div class="card mb10" style="animation:fadeUp .3s ease ${.08+i*.05}s both;${isDone?'opacity:.65;':''}">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:${isDone?'0':'12px'};">
+    <div class="card mb8" style="animation:fadeUp .3s ease ${.08+i*.04}s both;padding:12px 14px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${canWrite()?'10px':'0'};">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:700;color:var(--t);">${a.task||'Аванс'}</div>
-          <div style="font-size:11px;color:var(--t4);margin-top:2px;">${a.object_name||'—'} · ${a.date||a.created_at?.slice(0,10)||'—'}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--t);">${a.task||'Аванс'}</div>
+          <div style="font-size:11px;color:var(--t4);">${a.object_name||'—'} · ${a.date||a.created_at?.slice(0,10)||'—'}</div>
         </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:10px;">
-          <span class="badge ${isDone?'bg':'by'}">${isDone?'✓ '+t('s_done'):t('stage_lbl')+' '+(a.stage||0)+'/'+(a.stages||4)}</span>
-          <div style="font-size:15px;font-weight:800;color:var(--ad);margin-top:5px;">+${fmtN(a.amount)} ${a.currency}</div>
-          ${a.currency==='USD'?`<div style="font-size:10px;color:var(--t4);">≈ ${fmtN(amtTJS)} TJS</div>`:''}
+        <div style="text-align:right;flex-shrink:0;">
+          <span class="badge by" style="font-size:10px;">${t('stage_lbl')} ${a.stage||0}/${a.stages||4}</span>
+          <div style="font-size:14px;font-weight:800;color:var(--ad);margin-top:4px;">+${fmtN(a.amount)} ${a.currency}</div>
+          ${a.currency==='USD'?`<div style="font-size:10px;color:var(--t4);">≈${fmtN(amtTJS)} TJS</div>`:''}
         </div>
       </div>
-      ${!isDone?stageTrack(a.stage||0,a.stages||4,names):''}
-      ${!isDone&&canWrite()?`
-      <div class="g4 mob-2col" style="gap:6px;margin-top:10px;">
-        <button onclick="advReturn(${a.id})" style="padding:9px 4px;border-radius:var(--r);background:var(--al);border:1px solid rgba(57,185,128,.25);color:var(--adk);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('ret')}</button>
-        <button onclick="advDone(${a.id})" style="padding:9px 4px;border-radius:var(--r);background:var(--bluel);border:1px solid var(--blueb);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('done_ok')}</button>
-        <button onclick="advAddExpense('${safeN}','${safeObj}')" style="padding:9px 4px;border-radius:var(--r);background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);">+ ${t('expense')}</button>
-        <button onclick="advStage(${a.id})" style="padding:9px 4px;border-radius:var(--r);background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')} →</button>
+      ${canWrite()?`
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">
+        <button onclick="advReturn(${a.id})" style="padding:7px 2px;border-radius:8px;background:var(--al);border:1px solid rgba(57,185,128,.2);color:var(--adk);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('ret')}</button>
+        <button onclick="advDone(${a.id})" style="padding:7px 2px;border-radius:8px;background:var(--bluel);border:1px solid var(--blueb);color:var(--blue);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('done_ok')}</button>
+        <button onclick="advAddExpense('${safeN}','${safeObj}')" style="padding:7px 2px;border-radius:8px;background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--ff);">+${t('expense')}</button>
+        <button onclick="advStage(${a.id})" style="padding:7px 2px;border-radius:8px;background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')}→</button>
       </div>`:''}
-      ${isDone&&canWrite()?`<button onclick="reopenAdv(${a.id})" style="margin-top:8px;padding:6px 14px;border-radius:var(--r);border:1px solid var(--bd);background:var(--bg);font-size:11px;cursor:pointer;font-family:var(--ff);color:var(--t3);">↺ Открыть повторно</button>`:''}
     </div>`;
   }
 
   return `
-  <button onclick="go('snabs')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:var(--ff);margin-bottom:14px;">← ${t('snabs')}</button>
+  <button onclick="go('snabs')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:var(--ff);margin-bottom:12px;">← ${t('snabs')}</button>
 
-  <div style="animation:fadeUp .3s ease both;border-radius:20px;background:linear-gradient(145deg,#152235 0%,#0C1A2E 60%,#091525 100%);padding:22px 20px 20px;margin-bottom:14px;position:relative;overflow:hidden;">
-    <div style="position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(232,160,32,.07);pointer-events:none;"></div>
-    <div style="position:absolute;bottom:-30px;left:-20px;width:120px;height:120px;border-radius:50%;background:rgba(57,185,128,.05);pointer-events:none;"></div>
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
-      <div style="width:52px;height:52px;border-radius:16px;background:rgba(232,160,32,.15);border:1.5px solid rgba(232,160,32,.25);color:#E8A020;font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ini}</div>
+  <!-- Header card — light style -->
+  <div class="card mb12" style="animation:fadeUp .3s ease both;padding:16px 18px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div style="width:46px;height:46px;border-radius:14px;background:var(--al);color:var(--adk);font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ini}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:17px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;">${active.length} ${t('active_sfx')} · ${done.length} ${t('closed_sfx')}</div>
+        <div style="font-size:16px;font-weight:800;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+        <div style="font-size:11px;color:var(--t4);margin-top:1px;">${active.length} ${t('active_sfx')} · ${done.length} ${t('closed_sfx')}</div>
       </div>
-      ${canWrite()?`<button onclick="openNewAdvFor('${safeN}')" style="padding:8px 14px;background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.3);border-radius:10px;font-size:12px;font-weight:700;color:#E8A020;cursor:pointer;font-family:var(--ff);white-space:nowrap;">+ ${t('give_adv')}</button>`:''}
+      ${canWrite()?`<button onclick="openNewAdvFor('${safeN}')" class="btn btn-p btn-sm">+ ${t('give_adv')}</button>`:''}
     </div>
-    <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:4px;">${t('rest_lbl')}</div>
-    <div style="font-size:34px;font-weight:900;color:${remColor};letter-spacing:-.5px;margin-bottom:16px;font-family:var(--ff);">${fmtN(rem)} <span style="font-size:16px;font-weight:600;opacity:.7;">TJS</span></div>
-    <div style="background:rgba(255,255,255,.1);border-radius:6px;height:6px;overflow:hidden;margin-bottom:8px;">
+    <!-- Progress bar -->
+    <div style="background:var(--bg2);border-radius:6px;height:8px;overflow:hidden;margin-bottom:6px;">
       <div style="height:100%;width:${pct.toFixed(1)}%;background:${pctColor};border-radius:6px;transition:width .7s;"></div>
     </div>
-    <div style="font-size:11px;color:rgba(255,255,255,.35);margin-bottom:20px;">${Math.round(pct)}% ${t('spent')}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;">
-        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.08em;">${t('adv_issued')}</div>
-        <div style="font-size:15px;font-weight:800;color:#39B980;">+${fmtN(totalGiven)}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.25);">TJS</div>
+    <!-- 3 stats -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">
+      <div style="background:var(--ap);border-radius:10px;padding:9px 10px;">
+        <div style="font-size:10px;color:var(--t4);margin-bottom:2px;">${t('adv_issued')}</div>
+        <div style="font-size:13px;font-weight:800;color:var(--ad);">+${fmtN(totalGiven)}</div>
       </div>
-      <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;">
-        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.08em;">${t('spent')}</div>
-        <div style="font-size:15px;font-weight:800;color:#FC8181;">−${fmtN(spent)}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.25);">TJS</div>
+      <div style="background:var(--redl);border-radius:10px;padding:9px 10px;">
+        <div style="font-size:10px;color:var(--t4);margin-bottom:2px;">${t('spent_lbl')}</div>
+        <div style="font-size:13px;font-weight:800;color:var(--red);">−${fmtN(spent)}</div>
+      </div>
+      <div style="background:${rem<0?'var(--redl)':rem<totalGiven*.1?'var(--yell)':'var(--ap)'};border-radius:10px;padding:9px 10px;">
+        <div style="font-size:10px;color:var(--t4);margin-bottom:2px;">${t('rest_lbl')}</div>
+        <div style="font-size:13px;font-weight:800;color:${remColor};">${fmtN(rem)}</div>
       </div>
     </div>
   </div>
 
   ${active.length?`
-  <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">${t('active_adv')} (${active.length})</div>
+  <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">${t('active_adv')} (${active.length})</div>
   ${active.map((a,i)=>advCard(a,i)).join('')}`:''}
 
-  <div class="card mb10" style="animation:fadeUp .3s ease .2s both;">
-    <div class="sh mb12">
-      <div class="sh-t" style="font-size:13px;font-weight:700;">📋 ${t('recent_exp')}</div>
+  <div class="card mb10" style="animation:fadeUp .3s ease .18s both;">
+    <div class="sh mb10">
+      <div class="sh-t" style="font-size:12px;font-weight:700;">📋 ${t('recent_exp')} <span style="color:var(--t4);font-weight:400;">(10 ${t('days_sfx')})</span></div>
     </div>
-    ${(ops||[]).slice(0,10).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}
+    ${(ops||[]).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}
   </div>
 
   ${done.length?`
-  <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;margin-top:16px;">${t('closed_adv')} (${done.length})</div>
+  <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;margin-top:14px;">${t('closed_adv')} (${done.length})</div>
   ${done.map((a,i)=>advCard(a,active.length+i)).join('')}`:''}`;
 },
 
@@ -3819,7 +3832,14 @@ async function advAddExpense(workerName, objName){
         price:p||null,created_by:USER?.id
       });
       if(error){showToast(error.message,true);return;}
-      closeModal();showToast('✓ '+t('expense')+' '+fmtN(amt)+' '+SEL_CUR);
+      // Auto-close all active advances if balance exhausted
+      const remAfter=await getSupplierRemaining(workerName);
+      if(remAfter<=0){
+        await SB.from('advances').update({status:'done'}).eq('worker_name',workerName).eq('status','active');
+        showToast('✓ '+t('expense')+' '+fmtN(amt)+' '+SEL_CUR+' · Аванс закрыт автоматически');
+      } else {
+        showToast('✓ '+t('expense')+' '+fmtN(amt)+' '+SEL_CUR);
+      }
       renderPage(CUR_PAGE);
     },t('sv_exp')
   );
