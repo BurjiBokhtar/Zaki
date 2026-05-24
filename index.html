@@ -269,7 +269,7 @@ html{height:100dvh;}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
-.mb8{margin-bottom:8px;}.mb12{margin-bottom:12px;}.mb16{margin-bottom:16px;}.mb20{margin-bottom:20px;}
+.mb8{margin-bottom:8px;}.mb10{margin-bottom:10px;}.mb12{margin-bottom:12px;}.mb14{margin-bottom:14px;}.mb16{margin-bottom:16px;}.mb20{margin-bottom:20px;}
 
 /* STAT CARD */
 .sc{background:var(--w);border:1px solid var(--bd);border-radius:var(--r2);padding:14px 16px;box-shadow:var(--sh);animation:fadeUp .3s ease both;position:relative;overflow:hidden;}
@@ -1422,6 +1422,8 @@ const DIR_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{id:'debts'},{s:'an
 const SUP_NAV=[{id:'my'},{id:'addexp'},{id:'myexp'}];
 const SECS={fin:{ru:'Финансы',tj:'Молия'},an:{ru:'Аналитика',tj:'Таҳлил'},oth:{ru:'Прочее',tj:'Дигар'}};
 
+const PARENT_PAGE={snab_detail:'snabs'};
+function navActive(id){return id===CUR_PAGE||(PARENT_PAGE[CUR_PAGE]===id);}
 function buildNav(){
   const role=USER?.role;
   // supplier -> снабженец, director -> только просмотр, все остальные (accountant, admin, manager, owner и т.д.) -> полный доступ
@@ -1430,19 +1432,19 @@ function buildNav(){
   // Sidebar nav
   document.getElementById('sb-nav').innerHTML=navDef.map(n=>{
     if(n.s) return `<div class="sb-sec">${SECS[n.s]?.[LANG]||''}</div>`;
-    return `<div class="sb-item ${n.id===CUR_PAGE?'on':''}" id="sbi-${n.id}" onclick="go('${n.id}')">${NAV_ICO[n.id]||''}<span>${t(NAV_K[n.id])}</span></div>`;
+    return `<div class="sb-item ${navActive(n.id)?'on':''}" id="sbi-${n.id}" onclick="go('${n.id}')">${NAV_ICO[n.id]||''}<span>${t(NAV_K[n.id])}</span></div>`;
   }).join('');
   // Mob tabs
-  document.getElementById('mob-tabs').innerHTML=pages.map(p=>`<div class="mob-tab ${p.id===CUR_PAGE?'on':''}" onclick="go('${p.id}')">${t(NAV_K[p.id])}</div>`).join('');
+  document.getElementById('mob-tabs').innerHTML=pages.map(p=>`<div class="mob-tab ${navActive(p.id)?'on':''}" onclick="go('${p.id}')">${t(NAV_K[p.id])}</div>`).join('');
   // Bottom nav — exclude the FAB page from the regular nav items to avoid duplicates
   const fab=role==='supplier'?'addexp':'ops';
   const bnPages=pages.filter(p=>p.id!==fab);
   const half=Math.ceil(bnPages.length/2);
   const s2=bnPages.slice(0,half),l2=bnPages.slice(half);
   document.getElementById('bn-row').innerHTML=
-    s2.map(p=>`<button class="nb ${p.id===CUR_PAGE?'on':''}" onclick="go('${p.id}')">${NAV_ICO[p.id]||''}<span class="nb-l">${t(NAV_K[p.id])}</span></button>`).join('')+
+    s2.map(p=>`<button class="nb ${navActive(p.id)?'on':''}" onclick="go('${p.id}')">${NAV_ICO[p.id]||''}<span class="nb-l">${t(NAV_K[p.id])}</span></button>`).join('')+
     `<div class="nb-fw"><div class="nb-fab" onclick="go('${fab}')"><svg width="19" height="19" viewBox="0 0 19 19" fill="none"><path d="M9.5 3v13M3 9.5h13" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>`+
-    l2.map(p=>`<button class="nb ${p.id===CUR_PAGE?'on':''}" onclick="go('${p.id}')">${NAV_ICO[p.id]||''}<span class="nb-l">${t(NAV_K[p.id])}</span></button>`).join('');
+    l2.map(p=>`<button class="nb ${navActive(p.id)?'on':''}" onclick="go('${p.id}')">${NAV_ICO[p.id]||''}<span class="nb-l">${t(NAV_K[p.id])}</span></button>`).join('');
   // User info
   // Поддержка любой роли: admin, manager, owner и т.д. -> полный доступ как бухгалтер
   const roleLabel={accountant:t('acc'),supplier:t('sup'),director:t('dir'),admin:'Администратор',manager:'Менеджер',owner:'Владелец'};
@@ -3013,7 +3015,7 @@ snab_detail:async()=>{
         <button onclick="advAddExpense('${safeN}','${safeObj}')" style="padding:9px 4px;border-radius:var(--r);background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);">+ ${t('expense')}</button>
         <button onclick="advStage(${a.id})" style="padding:9px 4px;border-radius:var(--r);background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')} →</button>
       </div>`:''}
-      ${isDone&&canWrite()?`<button onclick="reopenAdv(${a.id})" style="margin-top:8px;padding:6px 14px;border-radius:var(--r);border:1px solid var(--bd);background:var(--bg);font-size:11px;cursor:pointer;font-family:var(--ff);color:var(--t3);">↺ ${t('adv_reopened')}</button>`:''}
+      ${isDone&&canWrite()?`<button onclick="reopenAdv(${a.id})" style="margin-top:8px;padding:6px 14px;border-radius:var(--r);border:1px solid var(--bd);background:var(--bg);font-size:11px;cursor:pointer;font-family:var(--ff);color:var(--t3);">↺ Открыть повторно</button>`:''}
     </div>`;
   }
 
@@ -3563,7 +3565,7 @@ function openNewAdvanceFull(){
         if(oe){showToast(t('adv_op_warn')+': '+oe.message,true);}
         else showToast('✓ Аванс '+fmtN(amt)+' '+cur+' выдан → '+worker);
         closeModal();
-        renderPage('snabs');
+        renderPage(CUR_PAGE);
       },
       'Выдать аванс →'
     );
@@ -3818,7 +3820,7 @@ async function advAddExpense(workerName, objName){
       });
       if(error){showToast(error.message,true);return;}
       closeModal();showToast('✓ '+t('expense')+' '+fmtN(amt)+' '+SEL_CUR);
-      renderPage('snabs');
+      renderPage(CUR_PAGE);
     },t('sv_exp')
   );
   setTimeout(()=>{
