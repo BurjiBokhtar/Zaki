@@ -1416,7 +1416,7 @@ const NAV_ICO={
   myexp:`<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4.5 4h9M4.5 7.5h9M4.5 11h9M2 4h.5M2 7.5h.5M2 11h.5" stroke-linecap="round"/></svg>`,
   tasks:`<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 7.5l4 4L13 3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 };
-const NAV_K={home:'home',ops:'ops',snabs:'snabs',masters:'masters',debts:'debts',stats:'stats',settings:'settings',my:'my',addexp:'addexp',myexp:'myexp',tasks:'tasks'};
+const NAV_K={home:'home',ops:'ops',snabs:'snabs',snab_detail:'snabs',masters:'masters',debts:'debts',stats:'stats',settings:'settings',my:'my',addexp:'addexp',myexp:'myexp',tasks:'tasks'};
 const BUH_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{id:'debts'},{s:'an'},{id:'stats'},{s:'oth'},{id:'settings'}];
 const DIR_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{id:'debts'},{s:'an'},{id:'stats'}];
 const SUP_NAV=[{id:'my'},{id:'addexp'},{id:'myexp'}];
@@ -2873,127 +2873,74 @@ ops:async()=>{
 /* ── SNABS ── */
 snabs:async()=>{
   const rate=COMPANY.usd_rate||10.92;
-  const[{data:advs},{data:allOps},{data:profiles}]=await Promise.all([
+  const[{data:advs},{data:allOps}]=await Promise.all([
     SB.from('advances').select('*').order('created_at',{ascending:false}),
-    SB.from('operations').select('worker_name,amount,currency,type,date,description,amount_tjs').eq('type','expense'),
-    SB.from('profiles').select('name,role').in('role',['supplier','accountant','admin'])
+    SB.from('operations').select('worker_name,amount_tjs,type').eq('type','expense')
   ]);
-  window._advProfiles = profiles||[];
   const clrs=['var(--a)','var(--blue)','var(--pur)','var(--ora)'];
   const bgs=['var(--al)','var(--bluel)','var(--purl)','var(--oral)'];
-  const totalAdv=(advs||[]).reduce((a,x)=>a+x.amount,0);
-  const totalSpentTJS=(allOps||[]).filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
-  const totalSpentUSD=(allOps||[]).filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
 
-  const active=(advs||[]).filter(a=>a.status!=='done'&&a.status!=='closed');
-  const done=(advs||[]).filter(a=>a.status==='done'||a.status==='closed');
+  // Group by worker
+  const workerMap=new Map();
+  (advs||[]).forEach(a=>{
+    if(!a.worker_name)return;
+    if(!workerMap.has(a.worker_name))workerMap.set(a.worker_name,[]);
+    workerMap.get(a.worker_name).push(a);
+  });
+  const workerList=[...workerMap.entries()].map(([name,wAdvs])=>{
+    const active=wAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
+    const done=wAdvs.filter(a=>a.status==='done'||a.status==='closed');
+    const totalGiven=wAdvs.filter(a=>a.status!=='done'&&a.status!=='closed').reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+    const spent=(allOps||[]).filter(o=>o.worker_name===name).reduce((s,o)=>s+(o.amount_tjs||0),0);
+    const rem=totalGiven-spent;
+    const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
+    return{name,active,done,totalGiven,spent,rem,pct};
+  });
 
-  function advCard(a,i){
-    const rate2=COMPANY.usd_rate||10.92;
-    const workerOps=(allOps||[]).filter(o=>o.worker_name===a.worker_name);
-    const spentTJS=workerOps.filter(o=>o.currency==='TJS').reduce((s,o)=>s+o.amount,0);
-    const spentUSD=workerOps.filter(o=>o.currency==='USD').reduce((s,o)=>s+o.amount,0);
-    const spent=spentTJS+(spentUSD*rate2);
-    const total=a.amount*(a.currency==='USD'?rate2:1);
-    const rem=total-spent;
-    const pct=total>0?Math.min(spent/total*100,100):0;
-    const isOver=rem<0;
-    const isDone=a.status==='done'||a.status==='closed';
+  const totalGivenAll=workerList.reduce((s,w)=>s+w.totalGiven,0);
+  const totalSpentAll=workerList.reduce((s,w)=>s+w.spent,0);
+  const activeCount=workerList.reduce((s,w)=>s+w.active.length,0);
+
+  function workerCard(w,i){
     const clr=clrs[i%4],bg=bgs[i%4];
-    const names=Array.isArray(a.stage_names)?a.stage_names:['Старт','Закупка','Доставка','Сдача'];
-
-    if(isDone){
-      // Compact done card
-      return `<div class="pc" style="animation-delay:${i*.05}s;opacity:.7;padding:10px 14px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="ava" style="width:34px;height:34px;background:${bg};color:${clr};font-size:11px;">${(a.worker_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:600;color:var(--t2);">${a.worker_name}</div>
-            <div style="font-size:10px;color:var(--t4);">${a.task||'—'} · ${a.object_name||'—'}</div>
-          </div>
-          <span class="badge bg" style="font-size:10px;">✓ ${t('s_done')}</span>
-          <div style="text-align:right;font-size:11px;">
-            <div style="color:var(--t3);">${t('adv_issued')}: ${fmtN(a.amount)} ${a.currency}</div>
-            <div style="color:var(--t4);">${t('spent_lbl')}: ${fmtN(spentTJS)} TJS${spentUSD>0?' / $'+fmtN(spentUSD)+' USD':''}</div>
-          </div>
-          ${canWrite()?`<button onclick="reopenAdv(${a.id})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);font-size:11px;cursor:pointer;font-family:var(--ff);color:var(--t3);">↺</button>`:''}
+    const ini=w.name.split(' ').map(x=>x[0]||'').join('').slice(0,2).toUpperCase();
+    const pctColor=w.pct>90?'var(--red)':w.pct>70?'var(--yel)':'var(--a)';
+    const remColor=w.rem<0?'var(--red)':w.pct>70?'var(--yel)':'var(--adk)';
+    const safeN=w.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `
+    <div class="card mb12" style="animation:fadeUp .3s ease ${i*.06}s both;cursor:pointer;" onclick="openWorkerDetail('${safeN}')">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div style="width:46px;height:46px;border-radius:14px;background:${bg};color:${clr};font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ini}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:700;color:var(--t);">${w.name}</div>
+          <div style="font-size:11px;color:var(--t4);margin-top:2px;">${w.active.length} ${t('active_sfx')} · ${w.done.length} ${t('closed_sfx')}</div>
         </div>
-      </div>`;
-    }
-
-    return `<div class="pc" style="animation-delay:${i*.07}s;">
-      <div class="pc-top">
-        <div class="pc-lft">
-          <div class="ava" style="width:42px;height:42px;background:${bg};color:${clr};">${(a.worker_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
-          <div>
-            <div class="pc-name">${a.worker_name}</div>
-            <div class="pc-sub">${a.task||'—'} · ${a.object_name||'—'}</div>
-            <div style="font-size:10px;color:var(--t4);margin-top:1px;">${t('issued_on')}: ${a.created_at?a.created_at.slice(0,10):'—'}</div>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-          <span class="badge ${isOver?'br':pct>80?'by':'bg'}">${isOver?t('overspent'):pct>80?t('almost'):t('stage_lbl')+' '+(a.stage||0)+'/'+(a.stages||4)}</span>
-          <div style="font-size:12px;font-weight:700;color:var(--t);">${fmtN(a.amount)} ${a.currency}</div>
+        <div style="text-align:right;">
+          <div style="font-size:18px;font-weight:800;color:${remColor};">${fmtN(w.rem)}</div>
+          <div style="font-size:10px;color:var(--t4);">TJS ${t('rest_lbl')}</div>
         </div>
       </div>
-
-      ${stageTrack(a.stage||0,a.stages||4,names)}
-
-      <div class="bar-tr mb8">
-        <div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${isOver?'var(--red)':pct>80?'var(--yel)':clr};animation-delay:${.1+i*.07}s;"></div>
+      <div style="background:var(--bg2);border-radius:6px;height:6px;overflow:hidden;margin-bottom:6px;">
+        <div style="height:100%;width:${w.pct.toFixed(1)}%;background:${pctColor};border-radius:6px;transition:width .6s;"></div>
       </div>
-
-      <div class="g3" style="gap:7px;margin-bottom:10px;">
-        <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px;text-align:center;">
-          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">${t('adv_issued')}</div>
-          <div style="font-size:13px;font-weight:700;color:var(--ad);">${fmtN(a.amount)} ${a.currency}</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+        <span style="font-size:10px;color:var(--t4);">${Math.round(w.pct)}% ${t('spent')}</span>
+        <span style="font-size:10px;color:var(--t4);">${t('adv_issued')}: ${fmtN(w.totalGiven)} TJS</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div style="background:var(--ap);border-radius:10px;padding:9px 12px;">
+          <div style="font-size:10px;color:var(--t4);margin-bottom:3px;">${t('adv_issued')}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ad);">+${fmtN(w.totalGiven)} TJS</div>
         </div>
-        <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px;text-align:center;">
-          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">${t('spent_lbl')}</div>
-          <div style="font-size:13px;font-weight:700;color:var(--red);">${fmtN(spentTJS)} TJS${spentUSD>0?'<br><span style="font-size:10px;">$'+fmtN(spentUSD)+'</span>':''}</div>
-        </div>
-        <div style="background:var(--bg);border:1px solid ${isOver?'var(--redb)':'var(--bd)'};border-radius:var(--r);padding:8px;text-align:center;">
-          <div style="font-size:9px;color:var(--t4);text-transform:uppercase;margin-bottom:2px;">${t('rest_lbl')}</div>
-          <div style="font-size:13px;font-weight:700;color:${isOver?'var(--red)':'var(--adk)'};">${isOver?'−':''}${fmtN(Math.abs(rem))} TJS</div>
+        <div style="background:var(--redl);border-radius:10px;padding:9px 12px;">
+          <div style="font-size:10px;color:var(--t4);margin-bottom:3px;">${t('spent_lbl')}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--red);">−${fmtN(w.spent)} TJS</div>
         </div>
       </div>
-
-      ${canWrite()?`
-      <div class="g4 mob-2col" style="gap:6px;margin-bottom:8px;">
-        <button onclick="advReturn(${a.id},'money')"
-          style="padding:8px 4px;border-radius:var(--r);background:var(--al);border:1px solid rgba(57,185,128,.25);color:var(--adk);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
-          onmouseover="this.style.background='rgba(57,185,128,.2)'" onmouseout="this.style.background='var(--al)'">
-          ${t('ret')}
-        </button>
-        <button onclick="advDone(${a.id})"
-          style="padding:8px 4px;border-radius:var(--r);background:var(--bluel);border:1px solid var(--blueb);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
-          onmouseover="this.style.background='#d0e8fa'" onmouseout="this.style.background='var(--bluel)'">
-          ${t('done_ok')}
-        </button>
-        <button onclick="advAddExpense('${a.worker_name}','${a.object_name||''}')"
-          style="padding:8px 4px;border-radius:var(--r);background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;"
-          onmouseover="this.style.background='#ffe0e0'" onmouseout="this.style.background='var(--redl)'">
-          + ${t('expense')}
-        </button>
-        <button onclick="advStage(${a.id})"
-          style="padding:8px 4px;border-radius:var(--r);background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .15s;">
-          ${t('stage_lbl')} →
-        </button>
-      </div>`:''}
-
-      ${workerOps.length?`
-      <div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:2px;">
-        <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${t('exp_hist')}</div>
-        ${workerOps.slice(0,4).map(o=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bg2);">
-            <div>
-              <span style="font-size:11px;color:var(--t2);">${o.description||o.category_name||'—'}</span>
-              <span style="font-size:10px;color:var(--t4);margin-left:6px;">${o.date}</span>
-            </div>
-            <span style="font-size:11px;font-weight:600;color:var(--red);">−${fmtN(o.amount)} ${o.currency}</span>
-          </div>`).join('')}
-        ${workerOps.length>4?`<div style="font-size:10px;color:var(--t4);text-align:center;padding-top:4px;">${t('more_exp')} ${workerOps.length-4} ${t('expenses_sfx')}</div>`:''}
-      </div>`:''}
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+        ${canWrite()?`<button onclick="event.stopPropagation();openNewAdvFor('${safeN}')" style="padding:10px;background:var(--al);border:1.5px solid rgba(57,185,128,.25);border-radius:10px;font-size:12px;font-weight:700;color:var(--adk);cursor:pointer;font-family:var(--ff);">+ ${t('give_adv')}</button>`:'<div></div>'}
+        <button onclick="event.stopPropagation();openWorkerDetail('${safeN}')" style="padding:10px 16px;background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;font-size:12px;font-weight:700;color:var(--t3);cursor:pointer;font-family:var(--ff);">${t('details')} →</button>
+      </div>
     </div>`;
   }
 
@@ -3001,32 +2948,123 @@ snabs:async()=>{
   <div class="g2 mb16">
     <div class="sc g" style="animation-delay:.03s;">
       <div class="sc-lbl">↑ ${t('adv_iss')}</div>
-      <div style="font-size:20px;font-weight:800;color:var(--ad);">${fmtN(totalAdv)} TJS</div>
-      <div class="sc-val2">${active.length} ${t('active_sfx')} · ${done.length} ${t('closed_sfx')}</div>
+      <div style="font-size:20px;font-weight:800;color:var(--ad);">${fmtN(totalGivenAll)} TJS</div>
+      <div class="sc-val2">${workerList.length} снабж. · ${activeCount} ${t('active_sfx')}</div>
     </div>
     <div class="sc r" style="animation-delay:.06s;">
       <div class="sc-lbl">↓ ${t('spent_lbl')}</div>
-      <div style="display:flex;gap:12px;align-items:baseline;margin-top:3px;">
-        <div style="font-size:20px;font-weight:800;color:var(--red);">${fmtN(totalSpentTJS)} TJS</div>
-        ${totalSpentUSD>0?`<div style="font-size:14px;font-weight:700;color:var(--ora);">$${fmtN(totalSpentUSD)}</div>`:''}
-      </div>
+      <div style="font-size:20px;font-weight:800;color:var(--red);">${fmtN(totalSpentAll)} TJS</div>
+      <div class="sc-val2">${t('rest_lbl')}: ${fmtN(totalGivenAll-totalSpentAll)} TJS</div>
     </div>
   </div>
-
-  <div class="sh">
-    <div class="sh-t">${t('active_adv')} (${active.length})</div>
+  <div class="sh mb12">
+    <div class="sh-t">${t('snabs')} (${workerList.length})</div>
     ${canWrite()?`<button class="btn btn-p btn-sm" onclick="openNewAdv()" style="display:flex;align-items:center;gap:5px;">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 1v11M1 6.5h11"/></svg>
       ${t('give_adv')}
     </button>`:''}
   </div>
-  ${active.map((a,i)=>advCard(a,i)).join('')||`<div class="empty"><div class="empty-icon">👷</div>${t('no_active_adv')}</div>`}
+  ${workerList.length?workerList.map((w,i)=>workerCard(w,i)).join(''):`<div class="empty"><div class="empty-icon">👷</div>${t('no_active_adv')}</div>`}`;
+},
+
+snab_detail:async()=>{
+  const name=window._viewWorker;
+  if(!name){go('snabs');return '';}
+  const rate=COMPANY.usd_rate||10.92;
+  const[{data:advs},{data:ops}]=await Promise.all([
+    SB.from('advances').select('*').eq('worker_name',name).order('created_at',{ascending:false}),
+    SB.from('operations').select('*').eq('type','expense').eq('worker_name',name).order('date',{ascending:false})
+  ]);
+  const allAdvs=advs||[];
+  const active=allAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
+  const done=allAdvs.filter(a=>a.status==='done'||a.status==='closed');
+  const totalGiven=active.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+  const spent=(ops||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
+  const rem=totalGiven-spent;
+  const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
+  const pctColor=pct>90?'#E53E3E':pct>70?'#D69E2E':'#39B980';
+  const remColor=rem<0?'#E53E3E':rem<totalGiven*.1?'#D69E2E':'#39B980';
+  const ini=name.split(' ').map(x=>x[0]||'').join('').slice(0,2).toUpperCase();
+  const safeN=name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+  function advCard(a,i){
+    const isDone=a.status==='done'||a.status==='closed';
+    const names=Array.isArray(a.stage_names)?a.stage_names:['Старт','Закупка','Доставка','Сдача'];
+    const amtTJS=a.currency==='USD'?a.amount*rate:a.amount;
+    const safeObj=(a.object_name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `
+    <div class="card mb10" style="animation:fadeUp .3s ease ${.08+i*.05}s both;${isDone?'opacity:.65;':''}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:${isDone?'0':'12px'};">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:700;color:var(--t);">${a.task||'Аванс'}</div>
+          <div style="font-size:11px;color:var(--t4);margin-top:2px;">${a.object_name||'—'} · ${a.date||a.created_at?.slice(0,10)||'—'}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+          <span class="badge ${isDone?'bg':'by'}">${isDone?'✓ '+t('s_done'):t('stage_lbl')+' '+(a.stage||0)+'/'+(a.stages||4)}</span>
+          <div style="font-size:15px;font-weight:800;color:var(--ad);margin-top:5px;">+${fmtN(a.amount)} ${a.currency}</div>
+          ${a.currency==='USD'?`<div style="font-size:10px;color:var(--t4);">≈ ${fmtN(amtTJS)} TJS</div>`:''}
+        </div>
+      </div>
+      ${!isDone?stageTrack(a.stage||0,a.stages||4,names):''}
+      ${!isDone&&canWrite()?`
+      <div class="g4 mob-2col" style="gap:6px;margin-top:10px;">
+        <button onclick="advReturn(${a.id})" style="padding:9px 4px;border-radius:var(--r);background:var(--al);border:1px solid rgba(57,185,128,.25);color:var(--adk);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('ret')}</button>
+        <button onclick="advDone(${a.id})" style="padding:9px 4px;border-radius:var(--r);background:var(--bluel);border:1px solid var(--blueb);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('done_ok')}</button>
+        <button onclick="advAddExpense('${safeN}','${safeObj}')" style="padding:9px 4px;border-radius:var(--r);background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);">+ ${t('expense')}</button>
+        <button onclick="advStage(${a.id})" style="padding:9px 4px;border-radius:var(--r);background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')} →</button>
+      </div>`:''}
+      ${isDone&&canWrite()?`<button onclick="reopenAdv(${a.id})" style="margin-top:8px;padding:6px 14px;border-radius:var(--r);border:1px solid var(--bd);background:var(--bg);font-size:11px;cursor:pointer;font-family:var(--ff);color:var(--t3);">↺ ${t('adv_reopened')}</button>`:''}
+    </div>`;
+  }
+
+  return `
+  <button onclick="go('snabs')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:var(--ff);margin-bottom:14px;">← ${t('snabs')}</button>
+
+  <div style="animation:fadeUp .3s ease both;border-radius:20px;background:linear-gradient(145deg,#152235 0%,#0C1A2E 60%,#091525 100%);padding:22px 20px 20px;margin-bottom:14px;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(232,160,32,.07);pointer-events:none;"></div>
+    <div style="position:absolute;bottom:-30px;left:-20px;width:120px;height:120px;border-radius:50%;background:rgba(57,185,128,.05);pointer-events:none;"></div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+      <div style="width:52px;height:52px;border-radius:16px;background:rgba(232,160,32,.15);border:1.5px solid rgba(232,160,32,.25);color:#E8A020;font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ini}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:17px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;">${active.length} ${t('active_sfx')} · ${done.length} ${t('closed_sfx')}</div>
+      </div>
+      ${canWrite()?`<button onclick="openNewAdvFor('${safeN}')" style="padding:8px 14px;background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.3);border-radius:10px;font-size:12px;font-weight:700;color:#E8A020;cursor:pointer;font-family:var(--ff);white-space:nowrap;">+ ${t('give_adv')}</button>`:''}
+    </div>
+    <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:4px;">${t('rest_lbl')}</div>
+    <div style="font-size:34px;font-weight:900;color:${remColor};letter-spacing:-.5px;margin-bottom:16px;font-family:var(--ff);">${fmtN(rem)} <span style="font-size:16px;font-weight:600;opacity:.7;">TJS</span></div>
+    <div style="background:rgba(255,255,255,.1);border-radius:6px;height:6px;overflow:hidden;margin-bottom:8px;">
+      <div style="height:100%;width:${pct.toFixed(1)}%;background:${pctColor};border-radius:6px;transition:width .7s;"></div>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.35);margin-bottom:20px;">${Math.round(pct)}% ${t('spent')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.08em;">${t('adv_issued')}</div>
+        <div style="font-size:15px;font-weight:800;color:#39B980;">+${fmtN(totalGiven)}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.25);">TJS</div>
+      </div>
+      <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.08em;">${t('spent')}</div>
+        <div style="font-size:15px;font-weight:800;color:#FC8181;">−${fmtN(spent)}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.25);">TJS</div>
+      </div>
+    </div>
+  </div>
+
+  ${active.length?`
+  <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">${t('active_adv')} (${active.length})</div>
+  ${active.map((a,i)=>advCard(a,i)).join('')}`:''}
+
+  <div class="card mb10" style="animation:fadeUp .3s ease .2s both;">
+    <div class="sh mb12">
+      <div class="sh-t" style="font-size:13px;font-weight:700;">📋 ${t('recent_exp')}</div>
+    </div>
+    ${(ops||[]).slice(0,10).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}
+  </div>
 
   ${done.length?`
-  <div class="sh" style="margin-top:12px;"><div class="sh-t" style="color:var(--t3);">${t('closed_adv')} (${done.length})</div></div>
-  ${done.map((a,i)=>advCard(a,active.length+i)).join('')}
-  `:''}
-  `;
+  <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;margin-top:16px;">${t('closed_adv')} (${done.length})</div>
+  ${done.map((a,i)=>advCard(a,active.length+i)).join('')}`:''}`;
 },
 
 
@@ -3565,16 +3603,20 @@ async function advStage(id){
   if(error){showToast(error.message,true);return;}
   showToast('✓ Этап обновлён');renderPage(CUR_PAGE);
 }
+window._viewWorker='';
+function openWorkerDetail(name){window._viewWorker=name;go('snab_detail');}
+function openNewAdvFor(name){window._pendingAdvWorker=name;openNewAdv();}
+
 async function showWorkerOps(name){
   const{data:ops}=await SB.from('operations').select('*').eq('worker_name',name).order('date',{ascending:false});
   openModal('Расходы: '+name,`<div style="max-height:380px;overflow-y:auto;">${(ops||[]).map(o=>txRow(o,false)).join('')||`<div class="empty">${t('no_data')}</div>`}</div>`,()=>closeModal(),'Закрыть');
   document.getElementById('m-ft').innerHTML=`<button class="btn btn-p btn-sm" onclick="closeModal()">Закрыть</button>`;
 }
 async function openNewAdv(){
-  // Load both profiles (suppliers) and all names from advances
-  const[{data:suppliers},{data:existingAdvs}]=await Promise.all([
-    SB.from('profiles').select('name,role').eq('role','supplier'),
-    SB.from('advances').select('worker_name').neq('worker_name','')
+  const preWorker=window._pendingAdvWorker||'';
+  window._pendingAdvWorker='';
+  const[{data:suppliers}]=await Promise.all([
+    SB.from('profiles').select('name,role').eq('role','supplier')
   ]);
   const allNames=(suppliers||[]).map(u=>u.name).filter(Boolean);
 
@@ -3582,8 +3624,8 @@ async function openNewAdv(){
     <div class="fg f2">
       <div class="fld s2">
         <div class="fld-l">Кому выдаётся (выберите или введите)</div>
-        <input type="hidden" id="na-w" value="">
-        <div class="fi ss-trigger ss-empty-val" id="na-w-tr">Выберите из списка или введите имя...</div>
+        <input type="hidden" id="na-w" value="${preWorker}">
+        <div class="fi ss-trigger${preWorker?'':' ss-empty-val'}" id="na-w-tr">${preWorker||'Выберите из списка или введите имя...'}</div>
       </div>
       <div class="fld s2">
         <div class="fld-l">Задача / Назначение</div>
@@ -3645,7 +3687,7 @@ async function openNewAdv(){
       });
       if(oe){showToast(t('adv_op_warn')+': '+oe.message,true);}
       closeModal();showToast('✓ Аванс '+fmtN(amt)+' '+cur+' → '+w+' выдан');
-      renderPage('snabs');
+      renderPage(CUR_PAGE);
     },'Выдать аванс →'
   );
   // Wire searchable selects
@@ -3703,7 +3745,7 @@ async function advReturn(id){
       });
       const{data:adv}=await SB.from('advances').select('amount,currency').eq('id',id).single();
       closeModal();showToast('✓ Возврат '+fmtN(amt)+' TJS зафиксирован');
-      renderPage('snabs');
+      renderPage(CUR_PAGE);
     },'Зафиксировать');
   setTimeout(()=>{const el=document.getElementById('ar-amt');if(el)el.focus();},120);
 }
@@ -3714,13 +3756,13 @@ async function advDone(id){
     const{error}=await SB.from('advances').update({status:'done',stage:4}).eq('id',id);
     if(error){showToast(error.message,true);return;}
     showToast('✓ Аванс закрыт — работа выполнена');
-    renderPage('snabs');
+    renderPage(CUR_PAGE);
   },'Подтвердить');
 }
 
 async function reopenAdv(id){
   await SB.from('advances').update({status:'active'}).eq('id',id);
-  showToast(t('adv_reopened'));renderPage('snabs');
+  showToast(t('adv_reopened'));renderPage(CUR_PAGE);
 }
 
 async function advAddExpense(workerName, objName){
