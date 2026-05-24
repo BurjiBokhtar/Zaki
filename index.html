@@ -922,6 +922,10 @@ const T={
     no_funds:'Недостаточно средств в кассе',no_funds_detail:'Баланс кассы',need:'нужно',
     adv_close_deny:'⛔ Только бухгалтер может закрыть аванс',
     adv_over:'❌ Превышает выданный аванс!',adv_over_detail:'Остаток аванса',
+    pin_enter:'Введите PIN-код',pin_create:'Создайте PIN-код',pin_confirm:'Подтвердите PIN',
+    pin_wrong:'Неверный PIN',pin_att_left:'осталось попыток',pin_max:'Слишком много попыток. Выход из системы...',
+    pin_mismatch:'PIN-коды не совпадают. Попробуйте снова.',pin_saved:'сохранён',
+    pin_forgot_q:'Забыли PIN? Придётся заново войти в систему.',pin_forgot_yes:'Выйти',
     cat_l:'Категория',no_obj:'— Без объекта —',
     adv_to:'Кому выдаётся',adv_task:'Задача / Назначение',
     adv_amt:'Сумма аванса',optional:'Необязательно',
@@ -1014,6 +1018,10 @@ const T={
     no_funds:'Маблағ дар хазина кофӣ нест',no_funds_detail:'Баланси хазина',need:'лозим',
     adv_close_deny:'⛔ Танҳо ҳисобдор метавонад пешпардохтро пӯшад',
     adv_over:'❌ Маблағ аз пешпардохт зиёд аст!',adv_over_detail:'Боқимондаи пешпардохт',
+    pin_enter:'PIN-кодро ворид кунед',pin_create:'PIN-код созед',pin_confirm:'PIN-кодро тасдиқ кунед',
+    pin_wrong:'PIN нодуруст',pin_att_left:'кӯшиш боқӣ',pin_max:'Кӯшишҳо тамом шуд. Аз система баромад...',
+    pin_mismatch:'PIN-кодҳо мувофиқат намекунанд. Дубора кӯшиш кунед.',pin_saved:'сохта шуд',
+    pin_forgot_q:'PIN-кодро фаромӯш кардед? Бояд аз нав ворид шавед.',pin_forgot_yes:'Баромадан',
     cat_l:'Категория',no_obj:'— Бе объект —',
     adv_to:'Ба кӣ дода мешавад',adv_task:'Вазифа / Таъинот',
     adv_amt:'Маблағи пешпардохт',optional:'Ихтиёрӣ',
@@ -1777,6 +1785,7 @@ async function doLogin(){
     buildNav();updatePeriodBtns();
     CUR_PAGE=USER.role==='supplier'?'my':'home';
     go(CUR_PAGE);
+    initPin();
     // Start pulse bar
     updatePulse();
     setInterval(updatePulse,60000); // refresh every minute
@@ -4147,6 +4156,13 @@ if('serviceWorker' in navigator){
       buildNav();updatePeriodBtns();
       CUR_PAGE=USER.role==='supplier'?'my':'home';
       go(CUR_PAGE);
+      // Check PIN: lock if session restored after timeout, or setup if no PIN
+      if(localStorage.getItem(PIN_KEY)){
+        if(Date.now()-_lastAct()>PIN_TIMEOUT) showPinLock('lock');
+        else updateActivity();
+      } else {
+        setTimeout(()=>showPinLock('setup1'),400);
+      }
       return;
     }
   }
@@ -4253,6 +4269,137 @@ function openSS(title, items, currentVal, onSelect, allowCustom=false){
   }
 }
 
+/* ══════════════════════════════════════════════
+   PIN-LOCK  —  4-digit lock screen
+   ══════════════════════════════════════════════ */
+const PIN_TIMEOUT   = 60 * 60 * 1000; // 1 hour
+const PIN_MAX_ATT   = 3;
+const PIN_KEY       = 'zaki_pin';
+const PIN_ACT_KEY   = 'zaki_last_act';
+
+let _pinBuf    = '';   // digits typed so far
+let _pinAtt    = 0;    // wrong attempts
+let _pinMode   = 'lock';  // 'lock' | 'setup1' | 'setup2'
+let _pinFirst  = '';   // first entry during setup
+
+/* simple obfuscation — enough for a local lock screen */
+function _ph(p){ return btoa('zaki2025:'+p); }
+
+/* ── activity tracking ── */
+function updateActivity(){ localStorage.setItem(PIN_ACT_KEY, Date.now()); }
+function _lastAct(){ return parseInt(localStorage.getItem(PIN_ACT_KEY)||'0'); }
+
+function checkPinTimeout(){
+  if(!USER) return;                          // not logged in
+  const ov=document.getElementById('pin-overlay');
+  if(ov && ov.style.display!=='none') return; // already locked
+  if(Date.now()-_lastAct()>PIN_TIMEOUT){ showPinLock('lock'); }
+}
+
+/* ── show / hide ── */
+function showPinLock(mode='lock'){
+  _pinMode=mode; _pinBuf=''; _pinFirst='';
+  const ov=document.getElementById('pin-overlay');
+  if(!ov) return;
+  ov.style.display='flex';
+  _pinUpdateTitle();
+  _pinUpdateDots();
+  document.getElementById('pin-err').textContent='';
+}
+
+function hidePinLock(){
+  const ov=document.getElementById('pin-overlay');
+  if(ov) ov.style.display='none';
+  updateActivity();
+}
+
+function _pinUpdateTitle(){
+  const el=document.getElementById('pin-title');
+  if(!el) return;
+  const names={lock:t('pin_enter'),setup1:t('pin_create'),setup2:t('pin_confirm')};
+  el.textContent=names[_pinMode]||t('pin_enter');
+  const un=document.getElementById('pin-user');
+  if(un) un.textContent=USER?.name||'';
+}
+
+function _pinUpdateDots(){
+  const cont=document.getElementById('pin-dots');
+  if(!cont) return;
+  cont.innerHTML='';
+  for(let i=0;i<4;i++){
+    const d=document.createElement('div');
+    d.style.cssText=`width:14px;height:14px;border-radius:50%;border:2px solid ${i<_pinBuf.length?'#39B980':'rgba(255,255,255,.3)'};background:${i<_pinBuf.length?'#39B980':'transparent'};transition:all .15s;`;
+    cont.appendChild(d);
+  }
+}
+
+/* ── keypad input ── */
+function pinKey(d){
+  if(_pinBuf.length>=4) return;
+  _pinBuf+=d;
+  _pinUpdateDots();
+  if(_pinBuf.length===4) setTimeout(_pinSubmit,120);
+}
+
+function pinDel(){
+  if(_pinBuf.length) _pinBuf=_pinBuf.slice(0,-1);
+  _pinUpdateDots();
+}
+
+async function _pinSubmit(){
+  const err=document.getElementById('pin-err');
+  if(_pinMode==='lock'){
+    const stored=localStorage.getItem(PIN_KEY);
+    if(_ph(_pinBuf)===stored){
+      _pinAtt=0;
+      hidePinLock();
+    } else {
+      _pinAtt++;
+      const left=PIN_MAX_ATT-_pinAtt;
+      if(_pinAtt>=PIN_MAX_ATT){
+        err.textContent=t('pin_max');
+        setTimeout(async()=>{ await logOut(); hidePinLock(); },1500);
+      } else {
+        err.textContent=`${t('pin_wrong')} (${t('pin_att_left')}: ${left})`;
+        _pinBuf='';_pinUpdateDots();
+      }
+    }
+  } else if(_pinMode==='setup1'){
+    _pinFirst=_pinBuf; _pinBuf='';
+    _pinMode='setup2';
+    _pinUpdateTitle(); _pinUpdateDots();
+    err.textContent='';
+  } else if(_pinMode==='setup2'){
+    if(_pinBuf===_pinFirst){
+      localStorage.setItem(PIN_KEY,_ph(_pinBuf));
+      hidePinLock();
+      showToast('✓ PIN '+t('pin_saved'));
+    } else {
+      err.textContent=t('pin_mismatch');
+      _pinBuf=''; _pinFirst=''; _pinMode='setup1';
+      _pinUpdateTitle(); _pinUpdateDots();
+    }
+  }
+}
+
+function pinForgot(){
+  showConfirm(t('pin_forgot_q'), async()=>{ await logOut(); hidePinLock(); }, t('pin_forgot_yes'));
+}
+
+/* ── init after login ── */
+function initPin(){
+  updateActivity();
+  if(!localStorage.getItem(PIN_KEY)){
+    setTimeout(()=>showPinLock('setup1'),400);
+  }
+}
+
+/* ── global activity listeners ── */
+['click','keydown','touchstart','scroll'].forEach(ev=>{
+  document.addEventListener(ev,()=>{ if(USER) updateActivity(); },{passive:true});
+});
+setInterval(checkPinTimeout, 60000); // check every minute
+
 /* helper: wire up an .ss-trigger div to openSS and keep a hidden value in sync */
 function ssBind(triggerId, hiddenId, title, getItems, allowCustom){
   const tr=document.getElementById(triggerId);
@@ -4267,5 +4414,34 @@ function ssBind(triggerId, hiddenId, title, getItems, allowCustom){
   });
 }
 </script>
+
+<!-- ══ PIN LOCK OVERLAY ══ -->
+<div id="pin-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#0F1923;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <img src="/logo192.png" alt="ZAKI" style="width:64px;height:64px;border-radius:16px;margin-bottom:20px;box-shadow:0 4px 20px rgba(57,185,128,.3);">
+  <div id="pin-user" style="font-size:13px;color:#8B9DB0;margin-bottom:6px;"></div>
+  <div id="pin-title" style="font-size:20px;font-weight:700;color:#E8EDF2;margin-bottom:28px;">Введите PIN</div>
+
+  <!-- dots -->
+  <div id="pin-dots" style="display:flex;gap:16px;margin-bottom:14px;"></div>
+  <div id="pin-err" style="font-size:13px;color:#E05C5C;min-height:18px;margin-bottom:20px;"></div>
+
+  <!-- keypad -->
+  <div style="display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(4,72px);gap:12px;">
+    <button onclick="pinKey('1')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">1</button>
+    <button onclick="pinKey('2')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">2</button>
+    <button onclick="pinKey('3')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">3</button>
+    <button onclick="pinKey('4')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">4</button>
+    <button onclick="pinKey('5')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">5</button>
+    <button onclick="pinKey('6')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">6</button>
+    <button onclick="pinKey('7')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">7</button>
+    <button onclick="pinKey('8')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">8</button>
+    <button onclick="pinKey('9')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">9</button>
+    <div></div>
+    <button onclick="pinKey('0')" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:50%;font-size:22px;font-weight:600;color:#E8EDF2;cursor:pointer;transition:background .15s;" onpointerdown="this.style.background='rgba(57,185,128,.25)'" onpointerup="this.style.background='rgba(255,255,255,.07)'" onpointerleave="this.style.background='rgba(255,255,255,.07)'">0</button>
+    <button onclick="pinDel()" style="background:transparent;border:none;font-size:22px;color:#8B9DB0;cursor:pointer;">⌫</button>
+  </div>
+
+  <div onclick="pinForgot()" style="margin-top:32px;font-size:13px;color:#8B9DB0;text-decoration:underline;cursor:pointer;">Забыл PIN</div>
+</div>
 </body>
 </html>
