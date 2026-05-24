@@ -4440,6 +4440,15 @@ function initPin(){
   document.addEventListener(ev,()=>{ if(USER) updateActivity(); },{passive:true});
 });
 
+// Physical keyboard support for PIN entry
+document.addEventListener('keydown',e=>{
+  const ov=document.getElementById('pin-overlay');
+  if(!ov||ov.style.display==='none') return;
+  if(e.key>='0'&&e.key<='9'){ e.preventDefault(); pinKey(e.key); }
+  else if(e.key==='Backspace'){ e.preventDefault(); pinDel(); }
+  else if(e.key==='Enter'&&_pinBuf.length===4){ e.preventDefault(); _pinSubmit(); }
+});
+
 // Lock EVERY TIME user returns to the app (switch app, minimize, lock screen)
 let _pinWasHidden = false;
 document.addEventListener('visibilitychange',()=>{
