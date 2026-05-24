@@ -2979,7 +2979,6 @@ snab_detail:async()=>{
   const name=window._viewWorker;
   if(!name){go('snabs');return '';}
   const rate=COMPANY.usd_rate||10.92;
-  // Only last 10 days for expenses to keep page fast
   const d10=new Date(Date.now()-10*24*60*60*1000).toISOString().slice(0,10);
   const[{data:advs},{data:ops}]=await Promise.all([
     SB.from('advances').select('*').eq('worker_name',name).order('created_at',{ascending:false}),
@@ -2987,7 +2986,7 @@ snab_detail:async()=>{
   ]);
   const allAdvs=advs||[];
   const active=allAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
-  const done=allAdvs.filter(a=>a.status==='done'||a.status==='closed');
+  const closedAdvs=allAdvs.filter(a=>a.status==='done'||a.status==='closed');
   const totalGiven=active.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
   const spent=(ops||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
   const rem=totalGiven-spent;
@@ -2997,60 +2996,105 @@ snab_detail:async()=>{
   const ini=name.split(' ').map(x=>x[0]||'').join('').slice(0,2).toUpperCase();
   const safeN=name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
-  // Compact advance card — no stage track, just one row + small action buttons
-  function advCard(a,i){
-    const isDone=a.status==='done'||a.status==='closed';
-    const safeObj=(a.object_name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const amtTJS=a.currency==='USD'?a.amount*rate:a.amount;
-    if(isDone) return `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg);border-radius:var(--r2);margin-bottom:6px;opacity:.6;">
-      <span class="badge bg" style="font-size:10px;flex-shrink:0;">✓</span>
-      <div style="flex:1;min-width:0;font-size:12px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.task||'Аванс'}${a.object_name?' · '+a.object_name:''}</div>
-      <span style="font-size:12px;font-weight:700;color:var(--t3);flex-shrink:0;">${fmtN(a.amount)} ${a.currency}</span>
-      ${canWrite()?`<button onclick="reopenAdv(${a.id})" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--w);font-size:10px;cursor:pointer;font-family:var(--ff);color:var(--t4);">↺</button>`:''}
-    </div>`;
+  // Group active advances by date → one card per day
+  const dayMap=new Map();
+  active.forEach(a=>{
+    const d=a.date||a.created_at?.slice(0,10)||'—';
+    if(!dayMap.has(d))dayMap.set(d,[]);
+    dayMap.get(d).push(a);
+  });
+  const dayGroups=[...dayMap.entries()].sort((a,b)=>b[0].localeCompare(a[0]));
+
+  const accentClr=['var(--a)','var(--blue)','var(--pur)','var(--ora)'];
+  const accentBg=['var(--al)','var(--bluel)','var(--purl)','var(--oral)'];
+  const accentBd=['rgba(57,185,128,.25)','var(--blueb)','var(--purb)','var(--orab)'];
+
+  function dayCard(date,group,gi){
+    const clr=accentClr[gi%4],bg=accentBg[gi%4],bd=accentBd[gi%4];
+    const dayTotal=group.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+    const ids=group.map(a=>a.id).join(',');
+    const safeObj=(group[0]?.object_name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const multi=group.length>1;
+    // Format date nicely
+    const [y,m,d]=date.split('-');
+    const months=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    const niceDt=d&&m?`${parseInt(d)} ${months[parseInt(m)-1]} ${y}`:date;
     return `
-    <div class="card mb8" style="animation:fadeUp .3s ease ${.08+i*.04}s both;padding:12px 14px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${canWrite()?'10px':'0'};">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:700;color:var(--t);">${a.task||'Аванс'}</div>
-          <div style="font-size:11px;color:var(--t4);">${a.object_name||'—'} · ${a.date||a.created_at?.slice(0,10)||'—'}</div>
+    <div style="animation:fadeUp .3s ease ${gi*.06}s both;border-radius:var(--r2);overflow:hidden;margin-bottom:10px;box-shadow:var(--sh);">
+      <!-- Colored header row -->
+      <div style="background:${bg};border:1px solid ${bd};border-bottom:none;border-radius:var(--r2) var(--r2) 0 0;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:4px;height:32px;background:${clr};border-radius:2px;flex-shrink:0;"></div>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--t);">${niceDt}</div>
+            <div style="font-size:10px;color:var(--t4);margin-top:1px;">${multi?group.length+' авансов':group[0].task||'Аванс'}${!multi&&group[0].object_name?' · '+group[0].object_name:''}</div>
+          </div>
         </div>
-        <div style="text-align:right;flex-shrink:0;">
-          <span class="badge by" style="font-size:10px;">${t('stage_lbl')} ${a.stage||0}/${a.stages||4}</span>
-          <div style="font-size:14px;font-weight:800;color:var(--ad);margin-top:4px;">+${fmtN(a.amount)} ${a.currency}</div>
-          ${a.currency==='USD'?`<div style="font-size:10px;color:var(--t4);">≈${fmtN(amtTJS)} TJS</div>`:''}
+        <div style="text-align:right;">
+          <div style="font-size:20px;font-weight:900;color:${clr};line-height:1;">+${fmtN(dayTotal)}</div>
+          <div style="font-size:10px;color:var(--t4);margin-top:1px;">TJS${multi?' (сумма)':group[0].currency==='USD'?' (≈'+fmtN(group[0].amount)+' $)':''}</div>
         </div>
       </div>
-      ${canWrite()?`
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">
-        <button onclick="advReturn(${a.id})" style="padding:7px 2px;border-radius:8px;background:var(--al);border:1px solid rgba(57,185,128,.2);color:var(--adk);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('ret')}</button>
-        <button onclick="advDone(${a.id})" style="padding:7px 2px;border-radius:8px;background:var(--bluel);border:1px solid var(--blueb);color:var(--blue);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('done_ok')}</button>
-        <button onclick="advAddExpense('${safeN}','${safeObj}')" style="padding:7px 2px;border-radius:8px;background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--ff);">+${t('expense')}</button>
-        <button onclick="advStage(${a.id})" style="padding:7px 2px;border-radius:8px;background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')}→</button>
+      <!-- Sub-items (if multiple advances that day) -->
+      ${multi?`<div style="background:var(--w);border-left:1px solid ${bd};border-right:1px solid ${bd};padding:4px 14px;">
+        ${group.map((a,j)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;${j<group.length-1?'border-bottom:1px solid var(--bg2);':''}">
+          <span style="font-size:11px;color:var(--t2);">${a.task||'Аванс'}${a.object_name?' · '+a.object_name:''}</span>
+          <span style="font-size:11px;font-weight:700;color:${clr};">+${fmtN(a.amount)} ${a.currency}</span>
+        </div>`).join('')}
       </div>`:''}
+      <!-- Action buttons -->
+      ${canWrite()?`<div style="background:var(--w);border:1px solid ${bd};border-top:1px solid var(--bg2);border-radius:0 0 var(--r2) var(--r2);padding:8px 10px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">
+        <button onclick="advReturn(${group[0].id})" style="padding:8px 2px;border-radius:8px;background:${bg};border:1px solid ${bd};color:var(--adk);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">↩ ${t('ret')}</button>
+        <button onclick="advDoneGroup('${ids}')" style="padding:8px 2px;border-radius:8px;background:var(--bluel);border:1px solid var(--blueb);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">✓ ${t('done_ok')}</button>
+        <button onclick="advAddExpense('${safeN}','${safeObj}')" style="padding:8px 2px;border-radius:8px;background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">− ${t('expense')}</button>
+        <button onclick="advStageGroup('${ids}')" style="padding:8px 2px;border-radius:8px;background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')} →</button>
+      </div>`:`<div style="height:1px;background:var(--bg2);"></div>`}
+    </div>`;
+  }
+
+  // Closed advances — grouped by day, compact
+  const closedMap=new Map();
+  closedAdvs.forEach(a=>{
+    const d=a.date||a.created_at?.slice(0,10)||'—';
+    if(!closedMap.has(d))closedMap.set(d,[]);
+    closedMap.get(d).push(a);
+  });
+  const closedGroups=[...closedMap.entries()].sort((a,b)=>b[0].localeCompare(a[0]));
+
+  function closedDayRow(date,group,i){
+    const total=group.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+    const ids=group.map(a=>a.id).join(',');
+    const [y,m,d]=date.split('-');
+    const months=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    const niceDt=d&&m?`${parseInt(d)} ${months[parseInt(m)-1]}`:date;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--bg);border-radius:var(--r);margin-bottom:5px;opacity:.65;">
+      <span class="badge bg" style="font-size:10px;padding:2px 7px;flex-shrink:0;">✓</span>
+      <div style="flex:1;min-width:0;">
+        <span style="font-size:12px;color:var(--t3);">${niceDt}</span>
+        ${group.length>1?`<span style="font-size:10px;color:var(--t4);margin-left:5px;">${group.length} авансов</span>`:`<span style="font-size:10px;color:var(--t4);margin-left:5px;">${group[0].task||''}</span>`}
+      </div>
+      <span style="font-size:12px;font-weight:700;color:var(--t3);">${fmtN(total)} TJS</span>
+      ${canWrite()?`<button onclick="advDoneGroup('${ids}',true)" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--w);font-size:10px;cursor:pointer;font-family:var(--ff);color:var(--t4);">↺</button>`:''}
     </div>`;
   }
 
   return `
   <button onclick="go('snabs')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:var(--ff);margin-bottom:12px;">← ${t('snabs')}</button>
 
-  <!-- Header card — light style -->
+  <!-- Header card -->
   <div class="card mb12" style="animation:fadeUp .3s ease both;padding:16px 18px;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
       <div style="width:46px;height:46px;border-radius:14px;background:var(--al);color:var(--adk);font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ini}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:16px;font-weight:800;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
-        <div style="font-size:11px;color:var(--t4);margin-top:1px;">${active.length} ${t('active_sfx')} · ${done.length} ${t('closed_sfx')}</div>
+        <div style="font-size:11px;color:var(--t4);margin-top:1px;">${dayGroups.length} ${t('days_sfx')} активных · ${closedGroups.length} закрытых</div>
       </div>
       ${canWrite()?`<button onclick="openNewAdvFor('${safeN}')" class="btn btn-p btn-sm">+ ${t('give_adv')}</button>`:''}
     </div>
-    <!-- Progress bar -->
-    <div style="background:var(--bg2);border-radius:6px;height:8px;overflow:hidden;margin-bottom:6px;">
+    <div style="background:var(--bg2);border-radius:6px;height:8px;overflow:hidden;margin-bottom:10px;">
       <div style="height:100%;width:${pct.toFixed(1)}%;background:${pctColor};border-radius:6px;transition:width .7s;"></div>
     </div>
-    <!-- 3 stats -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div style="background:var(--ap);border-radius:10px;padding:9px 10px;">
         <div style="font-size:10px;color:var(--t4);margin-bottom:2px;">${t('adv_issued')}</div>
         <div style="font-size:13px;font-weight:800;color:var(--ad);">+${fmtN(totalGiven)}</div>
@@ -3066,20 +3110,21 @@ snab_detail:async()=>{
     </div>
   </div>
 
-  ${active.length?`
-  <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">${t('active_adv')} (${active.length})</div>
-  ${active.map((a,i)=>advCard(a,i)).join('')}`:''}
+  ${dayGroups.length?`
+  <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">${t('active_adv')} (${dayGroups.length} дн.)</div>
+  ${dayGroups.map(([d,g],i)=>dayCard(d,g,i)).join('')}
+  `:`<div class="empty" style="padding:28px 0;"><div class="empty-icon">💳</div>${t('no_active_adv')}</div>`}
 
-  <div class="card mb10" style="animation:fadeUp .3s ease .18s both;">
+  <div class="card mb10" style="animation:fadeUp .3s ease .2s both;">
     <div class="sh mb10">
       <div class="sh-t" style="font-size:12px;font-weight:700;">📋 ${t('recent_exp')} <span style="color:var(--t4);font-weight:400;">(10 ${t('days_sfx')})</span></div>
     </div>
     ${(ops||[]).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}
   </div>
 
-  ${done.length?`
-  <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;margin-top:14px;">${t('closed_adv')} (${done.length})</div>
-  ${done.map((a,i)=>advCard(a,active.length+i)).join('')}`:''}`;
+  ${closedGroups.length?`
+  <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;margin-top:14px;">${t('closed_adv')} (${closedGroups.length} дн.)</div>
+  ${closedGroups.map(([d,g],i)=>closedDayRow(d,g,i)).join('')}`:''}`;
 },
 
 
@@ -3765,6 +3810,23 @@ async function advReturn(id){
   setTimeout(()=>{const el=document.getElementById('ar-amt');if(el)el.focus();},120);
 }
 
+async function advDoneGroup(idsStr,reopen=false){
+  const ids=String(idsStr).split(',').map(Number).filter(Boolean);
+  if(!ids.length)return;
+  if(reopen){
+    await SB.from('advances').update({status:'active'}).in('id',ids);
+    showToast(t('adv_reopened'));renderPage(CUR_PAGE);return;
+  }
+  if(isSup()){showToast(t('adv_close_deny'),true);return;}
+  showConfirm('Отметить авансы этого дня как выполненные?',async()=>{
+    await SB.from('advances').update({status:'done',stage:4}).in('id',ids);
+    showToast('✓ '+t('done_ok'));renderPage(CUR_PAGE);
+  },'Подтвердить');
+}
+async function advStageGroup(idsStr){
+  const ids=String(idsStr).split(',').map(Number).filter(Boolean);
+  for(const id of ids){await advStage(id);}
+}
 async function advDone(id){
   if(isSup()){showToast(t('adv_close_deny'),true);return;}
   showConfirm('Отметить аванс как выполненный? Карточка перейдёт в раздел закрытых.',async()=>{
