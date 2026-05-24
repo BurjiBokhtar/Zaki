@@ -3340,14 +3340,12 @@ tasks:async()=>{
   }).join('')||`<div class="empty"><div class="empty-icon">✅</div>${t('no_data')}</div>`}`;
 },
 
-masters:async()=>{
-  const{data:masters}=await SB.from('masters').select('*,master_works(*)').order('name');
+masters:async()=>{ return '<div class="empty"><div class="empty-icon">👷</div><div>Раздел отключён</div></div>'; },
+_masters_unused:async()=>{
+  const{data:masters}=await SB.from('masters').select('*').order('name');
   const rate=COMPANY.usd_rate||10.92;
-  if(!masters?.length) return `
-    ${canWrite()?`<button class="btn btn-p btn-sm mb16" onclick="openNewMaster()">+ ${t('new_m')}</button>`:''}
-    <div class="empty"><div class="empty-icon">👷</div>${t('no_data')}</div>`;
+  if(!masters?.length) return `<div></div>`;
   return `
-  ${canWrite()?`<button class="btn btn-p btn-sm mb16" onclick="openNewMaster()">+ ${t('new_m')}</button>`:''}
   ${masters.map((m,i)=>{
     const worked=m.worked_amount||0;
     const rem=m.advance_amount-worked;
@@ -3788,59 +3786,7 @@ async function advAddExpense(workerName, objName){
 }
 
 
-async function addMasterWork(id){
-  openModal(t('add_w'),`
-    <div class="fg"><div class="fld"><div class="fld-l">${t('amount')} (TJS)</div><input class="fi fi-lg" id="mw-a" type="number" placeholder="0"></div><div class="fld"><div class="fld-l">${t('desc')}</div><input class="fi" id="mw-d" placeholder="${t('work_hist')}..."></div></div>`,
-    async()=>{
-      const amt=parseFloat(document.getElementById('mw-a').value)||0;if(!amt){showToast(t('enter_amt'),true);return;}
-      const{data:m}=await SB.from('masters').select('worked_amount,advance_amount').eq('id',id).single();
-      const nw=(m.worked_amount||0)+amt;
-      const status=nw>=m.advance_amount?'done':nw>0?'partial':'active';
-      await Promise.all([
-        SB.from('master_works').insert({master_id:id,date:today(),amount:amt,description:document.getElementById('mw-d').value}),
-        SB.from('masters').update({worked_amount:nw,status}).eq('id',id)
-      ]);
-      closeModal();showToast(t('saved'));renderPage('masters');
-    }
-  );
-}
-async function masterCard(id){
-  const{data:m}=await SB.from('masters').select('*,master_works(*)').eq('id',id).single();
-  openModal(m.name,`<div style="font-size:13px;line-height:1.9;color:var(--t2);">
-    <div><b>${t('phone')}:</b> ${m.phone||'—'}</div><div><b>${t('obj_l')}:</b> ${m.object_name} · ${m.specialty}</div>
-    <div><b>${t('adv_tjs')}:</b> ${fmtN(m.advance_amount)} TJS</div><div><b>${t('worked_lbl')}:</b> ${fmtN(m.worked_amount)} TJS</div>
-    <div><b>${t('rest_lbl')}:</b> ${fmtN(m.advance_amount-m.worked_amount)} TJS</div><div><b>${t('deadline')}:</b> ${m.due_date||'—'}</div>
-    ${m.notes?`<div><b>${t('notes')}:</b> ${m.notes}</div>`:''}
-    ${(m.master_works||[]).length?`<div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:10px;"><b>${t('work_hist')}:</b>${(m.master_works||[]).map(w=>`<div style="font-size:11px;color:var(--t3);margin-top:3px;">${w.date} · +${fmtN(w.amount)} TJS · ${w.description||'—'}</div>`).join('')}</div>`:''}
-  </div>`,()=>closeModal(),t('close'));
-  document.getElementById('m-ft').innerHTML=`<button class="btn btn-p btn-sm" onclick="closeModal()">${t('close')}</button>`;
-}
-function openNewMaster(){
-  openModal(t('new_m'),`
-    <div class="fg f2">
-      <div class="fld s2"><div class="fld-l">${t('fio')}</div><input class="fi" id="nm-n" placeholder="Хасанов Бобур..."></div>
-      <div class="fld"><div class="fld-l">${t('phone')}</div><input class="fi" id="nm-p" placeholder="+992 9..."></div>
-      <div class="fld"><div class="fld-l">${t('obj_l')}</div><select class="fi fi-sel" id="nm-o">${OBJECTS.map(o=>`<option>${o.name}</option>`).join('')}</select></div>
-      <div class="fld"><div class="fld-l">${t('specialty')}</div><input class="fi" id="nm-s" placeholder="${t('specialty')}..."></div>
-      <div class="fld"><div class="fld-l">${t('adv_tjs')}</div><input class="fi fi-lg" id="nm-a" type="number" placeholder="0"></div>
-      <div class="fld"><div class="fld-l">${t('deadline')}</div><input class="fi" type="date" id="nm-d" value="${today()}"></div>
-      <div class="fld s2"><div class="fld-l">${t('note')}</div><input class="fi" id="nm-note"></div>
-    </div>`,
-    async()=>{
-      const name=document.getElementById('nm-n').value.trim(),amt=parseFloat(document.getElementById('nm-a').value)||0;
-      if(!name||!amt){showToast(t('fill_name_amt'),true);return;}
-      const{error}=await SB.from('masters').insert({name,phone:document.getElementById('nm-p').value,specialty:document.getElementById('nm-s').value,object_name:document.getElementById('nm-o').value,advance_amount:amt,due_date:document.getElementById('nm-d').value,notes:document.getElementById('nm-note').value});
-      if(error){showToast(error.message,true);return;}
-      closeModal();showToast(t('saved'));renderPage('masters');
-    }
-  );
-}
-async function delMaster(id){
-  showConfirm(t('del_q'),async()=>{
-    await SB.from('masters').delete().eq('id',id);
-    showToast(t('deleted'));renderPage('masters');
-  });
-}
+/* masters functions removed — section disabled */
 async function debtReturn(id,type){
   const isBarter=type==='barter';
   const{data:dbt}=await SB.from('debts').select('paid_amount,total_amount,name,type,currency').eq('id',id).single();
