@@ -3044,7 +3044,7 @@ snab_detail:async()=>{
       </div>`:''}
       <!-- Action buttons -->
       ${canWrite()?`<div style="background:var(--w);border:1px solid ${bd};border-top:1px solid var(--bg2);border-radius:0 0 var(--r2) var(--r2);padding:8px 10px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">
-        <button onclick="advReturn(${group[0].id})" style="padding:8px 2px;border-radius:8px;background:${bg};border:1px solid ${bd};color:var(--adk);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">↩ ${t('ret')}</button>
+        <button onclick="advReturnGroup('${ids}')" style="padding:8px 2px;border-radius:8px;background:${bg};border:1px solid ${bd};color:var(--adk);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">↩ ${t('ret')}</button>
         <button onclick="advDoneGroup('${ids}')" style="padding:8px 2px;border-radius:8px;background:var(--bluel);border:1px solid var(--blueb);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">✓ ${t('done_ok')}</button>
         <button onclick="advAddExpense('${safeN}','${safeObj}')" style="padding:8px 2px;border-radius:8px;background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">− ${t('expense')}</button>
         <button onclick="advStageGroup('${ids}')" style="padding:8px 2px;border-radius:8px;background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')} →</button>
@@ -3782,6 +3782,45 @@ async function openNewAdv(){
   },100);
 }
 
+async function advReturnGroup(idsStr){
+  const ids=String(idsStr).split(',').map(Number).filter(Boolean);
+  // Calculate total of this day's advances as hint
+  const{data:advList}=await SB.from('advances').select('amount,currency').in('id',ids);
+  const rate=COMPANY.usd_rate||10.92;
+  const totalHint=(advList||[]).reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+  openModal('Возврат аванса',`
+    <div style="background:var(--ap);border:1px solid var(--al);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;">
+      <div style="font-size:11px;color:var(--ad);font-weight:600;">Сумма выданного за этот день</div>
+      <div style="font-size:18px;font-weight:800;color:var(--adk);">${fmtN(totalHint)} TJS</div>
+    </div>
+    <div class="fld">
+      <div class="fld-l">Сумма возврата (TJS)</div>
+      <input class="fi fi-lg" id="ar-amt" type="number" min="0.01" step="0.01" placeholder="${totalHint}" autocomplete="off" style="margin-top:6px;font-size:18px;font-weight:800;color:var(--a);">
+    </div>
+    <div class="fld" style="margin-top:10px;">
+      <div class="fld-l">Примечание (необязательно)</div>
+      <input class="fi" id="ar-desc" placeholder="Возврат аванса" autocomplete="off" style="margin-top:6px;">
+    </div>`,
+    async()=>{
+      const amt=parseFloat(document.getElementById('ar-amt')?.value||'');
+      if(!amt||amt<=0){showToast(t('enter_amt'),true);return;}
+      const desc=(document.getElementById('ar-desc')?.value||'').trim()||'Возврат аванса';
+      const r=COMPANY.usd_rate||10.92;
+      const{error}=await SB.from('operations').insert({
+        type:'income',date:today(),category_name:'Возврат аванса',
+        description:desc,amount:amt,currency:'TJS',method:'cash',
+        amount_tjs:amt,amount_usd:amt/r,usd_rate:r,
+        worker_name:USER?.name||'',created_by:USER?.id
+      });
+      if(error){showToast(error.message,true);return;}
+      // Close all advances in this day group — cancellation
+      await SB.from('advances').update({status:'done'}).in('id',ids);
+      closeModal();
+      showToast('✓ Возврат '+fmtN(amt)+' TJS · Авансы закрыты');
+      renderPage(CUR_PAGE);
+    },'Зафиксировать возврат');
+  setTimeout(()=>{const el=document.getElementById('ar-amt');if(el)el.focus();},120);
+}
 async function advReturn(id){
   openModal('Возврат аванса',`
     <div class="fld" style="margin-top:4px;">
@@ -3803,7 +3842,6 @@ async function advReturn(id){
         amount_tjs:amt,amount_usd:amt/rate,usd_rate:rate,
         worker_name:USER?.name||'',created_by:USER?.id
       });
-      const{data:adv}=await SB.from('advances').select('amount,currency').eq('id',id).single();
       closeModal();showToast('✓ Возврат '+fmtN(amt)+' TJS зафиксирован');
       renderPage(CUR_PAGE);
     },'Зафиксировать');
