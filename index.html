@@ -1968,9 +1968,10 @@ function buildOpForm(container,isSupplier){
       <input type="hidden" id="f-obj-hid" value="">
       <div class="fi ss-trigger ss-empty-val" id="f-obj-tr">${t('no_obj')}</div>
     </div>
-    <div class="mb12" id="fcat-wrap"><div class="fld-l mb8">${t('cat')}</div><div class="chips" id="fcat">
-      ${(OP_TYPE==='income'?incCats:expCats).map((c,i)=>`<div class="chip ${i===0?'sel':''}" onclick="fSelCat(this,'${c.name}')">${c.name}</div>`).join('')}
-    </div></div>
+    <div class="mb12" id="fcat-wrap"><div class="fld-l mb8">${t('cat')}</div>
+      <input type="hidden" id="f-cat-hid" value="${cats[0]?.name||''}">
+      <div class="fi ss-trigger${cats[0]?'':' ss-empty-val'}" id="f-cat-tr">${cats[0]?.name||'—'}</div>
+    </div>
     <div class="fld-l mb8">${t('det')}</div>
     <div class="fg f2 mb12">
       <div class="fld"><div class="fld-l">${t('date')}</div><input class="fi" type="date" id="f-date" value="${today()}"></div>
@@ -2003,7 +2004,7 @@ function buildOpForm(container,isSupplier){
       <button class="btn btn-s" onclick="go('${isSupplier?'myexp':'ops'}')">${t('cancel')}</button>
     </div>
   </div>`;
-  // Wire object dropdown
+  // Wire object + category dropdowns
   setTimeout(()=>{
     const foTr=document.getElementById('f-obj-tr'),foHid=document.getElementById('f-obj-hid');
     if(foTr&&foHid){
@@ -2012,6 +2013,15 @@ function buildOpForm(container,isSupplier){
         foHid.value=val;SEL_OBJ=val;
         foTr.textContent=lbl||(val||('— '+t('no_obj')+' —'));
         foTr.classList.toggle('ss-empty-val',!val);
+      }));
+    }
+    const fcTr=document.getElementById('f-cat-tr'),fcHid=document.getElementById('f-cat-hid');
+    if(fcTr&&fcHid){
+      const curCats=(OP_TYPE==='income'?CATEGORIES.filter(c=>c.type==='income'):CATEGORIES.filter(c=>c.type==='expense'));
+      fcTr.addEventListener('click',()=>openSS(t('cat'),curCats.map(c=>({value:c.name,label:c.name})),fcHid.value,(val,lbl)=>{
+        fcHid.value=val;SEL_CAT=val;
+        fcTr.textContent=lbl||val||'—';
+        fcTr.classList.remove('ss-empty-val');
       }));
     }
   },50);
@@ -2034,8 +2044,6 @@ function setOpType(tp,el){
     buildOpForm(document.getElementById('content'),false);
   }
 }
-function fSelObj(el,v){document.querySelectorAll('#fobj .chip').forEach(c=>c.classList.remove('sel','sel-r','sel-b'));el.classList.add('sel');SEL_OBJ=v;}
-function fSelCat(el,v){document.querySelectorAll('#fcat .chip').forEach(c=>c.classList.remove('sel','sel-r','sel-b'));el.classList.add('sel');SEL_CAT=v;}
 function fSetCur(c){SEL_CUR=c;document.getElementById('fcur-tjs').className='cur-btn'+(c==='TJS'?' on':'');document.getElementById('fcur-usd').className='cur-btn'+(c==='USD'?' on':'');fUpdTotal();}
 function fCalc(){const q=parseFloat(document.getElementById('f-qty')?.value)||0,p=parseFloat(document.getElementById('f-price')?.value)||0;const ti=document.getElementById('f-ti');if(ti&&!ti._m)ti.value=q*p||'';fUpdTotal(q*p);}
 function fCalcT(){fUpdTotal(parseFloat(document.getElementById('f-ti')?.value)||0);}
@@ -3230,71 +3238,75 @@ my:async()=>{
   const pctColor=pct>90?'var(--red)':pct>70?'var(--yel)':'var(--a)';
 
   if(!allAdvs.length) return `
-    <div class="card" style="animation:fadeUp .3s ease both;text-align:center;padding:40px 20px;">
-      <div style="font-size:40px;margin-bottom:12px;">💳</div>
-      <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:6px;">${t('no_data')}</div>
+    <div style="animation:fadeUp .3s ease both;text-align:center;padding:56px 24px;">
+      <div style="width:72px;height:72px;background:var(--ap);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px;">💳</div>
+      <div style="font-size:17px;font-weight:700;color:var(--t);margin-bottom:6px;">${t('no_data')}</div>
       <div style="font-size:13px;color:var(--t4);">Аванс ещё не выдан</div>
     </div>`;
 
+  const remColor=rem<0?'#E53E3E':rem<totalGiven*.1?'#D69E2E':'#39B980';
+
   return `
-  <!-- BALANCE CARD -->
-  <div class="card mb16" style="animation:fadeUp .3s ease both;">
-    <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;">💳 ${t('my')}</div>
+  <!-- HERO BALANCE CARD -->
+  <div style="animation:fadeUp .3s ease both;border-radius:20px;background:linear-gradient(145deg,#152235 0%,#0C1A2E 60%,#091525 100%);padding:22px 20px 20px;margin-bottom:14px;position:relative;overflow:hidden;">
+    <!-- decorative ring -->
+    <div style="position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(232,160,32,.07);pointer-events:none;"></div>
+    <div style="position:absolute;bottom:-30px;left:-20px;width:120px;height:120px;border-radius:50%;background:rgba(57,185,128,.05);pointer-events:none;"></div>
 
-    <!-- Given row -->
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:28px;height:28px;background:var(--ap);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;">📥</div>
-        <span style="font-size:14px;color:var(--t2);">${t('adv_issued')}</span>
-      </div>
-      <span style="font-size:16px;font-weight:700;color:var(--ad);">+${fmtN(totalGiven)} TJS</span>
-    </div>
+    <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px;">💳 ${t('my')}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:18px;">${USER?.name||''}</div>
 
-    <!-- Spent row -->
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:28px;height:28px;background:var(--redl);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;">📤</div>
-        <span style="font-size:14px;color:var(--t2);">${t('spent')}</span>
-      </div>
-      <span style="font-size:16px;font-weight:700;color:var(--red);">−${fmtN(spent)} TJS</span>
-    </div>
-
-    <!-- Remainder -->
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 10px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:28px;height:28px;background:${rem<0?'var(--redl)':'rgba(57,185,128,.12)'};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;">${rem<0?'⚠️':'✅'}</div>
-        <span style="font-size:14px;font-weight:700;color:var(--t1);">${t('rest_lbl')}</span>
-      </div>
-      <span style="font-size:22px;font-weight:800;color:${rem<0?'var(--red)':'var(--adk)'};">${fmtN(rem)} TJS</span>
-    </div>
+    <!-- Remainder hero number -->
+    <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:4px;">${t('rest_lbl')}</div>
+    <div style="font-size:34px;font-weight:900;color:${remColor};letter-spacing:-.5px;margin-bottom:16px;font-family:var(--ff);">${fmtN(rem)} <span style="font-size:16px;font-weight:600;opacity:.7;">TJS</span></div>
 
     <!-- Progress bar -->
-    <div style="background:var(--bg2);border-radius:6px;height:8px;overflow:hidden;margin-bottom:6px;">
-      <div style="height:100%;width:${pct.toFixed(1)}%;background:${pctColor};border-radius:6px;transition:width .6s;"></div>
+    <div style="background:rgba(255,255,255,.1);border-radius:6px;height:6px;overflow:hidden;margin-bottom:8px;">
+      <div style="height:100%;width:${pct.toFixed(1)}%;background:${pctColor};border-radius:6px;transition:width .7s cubic-bezier(.4,0,.2,1);"></div>
     </div>
-    <div style="font-size:11px;color:var(--t4);margin-bottom:16px;">${Math.round(pct)}% ${t('spent')}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.35);margin-bottom:20px;">${Math.round(pct)}% ${t('spent')}</div>
 
-    <!-- Add expense button -->
-    <button onclick="go('addexp')" style="width:100%;padding:13px;background:var(--redl);border:1.5px solid var(--redb);border-radius:12px;font-size:15px;font-weight:700;color:var(--red);cursor:pointer;">− ${t('new_exp')}</button>
+    <!-- Two stat pills -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.08em;">${t('adv_issued')}</div>
+        <div style="font-size:15px;font-weight:800;color:#39B980;">+${fmtN(totalGiven)}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.25);">TJS</div>
+      </div>
+      <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.08em;">${t('spent')}</div>
+        <div style="font-size:15px;font-weight:800;color:#FC8181;">−${fmtN(spent)}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.25);">TJS</div>
+      </div>
+    </div>
   </div>
 
+  <!-- Add expense button -->
+  <button onclick="go('addexp')" style="width:100%;padding:14px;background:var(--redl);border:1.5px solid var(--redb);border-radius:14px;font-size:15px;font-weight:700;color:var(--red);cursor:pointer;margin-bottom:14px;animation:fadeUp .3s ease .06s both;">− ${t('new_exp')}</button>
+
   <!-- ADVANCES HISTORY -->
-  <div class="card mb16" style="animation:fadeUp .3s ease .08s both;">
-    <div class="sh" style="margin-bottom:10px;"><div class="sh-t">📥 История выдач</div></div>
-    ${allAdvs.map(a=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd);">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--t1);">${a.object_name||'—'}</div>
-          <div style="font-size:11px;color:var(--t4);">${a.date||a.created_at?.slice(0,10)||'—'} · ${a.task||'—'}</div>
+  <div class="card mb14" style="animation:fadeUp .3s ease .1s both;">
+    <div class="sh" style="margin-bottom:12px;"><div class="sh-t" style="font-size:13px;font-weight:700;">📥 История выдач</div></div>
+    ${allAdvs.map((a,i)=>{
+      const amtTjs=a.currency==='USD'?a.amount*rate:a.amount;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i<allAdvs.length-1?'border-bottom:1px solid var(--bd);':''}">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--ap);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📥</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.object_name||'—'}</div>
+          <div style="font-size:11px;color:var(--t4);margin-top:2px;">${a.date||a.created_at?.slice(0,10)||'—'}${a.task?' · '+a.task:''}</div>
         </div>
-        <span style="font-size:14px;font-weight:700;color:var(--ad);">+${fmtN(a.amount)} ${a.currency||'TJS'}</span>
-      </div>`).join('')}
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:14px;font-weight:700;color:var(--ad);">+${fmtN(a.amount)} ${a.currency||'TJS'}</div>
+          ${a.currency==='USD'?`<div style="font-size:10px;color:var(--t4);">≈ ${fmtN(amtTjs)} TJS</div>`:''}
+        </div>
+      </div>`;
+    }).join('')}
   </div>
 
   <!-- RECENT EXPENSES -->
-  <div class="card" style="animation:fadeUp .3s ease .12s both;">
-    <div class="sh" style="margin-bottom:10px;">
-      <div class="sh-t">📋 ${t('recent_exp')}</div>
+  <div class="card" style="animation:fadeUp .3s ease .14s both;">
+    <div class="sh" style="margin-bottom:12px;">
+      <div class="sh-t" style="font-size:13px;font-weight:700;">📋 ${t('recent_exp')}</div>
       <div class="sh-a" onclick="go('myexp')">${t('all_ops')}</div>
     </div>
     <div>${(ops||[]).slice(0,5).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
