@@ -466,7 +466,7 @@ html{height:100dvh;}
 .modal-ft{display:flex;gap:7px;margin-top:16px;justify-content:flex-end;}
 
 /* TOAST */
-.toast{position:fixed;bottom:84px;left:50%;background:var(--t);color:var(--w);padding:10px 20px;border-radius:22px;font-size:13px;font-weight:500;white-space:nowrap;z-index:999;pointer-events:none;display:none;box-shadow:var(--shl);font-family:var(--ff);}
+.toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--t);color:var(--w);padding:10px 18px;border-radius:16px;font-size:13px;font-weight:500;white-space:normal;max-width:calc(100vw - 32px);text-align:center;line-height:1.4;z-index:9998;pointer-events:none;display:none;box-shadow:var(--shl);font-family:var(--ff);}
 
 /* LOADER */
 .loader{display:inline-flex;width:18px;height:18px;border:2.5px solid rgba(57,185,128,.25);border-top-color:var(--a);border-radius:50%;animation:spin .7s linear infinite;}
@@ -1069,7 +1069,7 @@ async function qOne(table,fn){
 /* ── TOAST ── */
 function showToast(msg,isErr){
   const el=document.getElementById('toast');
-  el.textContent=msg;el.style.background=isErr?'var(--red)':'var(--t)';
+  el.innerHTML=msg.replace(/\n/g,'<br>');el.style.background=isErr?'var(--red)':'var(--t)';
   el.style.display='block';el.style.animation='none';
   requestAnimationFrame(()=>{el.style.animation='toast 3s ease forwards';});
   clearTimeout(window._tt);window._tt=setTimeout(()=>{el.style.display='none';},3200);
@@ -1964,10 +1964,10 @@ function buildOpForm(container,isSupplier){
       <div class="chip ${OP_TYPE==='expense'?'sel-r':''}" onclick="setOpType('expense',this)">${t('exp_op')}</div>
       <div class="chip ${OP_TYPE==='advance'?'sel-b':''}" onclick="setOpType('advance',this)">${t('adv_op')}</div>
     </div></div>`:''}
-    <div class="mb12"><div class="fld-l mb8">${t('obj')}</div><div class="chips" id="fobj">
-      <div class="chip sel" onclick="fSelObj(this,'')">—</div>
-      ${OBJECTS.map(o=>`<div class="chip" onclick="fSelObj(this,'${o.name}')">${o.name}</div>`).join('')}
-    </div></div>
+    <div class="mb12"><div class="fld-l mb8">${t('obj')}</div>
+      <input type="hidden" id="f-obj-hid" value="">
+      <div class="fi ss-trigger ss-empty-val" id="f-obj-tr">${t('no_obj')}</div>
+    </div>
     <div class="mb12" id="fcat-wrap"><div class="fld-l mb8">${t('cat')}</div><div class="chips" id="fcat">
       ${(OP_TYPE==='income'?incCats:expCats).map((c,i)=>`<div class="chip ${i===0?'sel':''}" onclick="fSelCat(this,'${c.name}')">${c.name}</div>`).join('')}
     </div></div>
@@ -2003,6 +2003,18 @@ function buildOpForm(container,isSupplier){
       <button class="btn btn-s" onclick="go('${isSupplier?'myexp':'ops'}')">${t('cancel')}</button>
     </div>
   </div>`;
+  // Wire object dropdown
+  setTimeout(()=>{
+    const foTr=document.getElementById('f-obj-tr'),foHid=document.getElementById('f-obj-hid');
+    if(foTr&&foHid){
+      const objItems=[{value:'',label:'— '+t('no_obj')+' —'},...OBJECTS.map(o=>({value:o.name,label:o.name}))];
+      foTr.addEventListener('click',()=>openSS(t('obj'),objItems,foHid.value,(val,lbl)=>{
+        foHid.value=val;SEL_OBJ=val;
+        foTr.textContent=lbl||(val||('— '+t('no_obj')+' —'));
+        foTr.classList.toggle('ss-empty-val',!val);
+      }));
+    }
+  },50);
   // Fill workers for advance
   if(OP_TYPE==='advance'){
     SB.from('profiles').select('name').eq('role','supplier').then(({data})=>{
@@ -2050,7 +2062,7 @@ async function fSubmit(isSupplier){
     if(isSupplier||isSup()){
       const amtTJS=SEL_CUR==='USD'?amt*(COMPANY.usd_rate||10.92):amt;
       const rem=await getSupplierRemaining(USER?.name||'');
-      if(amtTJS>rem){showToast(`${t('adv_over')} ${t('adv_over_detail')}: ${fmtN(rem)} TJS, ${t('need')}: ${fmtN(amtTJS)} TJS`,true);return;}
+      if(amtTJS>rem){showToast(`${t('adv_over')}\n${t('adv_over_detail')}: ${fmtN(rem)} TJS`,true);return;}
     }
   }else if(OP_TYPE==='income'){
     amt=parseFloat(document.getElementById('f-amount')?.value)||0;
@@ -3682,7 +3694,7 @@ async function advAddExpense(workerName, objName){
       // Block if expense exceeds remaining advance balance
       const amtTJS_ae=SEL_CUR==='USD'?amt*rate:amt;
       const rem_ae=await getSupplierRemaining(workerName);
-      if(amtTJS_ae>rem_ae){showToast(`${t('adv_over')} ${t('adv_over_detail')}: ${fmtN(rem_ae)} TJS, ${t('need')}: ${fmtN(amtTJS_ae)} TJS`,true);return;}
+      if(amtTJS_ae>rem_ae){showToast(`${t('adv_over')}\n${t('adv_over_detail')}: ${fmtN(rem_ae)} TJS`,true);return;}
       const{error}=await SB.from('operations').insert({
         type:'expense',date:document.getElementById('ae-date')?.value||today(),
         object_name:SEL_OBJ||'',category_name:SEL_CAT||'Прочее',
