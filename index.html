@@ -2898,9 +2898,10 @@ snabs:async()=>{
   const workerList=[...workerMap.entries()].map(([name,wAdvs])=>{
     const active=wAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
     const done=wAdvs.filter(a=>a.status==='done'||a.status==='closed');
-    const totalGiven=wAdvs.filter(a=>a.status!=='done'&&a.status!=='closed').reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+    // Use ALL advances (active+closed) so balance=0 when advance auto-closes after full spend
+    const totalGiven=wAdvs.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
     const spent=(allOps||[]).filter(o=>o.worker_name===name).reduce((s,o)=>s+(o.amount_tjs||0),0);
-    const rem=totalGiven-spent;
+    const rem=Math.max(0,totalGiven-spent);
     const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
     return{name,active,done,totalGiven,spent,rem,pct};
   });
@@ -2980,19 +2981,22 @@ snab_detail:async()=>{
   if(!name){go('snabs');return '';}
   const rate=COMPANY.usd_rate||10.92;
   const d10=new Date(Date.now()-10*24*60*60*1000).toISOString().slice(0,10);
-  const[{data:advs},{data:ops}]=await Promise.all([
+  const[{data:advs},{data:ops},{data:allOpsBalance}]=await Promise.all([
     SB.from('advances').select('*').eq('worker_name',name).order('created_at',{ascending:false}),
-    SB.from('operations').select('*').eq('type','expense').eq('worker_name',name).gte('date',d10).order('date',{ascending:false})
+    SB.from('operations').select('*').eq('type','expense').eq('worker_name',name).gte('date',d10).order('date',{ascending:false}),
+    SB.from('operations').select('amount_tjs').eq('type','expense').eq('worker_name',name)
   ]);
   const allAdvs=advs||[];
   const active=allAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
   const closedAdvs=allAdvs.filter(a=>a.status==='done'||a.status==='closed');
-  const totalGiven=active.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
-  const spent=(ops||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
-  const rem=totalGiven-spent;
+  // Use ALL advances (active+closed) for total — so rem=0 when auto-closed after full spend
+  const totalGiven=allAdvs.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+  // Use ALL expenses (not just 10-day) for accurate balance
+  const spent=(allOpsBalance||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
+  const rem=Math.max(0,totalGiven-spent);
   const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
   const pctColor=pct>90?'var(--red)':pct>70?'var(--yel)':'var(--a)';
-  const remColor=rem<0?'var(--red)':pct>90?'var(--yel)':'var(--adk)';
+  const remColor=pct>=100?'var(--t3)':pct>90?'var(--yel)':'var(--adk)';
   const ini=name.split(' ').map(x=>x[0]||'').join('').slice(0,2).toUpperCase();
   const safeN=name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
@@ -3330,12 +3334,12 @@ my:async()=>{
   const activeAdvs=allAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
   // Last 30 days → shown in history
   const recentAdvs=allAdvs.filter(a=>(a.date||a.created_at?.slice(0,10)||'')>=d30);
-  // Balance = all active advances − ALL expenses ever (not just 10 days)
-  const totalGiven=activeAdvs.reduce((s,a)=>{
+  // Balance = ALL advances ever issued − ALL expenses ever spent → 0 when fully settled
+  const totalGiven=allAdvs.reduce((s,a)=>{
     const tjs=a.currency==='USD'?a.amount*rate:a.amount;return s+tjs;
   },0);
   const spent=(allOpsBalance||[]).reduce((a,o)=>a+(o.amount_tjs||0),0);
-  const rem=totalGiven-spent;
+  const rem=Math.max(0,totalGiven-spent);
   const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
   const pctColor=pct>90?'var(--red)':pct>70?'var(--yel)':'var(--a)';
 
