@@ -2068,11 +2068,15 @@ async function fSubmit(isSupplier){
     amt=ti?.value?parseFloat(ti.value)||q*p:q*p;
     desc=document.getElementById('f-desc')?.value||'';
     if(!desc&&!amt){showToast(t('fill_fields'),true);return;}
-    // Supplier: block if expense exceeds remaining advance balance
+    const amtTJS_check=SEL_CUR==='USD'?amt*(COMPANY.usd_rate||10.92):amt;
     if(isSupplier||isSup()){
-      const amtTJS=SEL_CUR==='USD'?amt*(COMPANY.usd_rate||10.92):amt;
+      // Supplier: block if expense exceeds remaining advance balance
       const rem=await getSupplierRemaining(USER?.name||'');
-      if(amtTJS>rem){showToast(`${t('adv_over')}\n${t('adv_over_detail')}: ${fmtN(rem)} TJS`,true);return;}
+      if(amtTJS_check>rem){showToast(`${t('adv_over')}\n${t('adv_over_detail')}: ${fmtN(rem)} TJS`,true);return;}
+    } else {
+      // Accountant/admin: block if expense exceeds current cash balance
+      const bal=await getCashBalance();
+      if(amtTJS_check>bal){showToast(`❌ ${t('no_funds')}!\n${t('no_funds_detail')}: ${fmtN(bal)} TJS · ${t('need')}: ${fmtN(amtTJS_check)} TJS`,true);return;}
     }
   }else if(OP_TYPE==='income'){
     amt=parseFloat(document.getElementById('f-amount')?.value)||0;
