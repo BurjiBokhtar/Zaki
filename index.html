@@ -2254,6 +2254,12 @@ function openAddOpModal(type){
         amt=tot?.value?parseFloat(tot.value)||q2*p:q2*p;
         desc=document.getElementById('mo-desc')?.value?.trim()||'';
         if(!amt){showToast(t('enter_amt'),true);return;}
+        // Cash balance check — block if insufficient funds
+        if(!isSup()){
+          const amtTJS_mo=SEL_CUR==='USD'?amt*rate:amt;
+          const bal_mo=await getCashBalance();
+          if(amtTJS_mo>bal_mo){showToast(`❌ ${t('no_funds')}!\n${t('no_funds_detail')}: ${fmtN(bal_mo)} TJS · ${t('need')}: ${fmtN(amtTJS_mo)} TJS`,true);return;}
+        }
       } else if(OP_TYPE==='income'){
         amt=parseFloat(document.getElementById('mo-amount')?.value)||0;
         desc=document.getElementById('mo-desc')?.value?.trim()||'';
@@ -4036,6 +4042,12 @@ async function debtReturn(id,type){
         SB.from('debts').update({paid_amount:np,status}).eq('id',id)
       ]);
       const syncCash=!isBarter&&document.getElementById('dr-cash')?.checked;
+      if(syncCash&&isCreditor){
+        // Paying back a creditor = cash expense — check balance first
+        const rate=COMPANY.usd_rate||10.92;
+        const balChk=await getCashBalance();
+        if(amt>balChk){showToast(`❌ ${t('no_funds')}!\n${t('no_funds_detail')}: ${fmtN(balChk)} TJS · ${t('need')}: ${fmtN(amt)} TJS`,true);return;}
+      }
       if(syncCash){
         const rate=COMPANY.usd_rate||10.92;
         const opType=isCreditor?'expense':'income';
