@@ -3511,10 +3511,12 @@ _masters_unused:async()=>{
 /* ── ADVANCE HELPERS ── */
 function canAdmin(){return USER?.role==='accountant'||USER?.role==='admin';}
 
-/* Returns remaining advance balance for a supplier (advance amount − already spent) */
+/* Returns remaining advance balance for a supplier (ALL advances − ALL expenses).
+   Uses all advances (active+closed) so that after a closed cycle, a new advance
+   correctly adds to the cumulative balance instead of going negative. */
 async function getSupplierRemaining(workerName){
   const[{data:advs},{data:spentOps}]=await Promise.all([
-    SB.from('advances').select('amount,currency').eq('worker_name',workerName).in('status',['active','partial']),
+    SB.from('advances').select('amount,currency').eq('worker_name',workerName),
     SB.from('operations').select('amount_tjs').eq('type','expense').eq('worker_name',workerName)
   ]);
   const rate=COMPANY.usd_rate||10.92;
@@ -3522,7 +3524,7 @@ async function getSupplierRemaining(workerName){
     const tjs=a.currency==='USD'?a.amount*rate:a.amount;return s+tjs;
   },0);
   const totalSpent=(spentOps||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
-  return Math.round((totalAdv-totalSpent)*100)/100;
+  return Math.max(0,Math.round((totalAdv-totalSpent)*100)/100);
 }
 
 /* Returns current cash balance in TJS (income − direct_expenses − advances) */
