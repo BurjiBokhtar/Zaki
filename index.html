@@ -365,6 +365,8 @@ html{height:100dvh;}
 .ss-bg{position:fixed;inset:0;z-index:600;background:rgba(15,25,35,.55);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;backdrop-filter:blur(3px);animation:fadeIn .18s ease;}
 .ss-sheet{background:var(--w);width:100%;max-width:520px;max-height:84vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:ssUp .22s cubic-bezier(.25,.8,.25,1);}
 @keyframes ssUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes ringPulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.5);}65%{box-shadow:0 0 0 11px rgba(255,255,255,0);}100%{box-shadow:0 0 0 0 rgba(255,255,255,0);}}
+@keyframes btnGlow{0%,100%{opacity:.7}50%{opacity:1}}
 .ss-handle{width:38px;height:4px;background:var(--bd2);border-radius:2px;margin:10px auto 0;}
 .ss-head{padding:12px 16px 10px;border-bottom:1px solid var(--bd);}
 .ss-title{font-size:14px;font-weight:700;color:var(--t);margin-bottom:8px;}
@@ -2816,29 +2818,29 @@ ops:async()=>{
   const canEdit=canWrite();
   return `
   ${canEdit?`
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
     <button onclick="openAddOpModal('income')"
-      style="position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;padding:18px 16px;background:linear-gradient(135deg,#2ecc71 0%,#27ae60 100%);border:none;border-radius:16px;cursor:pointer;font-family:var(--ff);transition:all .2s;box-shadow:0 4px 16px rgba(39,174,96,.35);"
-      onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(39,174,96,.45)'"
-      onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(39,174,96,.35)'">
-      <div style="width:38px;height:38px;background:rgba(255,255,255,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 16V4M4 10l6-6 6 6"/></svg>
+      style="position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;padding:18px 16px;background:linear-gradient(135deg,#2ecc71 0%,#1ea558 100%);border:none;border-radius:20px;cursor:pointer;font-family:var(--ff);transition:transform .18s,box-shadow .18s;box-shadow:0 5px 20px rgba(39,174,96,.4);"
+      onmouseover="this.style.transform='scale(1.02)';this.style.boxShadow='0 8px 28px rgba(39,174,96,.55)'"
+      onmouseout="this.style.transform='';this.style.boxShadow='0 5px 20px rgba(39,174,96,.4)'">
+      <div style="width:50px;height:50px;background:rgba(255,255,255,.22);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:ringPulse 2.2s ease-out infinite;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
       </div>
       <div style="text-align:left;">
-        <div style="font-size:11px;color:rgba(255,255,255,.75);font-weight:500;text-transform:uppercase;letter-spacing:.06em;">+ ${t('income')}</div>
-        <div style="font-size:15px;font-weight:800;color:#fff;">${t('new_inc')}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.65);font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">${t('income')}</div>
+        <div style="font-size:16px;font-weight:800;color:#fff;line-height:1.1;">${t('new_inc')}</div>
       </div>
     </button>
     <button onclick="openAddOpModal('expense')"
-      style="position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;padding:18px 16px;background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);border:none;border-radius:16px;cursor:pointer;font-family:var(--ff);transition:all .2s;box-shadow:0 4px 16px rgba(192,57,43,.35);"
-      onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(192,57,43,.45)'"
-      onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(192,57,43,.35)'">
-      <div style="width:38px;height:38px;background:rgba(255,255,255,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4v12M4 10l6 6 6-6"/></svg>
+      style="position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;padding:18px 16px;background:linear-gradient(135deg,#e74c3c 0%,#a93226 100%);border:none;border-radius:20px;cursor:pointer;font-family:var(--ff);transition:transform .18s,box-shadow .18s;box-shadow:0 5px 20px rgba(192,57,43,.4);"
+      onmouseover="this.style.transform='scale(1.02)';this.style.boxShadow='0 8px 28px rgba(192,57,43,.55)'"
+      onmouseout="this.style.transform='';this.style.boxShadow='0 5px 20px rgba(192,57,43,.4)'">
+      <div style="width:50px;height:50px;background:rgba(255,255,255,.22);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:ringPulse 2.2s ease-out infinite .6s;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
       </div>
       <div style="text-align:left;">
-        <div style="font-size:11px;color:rgba(255,255,255,.75);font-weight:500;text-transform:uppercase;letter-spacing:.06em;">− ${t('expense')}</div>
-        <div style="font-size:15px;font-weight:800;color:#fff;">${t('new_exp')}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.65);font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">${t('expense')}</div>
+        <div style="font-size:16px;font-weight:800;color:#fff;line-height:1.1;">${t('new_exp')}</div>
       </div>
     </button>
   </div>`:``}
@@ -2978,7 +2980,15 @@ snabs:async()=>{
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
-        ${canWrite()?`<button onclick="event.stopPropagation();openNewAdvFor('${safeN}')" style="padding:10px;background:var(--al);border:1.5px solid rgba(57,185,128,.25);border-radius:10px;font-size:12px;font-weight:700;color:var(--adk);cursor:pointer;font-family:var(--ff);">+ ${t('give_adv')}</button>`:'<div></div>'}
+        ${canWrite()?`<button onclick="event.stopPropagation();openNewAdvFor('${safeN}')"
+        style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(135deg,#39B980,#1ea558);border:none;border-radius:12px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:var(--ff);box-shadow:0 3px 12px rgba(57,185,128,.35);transition:transform .15s,box-shadow .15s;"
+        onmouseover="this.style.transform='scale(1.03)';this.style.boxShadow='0 5px 18px rgba(57,185,128,.5)'"
+        onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(57,185,128,.35)'">
+        <div style="width:22px;height:22px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;animation:ringPulse 2.5s ease-out infinite;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        ${t('give_adv')}
+      </button>`:'<div></div>'}
         <button onclick="event.stopPropagation();openWorkerDetail('${safeN}')" style="padding:10px 16px;background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;font-size:12px;font-weight:700;color:var(--t3);cursor:pointer;font-family:var(--ff);">${t('details')} →</button>
       </div>
     </div>`;
@@ -2997,13 +3007,24 @@ snabs:async()=>{
       <div class="sc-val2">${t('rest_lbl')}: ${fmtN(totalGivenAll-totalSpentAll)} TJS</div>
     </div>
   </div>
-  <div class="sh mb12">
+  <div class="sh mb8">
     <div class="sh-t">${t('snabs')} (${workerList.length})</div>
-    ${canWrite()?`<button class="btn btn-p btn-sm" onclick="openNewAdv()" style="display:flex;align-items:center;gap:5px;">
-      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 1v11M1 6.5h11"/></svg>
-      ${t('give_adv')}
-    </button>`:''}
   </div>
+  ${canWrite()?`
+  <button onclick="openNewAdv()"
+    style="display:flex;align-items:center;gap:14px;width:100%;padding:16px 18px;background:linear-gradient(135deg,#39B980 0%,#1ea558 100%);border:none;border-radius:18px;cursor:pointer;font-family:var(--ff);transition:transform .18s,box-shadow .18s;box-shadow:0 5px 20px rgba(57,185,128,.4);margin-bottom:14px;"
+    onmouseover="this.style.transform='scale(1.01)';this.style.boxShadow='0 8px 28px rgba(57,185,128,.55)'"
+    onmouseout="this.style.transform='';this.style.boxShadow='0 5px 20px rgba(57,185,128,.4)'">
+    <div style="width:46px;height:46px;background:rgba(255,255,255,.22);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:ringPulse 2.2s ease-out infinite;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+    </div>
+    <div style="text-align:left;">
+      <div style="font-size:10px;color:rgba(255,255,255,.65);font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">${t('snabs')}</div>
+      <div style="font-size:16px;font-weight:800;color:#fff;line-height:1.1;">${t('give_adv')}</div>
+    </div>
+    <svg style="margin-left:auto;opacity:.6;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+  </button>`:''}
+
   ${workerList.length?workerList.map((w,i)=>workerCard(w,i)).join(''):`<div class="empty"><div class="empty-icon">👷</div>${t('no_active_adv')}</div>`}`;
 },
 
@@ -3121,7 +3142,15 @@ snab_detail:async()=>{
         <div style="font-size:16px;font-weight:800;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
         <div style="font-size:11px;color:var(--t4);margin-top:1px;">${dayGroups.length} ${t('days_sfx')} активных · ${closedGroups.length} закрытых</div>
       </div>
-      ${canWrite()?`<button onclick="openNewAdvFor('${safeN}')" class="btn btn-p btn-sm">+ ${t('give_adv')}</button>`:''}
+      ${canWrite()?`<button onclick="openNewAdvFor('${safeN}')"
+        style="display:flex;align-items:center;gap:7px;padding:9px 14px;background:linear-gradient(135deg,#39B980,#1ea558);border:none;border-radius:12px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:var(--ff);box-shadow:0 3px 12px rgba(57,185,128,.35);transition:transform .15s,box-shadow .15s;flex-shrink:0;"
+        onmouseover="this.style.transform='scale(1.04)';this.style.boxShadow='0 5px 18px rgba(57,185,128,.5)'"
+        onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(57,185,128,.35)'">
+        <div style="width:20px;height:20px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;animation:ringPulse 2.5s ease-out infinite;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        ${t('give_adv')}
+      </button>`:''}
     </div>
     <div style="background:var(--bg2);border-radius:6px;height:8px;overflow:hidden;margin-bottom:10px;">
       <div style="height:100%;width:${pct.toFixed(1)}%;background:${pctColor};border-radius:6px;transition:width .7s;"></div>
@@ -3221,7 +3250,21 @@ debts:async()=>{
       </div>
       <div class="sc-val2">${t('net_lbl')}: ${fmtN(sumD)} TJS</div></div>
   </div>
-  ${canAdmin()?`<button class="btn btn-p btn-sm mb16" onclick="openNewDebt()">${t('new_debt')}</button>`:''}
+  ${canAdmin()?`
+  <button onclick="openNewDebt()"
+    style="display:flex;align-items:center;gap:14px;width:100%;padding:16px 18px;background:linear-gradient(135deg,#8e44ad 0%,#6c3483 100%);border:none;border-radius:18px;cursor:pointer;font-family:var(--ff);transition:transform .18s,box-shadow .18s;box-shadow:0 5px 20px rgba(142,68,173,.4);margin-bottom:16px;"
+    onmouseover="this.style.transform='scale(1.01)';this.style.boxShadow='0 8px 28px rgba(142,68,173,.55)'"
+    onmouseout="this.style.transform='';this.style.boxShadow='0 5px 20px rgba(142,68,173,.4)'">
+    <div style="width:46px;height:46px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:ringPulse 2.2s ease-out infinite .4s;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+    </div>
+    <div style="text-align:left;">
+      <div style="font-size:10px;color:rgba(255,255,255,.65);font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">${t('debts')}</div>
+      <div style="font-size:16px;font-weight:800;color:#fff;line-height:1.1;">${t('new_debt')}</div>
+    </div>
+    <svg style="margin-left:auto;opacity:.6;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+  </button>`:''}
+
   <div class="sh"><div class="sh-t">${t('cred')}</div></div>
   ${cred.map((d,i)=>dc(d,i)).join('')||`<div class="empty"><div class="empty-icon">💳</div>${t('no_data')}</div>`}
   <div class="sh" style="margin-top:8px;"><div class="sh-t">${t('debt')}</div></div>
