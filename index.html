@@ -2405,11 +2405,12 @@ const PAGES={
 home:async()=>{
   const rate=COMPANY.usd_rate||10.92;
   // Load all data (including supplier profiles for advance-expense identification)
-  const[opsR,debtsR,advR,profR]=await Promise.all([
+  const[opsR,debtsR,advR,profR,supExpR]=await Promise.all([
     (()=>{let q=SB.from('operations').select('*');q=periodFilter(q);return q;})(),
     SB.from('debts').select('*'),
-    SB.from('advances').select('*').eq('status','active'),
-    SB.from('profiles').select('name,role').eq('role','supplier')
+    SB.from('advances').select('amount,currency'),   // ALL advances (active+closed) for correct balance
+    SB.from('profiles').select('name,role').eq('role','supplier'),
+    SB.from('operations').select('amount_tjs,worker_name,method').eq('type','expense') // all-time for supplier balance
   ]);
   const allOps=opsR.data||[], debts=debtsR.data||[], advs=advR.data||[];
   // Set of supplier names — used to identify advance-funded expenses in historical data
@@ -2444,9 +2445,10 @@ home:async()=>{
 
   const cred=debts.filter(d=>d.type==='creditor').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
   const deb=debts.filter(d=>d.type==='debtor').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
-  const advTot_given=advs.reduce((a,x)=>a+x.amount,0);
-  // Advance spending = supplier-submitted expenses (new: method='from_advance', historical: worker_name in supplierNames)
-  const advTot_spent=allOps.filter(o=>o.type==='expense'&&o.currency==='TJS'&&(o.method==='from_advance'||supplierNames.has(o.worker_name))).reduce((a,o)=>a+o.amount,0);
+  // ALL advances: convert USD→TJS for accurate total
+  const advTot_given=advs.reduce((a,x)=>a+(x.currency==='USD'?x.amount*rate:x.amount),0);
+  // ALL-TIME supplier expenses (not period-filtered) so balance is always current state
+  const advTot_spent=(supExpR.data||[]).filter(o=>o.method==='from_advance'||supplierNames.has(o.worker_name)).reduce((a,o)=>a+(o.amount_tjs||0),0);
 
   // By category (for selected object or all)
   const byCat={};
