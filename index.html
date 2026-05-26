@@ -3043,11 +3043,9 @@ snab_detail:async()=>{
         </div>`).join('')}
       </div>`:''}
       <!-- Action buttons -->
-      ${canWrite()?`<div style="background:var(--w);border:1px solid ${bd};border-top:1px solid var(--bg2);border-radius:0 0 var(--r2) var(--r2);padding:8px 10px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">
-        <button onclick="advReturnGroup('${ids}')" style="padding:8px 2px;border-radius:8px;background:${bg};border:1px solid ${bd};color:var(--adk);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">↩ ${t('ret')}</button>
-        <button onclick="advDoneGroup('${ids}')" style="padding:8px 2px;border-radius:8px;background:var(--bluel);border:1px solid var(--blueb);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">✓ ${t('done_ok')}</button>
-        <button onclick="advAddExpense('${safeN}','${safeObj}')" style="padding:8px 2px;border-radius:8px;background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">− ${t('expense')}</button>
-        <button onclick="advStageGroup('${ids}')" style="padding:8px 2px;border-radius:8px;background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')} →</button>
+      ${canWrite()?`<div style="background:var(--w);border:1px solid ${bd};border-top:1px solid var(--bg2);border-radius:0 0 var(--r2) var(--r2);padding:8px 10px;display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+        <button onclick="advAddExpense('${safeN}','${safeObj}')" style="padding:9px 2px;border-radius:8px;background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">− ${t('expense')}</button>
+        <button onclick="advStageGroup('${ids}')" style="padding:9px 2px;border-radius:8px;background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')} →</button>
       </div>`:`<div style="height:1px;background:var(--bg2);"></div>`}
     </div>`;
   }
@@ -3074,7 +3072,6 @@ snab_detail:async()=>{
         ${group.length>1?`<span style="font-size:10px;color:var(--t4);margin-left:5px;">${group.length} авансов</span>`:`<span style="font-size:10px;color:var(--t4);margin-left:5px;">${group[0].task||''}</span>`}
       </div>
       <span style="font-size:12px;font-weight:700;color:var(--t3);">${fmtN(total)} TJS</span>
-      ${canWrite()?`<button onclick="advDoneGroup('${ids}',true)" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--w);font-size:10px;cursor:pointer;font-family:var(--ff);color:var(--t4);">↺</button>`:''}
     </div>`;
   }
 
@@ -3320,22 +3317,29 @@ settings:async()=>{
 
 /* ── SUPPLIER PAGES ── */
 my:async()=>{
-  const[{data:advs},{data:ops}]=await Promise.all([
-    SB.from('advances').select('*').eq('worker_name',USER?.name).eq('status','active').order('created_at',{ascending:false}),
-    SB.from('operations').select('*').eq('type','expense').eq('worker_name',USER?.name).order('date',{ascending:false})
+  const d10=new Date(Date.now()-10*24*60*60*1000).toISOString().slice(0,10);
+  const d30=new Date(Date.now()-30*24*60*60*1000).toISOString().slice(0,10);
+  const[{data:advs},{data:ops},{data:allOpsBalance}]=await Promise.all([
+    SB.from('advances').select('*').eq('worker_name',USER?.name).order('created_at',{ascending:false}),
+    SB.from('operations').select('*').eq('type','expense').eq('worker_name',USER?.name).gte('date',d10).order('date',{ascending:false}),
+    SB.from('operations').select('amount_tjs').eq('type','expense').eq('worker_name',USER?.name)
   ]);
   const rate=COMPANY.usd_rate||10.92;
   const allAdvs=advs||[];
-  // Sum ALL active advances — fixes bug where only [0] was used
-  const totalGiven=allAdvs.reduce((s,a)=>{
+  // Active advances only → used for real balance calculation
+  const activeAdvs=allAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
+  // Last 30 days → shown in history
+  const recentAdvs=allAdvs.filter(a=>(a.date||a.created_at?.slice(0,10)||'')>=d30);
+  // Balance = all active advances − ALL expenses ever (not just 10 days)
+  const totalGiven=activeAdvs.reduce((s,a)=>{
     const tjs=a.currency==='USD'?a.amount*rate:a.amount;return s+tjs;
   },0);
-  const spent=(ops||[]).reduce((a,o)=>a+(o.amount_tjs||0),0);
+  const spent=(allOpsBalance||[]).reduce((a,o)=>a+(o.amount_tjs||0),0);
   const rem=totalGiven-spent;
   const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
   const pctColor=pct>90?'var(--red)':pct>70?'var(--yel)':'var(--a)';
 
-  if(!allAdvs.length) return `
+  if(!activeAdvs.length&&!recentAdvs.length) return `
     <div style="animation:fadeUp .3s ease both;text-align:center;padding:56px 24px;">
       <div style="width:72px;height:72px;background:var(--ap);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px;">💳</div>
       <div style="font-size:17px;font-weight:700;color:var(--t);margin-bottom:6px;">${t('no_data')}</div>
@@ -3382,32 +3386,35 @@ my:async()=>{
   <!-- Add expense button -->
   <button onclick="go('addexp')" style="width:100%;padding:14px;background:var(--redl);border:1.5px solid var(--redb);border-radius:14px;font-size:15px;font-weight:700;color:var(--red);cursor:pointer;margin-bottom:14px;animation:fadeUp .3s ease .06s both;">− ${t('new_exp')}</button>
 
-  <!-- ADVANCES HISTORY -->
+  <!-- ADVANCES HISTORY (last 30 days) -->
   <div class="card mb14" style="animation:fadeUp .3s ease .1s both;">
-    <div class="sh" style="margin-bottom:12px;"><div class="sh-t" style="font-size:13px;font-weight:700;">📥 История выдач</div></div>
-    ${allAdvs.map((a,i)=>{
+    <div class="sh" style="margin-bottom:12px;">
+      <div class="sh-t" style="font-size:13px;font-weight:700;">📥 История выдач <span style="font-weight:400;color:var(--t4);font-size:11px;">(30 ${t('days_sfx')})</span></div>
+    </div>
+    ${recentAdvs.length?recentAdvs.map((a,i)=>{
       const amtTjs=a.currency==='USD'?a.amount*rate:a.amount;
-      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i<allAdvs.length-1?'border-bottom:1px solid var(--bd);':''}">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--ap);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📥</div>
+      const isDone=a.status==='done'||a.status==='closed';
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i<recentAdvs.length-1?'border-bottom:1px solid var(--bd);':''}">
+        <div style="width:38px;height:38px;border-radius:11px;background:${isDone?'var(--bg)':'var(--ap)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;opacity:${isDone?.6:1};">📥</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.object_name||'—'}</div>
-          <div style="font-size:11px;color:var(--t4);margin-top:2px;">${a.date||a.created_at?.slice(0,10)||'—'}${a.task?' · '+a.task:''}</div>
+          <div style="font-size:13px;font-weight:600;color:${isDone?'var(--t3)':'var(--t)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.object_name||a.task||'—'}</div>
+          <div style="font-size:11px;color:var(--t4);margin-top:2px;">${a.date||a.created_at?.slice(0,10)||'—'}${isDone?' · ✓ закрыт':''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:14px;font-weight:700;color:var(--ad);">+${fmtN(a.amount)} ${a.currency||'TJS'}</div>
+          <div style="font-size:14px;font-weight:700;color:${isDone?'var(--t3)':'var(--ad)'};">+${fmtN(a.amount)} ${a.currency||'TJS'}</div>
           ${a.currency==='USD'?`<div style="font-size:10px;color:var(--t4);">≈ ${fmtN(amtTjs)} TJS</div>`:''}
         </div>
       </div>`;
-    }).join('')}
+    }).join(''):`<div class="empty"><div class="empty-icon">📥</div>Нет выдач за последние 30 дней</div>`}
   </div>
 
-  <!-- RECENT EXPENSES -->
+  <!-- RECENT EXPENSES (last 10 days) -->
   <div class="card" style="animation:fadeUp .3s ease .14s both;">
     <div class="sh" style="margin-bottom:12px;">
-      <div class="sh-t" style="font-size:13px;font-weight:700;">📋 ${t('recent_exp')}</div>
+      <div class="sh-t" style="font-size:13px;font-weight:700;">📋 ${t('recent_exp')} <span style="font-weight:400;color:var(--t4);font-size:11px;">(10 ${t('days_sfx')})</span></div>
       <div class="sh-a" onclick="go('myexp')">${t('all_ops')}</div>
     </div>
-    <div>${(ops||[]).slice(0,5).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
+    <div>${(ops||[]).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
   </div>`;
 },
 addexp:async()=>{
