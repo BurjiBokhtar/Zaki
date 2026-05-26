@@ -2447,8 +2447,14 @@ home:async()=>{
   const balUSD=incUSD-cashExpUSD-advUSD;
   const bal=balTJS+(balUSD*rate);
 
-  const cred=debts.filter(d=>d.type==='creditor').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
-  const deb=debts.filter(d=>d.type==='debtor').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
+  // Split debts by currency — never mix TJS and USD raw amounts
+  const credTJS=debts.filter(d=>d.type==='creditor'&&d.currency!=='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
+  const credUSD=debts.filter(d=>d.type==='creditor'&&d.currency==='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
+  const debTJS=debts.filter(d=>d.type==='debtor'&&d.currency!=='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
+  const debUSD=debts.filter(d=>d.type==='debtor'&&d.currency==='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
+  // Combined TJS-equivalent for netto line only
+  const cred=credTJS+credUSD*rate;
+  const deb=debTJS+debUSD*rate;
   // ALL advances: convert USD→TJS for accurate total
   const advTot_given=advs.reduce((a,x)=>a+(x.currency==='USD'?x.amount*rate:x.amount),0);
   // ALL-TIME supplier expenses (not period-filtered) so balance is always current state
@@ -2707,10 +2713,12 @@ home:async()=>{
       </div>
       <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
         <div><div style="font-size:10px;color:var(--ad);">${t('recv')}</div>
-          <div style="font-size:20px;font-weight:800;color:var(--ad);" id="cnt-deb">${fmtN(deb)}</div></div>
-        <div style="width:1px;background:var(--bd);height:22px;align-self:center;"></div>
+          <div style="font-size:18px;font-weight:800;color:var(--ad);" id="cnt-deb">${fmtN(debTJS)}<span style="font-size:11px;font-weight:500;opacity:.7;"> TJS</span></div>
+          ${debUSD>0?`<div style="font-size:13px;font-weight:700;color:var(--blue);">$${fmtN(debUSD)}</div>`:''}</div>
+        <div style="width:1px;background:var(--bd);height:32px;align-self:center;"></div>
         <div><div style="font-size:10px;color:var(--red);">${t('paybl')}</div>
-          <div style="font-size:20px;font-weight:800;color:var(--red);" id="cnt-cred">${fmtN(cred)}</div></div>
+          <div style="font-size:18px;font-weight:800;color:var(--red);" id="cnt-cred">${fmtN(credTJS)}<span style="font-size:11px;font-weight:500;opacity:.7;"> TJS</span></div>
+          ${credUSD>0?`<div style="font-size:13px;font-weight:700;color:var(--red);">$${fmtN(credUSD)}</div>`:''}</div>
       </div>
       <div class="sc-val2" style="margin-top:3px;" id="cnt-net">${t('net_lbl')}: ${fmtN(deb-cred)} TJS</div>
     </div>
@@ -2721,8 +2729,8 @@ home:async()=>{
   <div class="money-map mb20">
     <div class="mm" style="animation-delay:.04s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div><div class="mm-l">${t('in_cash')} TJS</div><div class="mm-v" style="color:var(--adk);">${fmtN(balTJS)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(balUSD)} USD</div></div>
     <div class="mm" style="animation-delay:.07s;"><div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div><div class="mm-l">${t('at_snabs')}</div><div class="mm-v" style="color:var(--yel);">${fmtN(Math.max(0,advTot_given-advTot_spent))}</div><div class="mm-v2" style="color:var(--t4);">${t('issued')}: ${fmtN(advTot_given)}</div></div>
-    <div class="mm" style="animation-delay:.1s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('recv')}</div><div class="mm-v" style="color:var(--ad);">${fmtN(deb)}</div><div class="mm-v2" style="color:var(--t4);">${t('deb_tjs')}</div></div>
-    <div class="mm" style="animation-delay:.13s;"><div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('paybl')}</div><div class="mm-v" style="color:var(--red);">${fmtN(cred)}</div><div class="mm-v2" style="color:var(--t4);">${t('cred_tjs')}</div></div>
+    <div class="mm" style="animation-delay:.1s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('recv')}</div><div class="mm-v" style="color:var(--ad);">${fmtN(debTJS)}<span style="font-size:10px;opacity:.6;"> TJS</span></div><div class="mm-v2" style="color:var(--t4);">${debUSD>0?'$'+fmtN(debUSD)+' USD':t('deb_tjs')}</div></div>
+    <div class="mm" style="animation-delay:.13s;"><div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('paybl')}</div><div class="mm-v" style="color:var(--red);">${fmtN(credTJS)}<span style="font-size:10px;opacity:.6;"> TJS</span></div><div class="mm-v2" style="color:var(--t4);">${credUSD>0?'$'+fmtN(credUSD)+' USD':t('cred_tjs')}</div></div>
   </div>
 
   <!-- CHARTS -->
@@ -3140,8 +3148,14 @@ debts:async()=>{
   const rate=COMPANY.usd_rate||10.92;
   const cred=(debts||[]).filter(d=>d.type==='creditor');
   const deb=(debts||[]).filter(d=>d.type==='debtor');
-  const sumC=cred.reduce((a,d)=>a+toTJS(d.total_amount-d.paid_amount,d.currency),0);
-  const sumD=deb.reduce((a,d)=>a+toTJS(d.total_amount-d.paid_amount,d.currency),0);
+  // Separate by currency — never mix raw TJS and USD
+  const sumC_TJS=cred.filter(d=>d.currency!=='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
+  const sumC_USD=cred.filter(d=>d.currency==='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
+  const sumD_TJS=deb.filter(d=>d.currency!=='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
+  const sumD_USD=deb.filter(d=>d.currency==='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
+  // Combined TJS-equivalent for netto only
+  const sumC=sumC_TJS+sumC_USD*rate;
+  const sumD=sumD_TJS+sumD_USD*rate;
   function dc(d,i){
     const rest=d.total_amount-d.paid_amount;
     const pct=d.total_amount>0?Math.min(d.paid_amount/d.total_amount*100,100):0;
@@ -3175,8 +3189,20 @@ debts:async()=>{
   }
   return `
   <div class="g2 mb20">
-    <div class="sc r" style="animation-delay:.03s;"><div class="sc-lbl">${t('paybl')}</div><div class="sc-val" style="color:var(--red);">${fmtN(sumC)}</div><div class="sc-val2">TJS · $${fmtN(sumC/rate)}</div></div>
-    <div class="sc g" style="animation-delay:.06s;"><div class="sc-lbl">${t('recv')}</div><div class="sc-val" style="color:var(--ad);">${fmtN(sumD)}</div><div class="sc-val2">TJS · $${fmtN(sumD/rate)}</div></div>
+    <div class="sc r" style="animation-delay:.03s;"><div class="sc-lbl">${t('paybl')}</div>
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+        ${sumC_TJS>0?`<div class="sc-val" style="color:var(--red);">${fmtN(sumC_TJS)}<span style="font-size:11px;opacity:.6;"> TJS</span></div>`:''}
+        ${sumC_USD>0?`<div class="sc-val" style="color:var(--red);">$${fmtN(sumC_USD)}</div>`:''}
+        ${sumC_TJS===0&&sumC_USD===0?`<div class="sc-val" style="color:var(--t4);">0</div>`:''}
+      </div>
+      <div class="sc-val2">${t('net_lbl')}: ${fmtN(sumC)} TJS</div></div>
+    <div class="sc g" style="animation-delay:.06s;"><div class="sc-lbl">${t('recv')}</div>
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+        ${sumD_TJS>0?`<div class="sc-val" style="color:var(--ad);">${fmtN(sumD_TJS)}<span style="font-size:11px;opacity:.6;"> TJS</span></div>`:''}
+        ${sumD_USD>0?`<div class="sc-val" style="color:var(--ad);">$${fmtN(sumD_USD)}</div>`:''}
+        ${sumD_TJS===0&&sumD_USD===0?`<div class="sc-val" style="color:var(--t4);">0</div>`:''}
+      </div>
+      <div class="sc-val2">${t('net_lbl')}: ${fmtN(sumD)} TJS</div></div>
   </div>
   ${canAdmin()?`<button class="btn btn-p btn-sm mb16" onclick="openNewDebt()">${t('new_debt')}</button>`:''}
   <div class="sh"><div class="sh-t">${t('cred')}</div></div>
