@@ -889,7 +889,7 @@ const T={
     users:'Пользователи',add_u:'Добавить',
     add_w:'Добавить работу',m_card:'Карточка',
     overdue:'Просрочено',done_ok:'Выполнено ✓',
-    ops_count:'операций',after_adv:'После авансов снабженцам',
+    ops_count:'операций',after_adv:'После авансов снабженцам',vs_prev_m:'к прошлому месяцу',
     net_lbl:'Нетто',issued:'Выдано',
     deb_tjs:'TJS дебиторка',cred_tjs:'TJS кредиторка',
     all_obj:'Все объекты',exp_by_cat:'Расходы по категориям',
@@ -985,7 +985,7 @@ const T={
     users:'Корбарон',add_u:'Илова',
     add_w:'Кор илова',m_card:'Карточка',
     overdue:'Гузашта',done_ok:'Иҷро ✓',
-    ops_count:'амалиётҳо',after_adv:'Пас аз пешпардохти таъминотчиён',
+    ops_count:'амалиётҳо',after_adv:'Пас аз пешпардохти таъминотчиён',vs_prev_m:'нисбат ба моҳи гузашта',
     net_lbl:'Холис',issued:'Дода',
     deb_tjs:'TJS дебиторӣ',cred_tjs:'TJS кредиторӣ',
     all_obj:'Ҳама объектҳо',exp_by_cat:'Харҷ аз рӯи категория',
@@ -2643,7 +2643,59 @@ home:async()=>{
     },150);
   },80);
 
+  // Hero: trend vs previous month
+  const heroIncPrev=mInc[4]||0, heroIncCur=mInc[5]||0;
+  const heroTrendPct=heroIncPrev>0?Math.round((heroIncCur-heroIncPrev)/heroIncPrev*100):0;
+  const heroTrendPos=heroTrendPct>=0;
+  const heroAdvRem=Math.max(0,advTot_given-advTot_spent);
+
   return `
+  <!-- ══ HERO BANNER ══ -->
+  <div style="margin:-18px -18px 20px;padding:22px 20px 24px;background:linear-gradient(135deg,#0c1e2b 0%,#133040 45%,#0b2e20 100%);position:relative;overflow:hidden;">
+    <!-- glow orbs -->
+    <div style="position:absolute;top:-50px;right:-30px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(57,185,128,.15) 0%,transparent 70%);pointer-events:none;"></div>
+    <div style="position:absolute;bottom:-60px;left:-20px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(49,130,206,.12) 0%,transparent 70%);pointer-events:none;"></div>
+
+    <!-- top row -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;position:relative;z-index:1;">
+      <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:5px 13px;">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="rgba(255,255,255,.6)" stroke-width="1.2"/><path d="M6 3.5v3l2 1" stroke="#39B980" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.65);">ZAKI ERP</span>
+      </div>
+      <div style="display:flex;gap:4px;">
+        ${[['today',t('today')],['month',t('month')],['year',t('year')]].map(([p,lbl])=>`
+          <span onclick="PERIOD='${p}';destroyCharts();renderPage('home')"
+            style="padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;
+            ${PERIOD===p?'background:rgba(57,185,128,.25);color:#39B980;':'color:rgba(255,255,255,.45);'}">${lbl}</span>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- main balance -->
+    <div style="position:relative;z-index:1;">
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px;">${t('balance')}</div>
+      <div style="font-size:40px;font-weight:900;color:#fff;letter-spacing:-.5px;line-height:1;" id="hero-bal">${fmtN(balTJS)}<span style="font-size:16px;font-weight:500;opacity:.4;margin-left:6px;">TJS</span></div>
+      <div style="font-size:12px;color:rgba(255,255,255,.38);margin-top:5px;">${t('after_adv')}${balUSD!==0?` · ${balUSD>=0?'$':'-$'}${fmtN(Math.abs(balUSD))} USD`:''}</div>
+      ${heroTrendPct!==0?`<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(${heroTrendPos?'57,185,128':'229,62,62'},.2);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:700;color:${heroTrendPos?'#39B980':'#fc8181'};margin-top:9px;">
+        ${heroTrendPos?'↑':'↓'} ${heroTrendPos?'+':''}${heroTrendPct}% ${t('vs_prev_m')}
+      </div>`:''}
+    </div>
+
+    <!-- mini grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px;position:relative;z-index:1;">
+      <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:11px 13px;">
+        <div style="font-size:9px;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">↑ ${t('income')}</div>
+        <div style="font-size:17px;font-weight:800;color:#39B980;">${fmtN(incTJS)}<span style="font-size:10px;opacity:.55;margin-left:3px;">TJS</span></div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;">${inc.length} ${t('ops_count')}${incUSD>0?` · $${fmtN(incUSD)}`:''}</div>
+      </div>
+      <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:11px 13px;">
+        <div style="font-size:9px;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">↓ ${t('expense')}</div>
+        <div style="font-size:17px;font-weight:800;color:#fc8181;">${fmtN(expTJS)}<span style="font-size:10px;opacity:.55;margin-left:3px;">TJS</span></div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;">${exp.length} ${t('ops_count')}${expUSD>0?` · $${fmtN(expUSD)}`:''}</div>
+      </div>
+    </div>
+  </div>
+
   <!-- OBJECT FILTER — compact select -->
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
     <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:200px;max-width:380px;">
