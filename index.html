@@ -3435,15 +3435,25 @@ settings:async()=>{
   const{data:users}=USER?.role==='director'?{data:[]}:await SB.from('profiles').select('id,name,role,phone');
 
   function sSection(title,items,addFn,editFn,delFn){
-    return `<div class="card mb16">
-      <div class="sh"><div class="sh-t">${title}</div></div>
-      <div style="display:flex;gap:7px;margin-bottom:11px;"><input class="fi" id="inp-${title}" placeholder="${t('add')}" style="flex:1;"><button class="btn btn-p btn-sm" onclick="${addFn}">${t('add')}</button></div>
-      <div>${items.map(it=>`<div class="si"><div class="si-inf"><div class="si-name">${it.name||it}</div></div>
-        <div class="si-acts">
-          <button class="si-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="${editFn}(${it.id||"'"+it+"'"})">✏</button>
-          <button class="si-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="${delFn}(${it.id||"'"+it+"'"})">✕</button>
-        </div></div>`).join('')||`<div class="empty" style="padding:16px;">${t('no_data')}</div>`}
-      </div></div>`;
+    const chips=items.map(it=>{
+      const id=it.id||"'"+String(it).replace(/'/g,"\\'")+"'";
+      const name=it.name||it;
+      return `<div style="display:inline-flex;align-items:center;gap:4px;padding:5px 6px 5px 11px;background:var(--bg);border:1.5px solid var(--bd);border-radius:20px;font-size:12px;font-weight:500;color:var(--t);max-width:100%;">
+        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${name}</span>
+        <button onclick="${editFn}(${id})" title="${t('edit')}" style="width:22px;height:22px;background:var(--al);border:none;border-radius:50%;font-size:11px;cursor:pointer;color:var(--adk);display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;line-height:1;">✏</button>
+        <button onclick="${delFn}(${id})" title="${t('delete')}" style="width:22px;height:22px;background:var(--redl);border:none;border-radius:50%;font-size:11px;cursor:pointer;color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;line-height:1;">✕</button>
+      </div>`;
+    }).join('');
+    return `<div class="card mb12">
+      <div class="sh" style="margin-bottom:9px;"><div class="sh-t">${title} <span style="color:var(--t4);font-weight:400;font-size:11px;">(${items.length})</span></div></div>
+      <div style="display:flex;gap:7px;margin-bottom:10px;">
+        <input class="fi" id="inp-${title}" placeholder="+ ${t('add')}…" style="flex:1;margin-bottom:0;padding:8px 11px;">
+        <button class="btn btn-p btn-sm" onclick="${addFn}" style="flex-shrink:0;">${t('add')}</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${chips||`<div style="font-size:12px;color:var(--t4);padding:4px 2px;">${t('no_data')}</div>`}
+      </div>
+    </div>`;
   }
   return `
   <div class="card mb16" style="animation:fadeUp .3s ease both;">
