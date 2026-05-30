@@ -1479,7 +1479,11 @@ function go(id){
   buildNav();closeSidebar();destroyCharts();renderPage(id);
 }
 function setPeriod(p,el){
-  PERIOD=p;document.querySelectorAll('.pb').forEach(b=>b.classList.remove('on'));el.classList.add('on');
+  PERIOD=p;
+  // Sync all .pb buttons by id (works for both sidebar and any inline strip)
+  document.querySelectorAll('.pb').forEach(b=>b.classList.remove('on'));
+  const target=document.getElementById('pb-'+p);
+  if(target)target.classList.add('on');
   destroyCharts();renderPage(CUR_PAGE);
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('mob-overlay').classList.toggle('show');}
@@ -2656,21 +2660,6 @@ home:async()=>{
     <div style="position:absolute;top:-50px;right:-30px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(57,185,128,.15) 0%,transparent 70%);pointer-events:none;"></div>
     <div style="position:absolute;bottom:-60px;left:-20px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(49,130,206,.12) 0%,transparent 70%);pointer-events:none;"></div>
 
-    <!-- top row -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;position:relative;z-index:1;">
-      <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:5px 13px;">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="rgba(255,255,255,.6)" stroke-width="1.2"/><path d="M6 3.5v3l2 1" stroke="#39B980" stroke-width="1.2" stroke-linecap="round"/></svg>
-        <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.65);">ZAKI ERP</span>
-      </div>
-      <div style="display:flex;gap:4px;">
-        ${[['today',t('today')],['month',t('month')],['year',t('year')]].map(([p,lbl])=>`
-          <span onclick="PERIOD='${p}';destroyCharts();renderPage('home')"
-            style="padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;
-            ${PERIOD===p?'background:rgba(57,185,128,.25);color:#39B980;':'color:rgba(255,255,255,.45);'}">${lbl}</span>
-        `).join('')}
-      </div>
-    </div>
-
     <!-- main balance -->
     <div style="position:relative;z-index:1;">
       <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px;">${t('balance')}</div>
@@ -2692,6 +2681,21 @@ home:async()=>{
         <div style="font-size:9px;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">↓ ${t('expense')}</div>
         <div style="font-size:17px;font-weight:800;color:#fc8181;">${fmtN(expTJS)}<span style="font-size:10px;opacity:.55;margin-left:3px;">TJS</span></div>
         <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;">${exp.length} ${t('ops_count')}${expUSD>0?` · $${fmtN(expUSD)}`:''}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STICKY PERIOD STRIP (home only) ══ -->
+  <div style="position:sticky;top:-18px;z-index:20;margin:0 -18px 16px;background:var(--w);border-bottom:1px solid var(--bd);padding:8px 16px;">
+    <div style="display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
+      ${[['today',t('today')],['month',t('month')],['year',t('year')],['all',t('all')]].map(([p,lbl])=>`
+        <button onclick="setPeriod('${p}')"
+          class="pb${PERIOD===p?' on':''}"
+          style="flex-shrink:0;">${lbl}</button>
+      `).join('')}
+      <div style="margin-left:auto;display:flex;gap:4px;flex-shrink:0;">
+        <div class="cp cp-tjs">TJS</div>
+        <div class="cp cp-usd">USD</div>
       </div>
     </div>
   </div>
