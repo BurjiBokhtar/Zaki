@@ -896,7 +896,7 @@ const T={
     by_obj_tip:'По объектам — нажмите на столбец для фильтра',
     reset_filter:'✕ Сброс фильтра',
     all_ops_title:'Все операции',search_ph:'Поиск по описанию, категории, объекту...',
-    all_types:'Все типы',reset:'✕ Сброс',no_ops:'Нет операций за выбранный период',
+    all_types:'Все типы',reset:'Сброс',no_ops:'Нет операций за выбранный период',all_cats:'Все категории',date_from:'С',date_to:'По',from_of:'из',
     role_acc_edit:'Бухгалтер: редактирование доступно всегда',
     role_sup_edit:'Снабженец: редактирование только сегодня',
     new_debt:'+ Новый долг',money:'Деньги',history:'История',
@@ -992,7 +992,7 @@ const T={
     by_obj_tip:'Аз рӯи объект — рӯи сутун пахш кунед',
     reset_filter:'✕ Тоза кардан',
     all_ops_title:'Ҳама амалиётҳо',search_ph:'Ҷустуҷӯ аз рӯи тавсиф, категория, объект...',
-    all_types:'Ҳама навъҳо',reset:'✕ Тоза',no_ops:'Амалиёт барои давраи интихобшуда нест',
+    all_types:'Ҳама навъҳо',reset:'Тоза',no_ops:'Амалиёт барои давраи интихобшуда нест',all_cats:'Ҳама категорияҳо',date_from:'Аз',date_to:'То',from_of:'аз',
     role_acc_edit:'Ҳисобдор: таҳрир ҳамеша дастрас аст',
     role_sup_edit:'Таъминотчӣ: таҳрир танҳо имрӯз',
     new_debt:'+ Қарзи нав',money:'Пул',history:'Таърих',
@@ -2835,6 +2835,12 @@ ops:async()=>{
   const expTJS=allOps.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const expUSD=allOps.filter(o=>o.type==='expense'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
 
+  // Collect unique categories from ALL ops for the category filter dropdown
+  const opsCats=[...new Set(allOps.map(o=>o.category_name).filter(Boolean))].sort();
+
+  // Ensure filter state has all fields (backwards compatible)
+  window._opsFilter=Object.assign({q:'',type:'all',currency:'all',category:'all',date_from:'',date_to:''},window._opsFilter||{});
+
   const applyFilter=()=>{
     const f=window._opsFilter;
     let list=window._ops||[];
@@ -2846,25 +2852,32 @@ ops:async()=>{
     );
     if(f.type!=='all') list=list.filter(o=>o.type===f.type);
     if(f.currency!=='all') list=list.filter(o=>o.currency===f.currency);
-    if(f.date) list=list.filter(o=>o.date===f.date);
+    if(f.category!=='all') list=list.filter(o=>(o.category_name||'')===(f.category));
+    if(f.date_from) list=list.filter(o=>o.date&&o.date>=f.date_from);
+    if(f.date_to)   list=list.filter(o=>o.date&&o.date<=f.date_to);
     const ol=document.getElementById('ops-list');
     const oc=document.getElementById('ops-count');
     if(ol) ol.innerHTML=list.length
       ? list.map(o=>txRow(o,true)).join('')
       : `<div class="empty"><div class="empty-icon">🔍</div>${t('no_data')}</div>`;
-    if(oc) oc.textContent=list.length+' из '+window._ops.length;
+    if(oc) oc.textContent=list.length+' '+t('from_of')+' '+(window._ops||[]).length;
   };
   window._applyOpsFilter=applyFilter;
 
   setTimeout(()=>{
-    const qi=document.getElementById('ops-q');
-    const ti=document.getElementById('ops-type');
-    const ci=document.getElementById('ops-cur');
-    const di=document.getElementById('ops-date');
-    if(qi){qi.value=window._opsFilter.q;qi.oninput=e=>{window._opsFilter.q=e.target.value;applyFilter();};}
-    if(ti){ti.value=window._opsFilter.type;ti.onchange=e=>{window._opsFilter.type=e.target.value;applyFilter();};}
-    if(ci){ci.value=window._opsFilter.currency;ci.onchange=e=>{window._opsFilter.currency=e.target.value;applyFilter();};}
-    if(di){di.value=window._opsFilter.date;di.onchange=e=>{window._opsFilter.date=e.target.value;applyFilter();};}
+    const qi =document.getElementById('ops-q');
+    const ti =document.getElementById('ops-type');
+    const ci =document.getElementById('ops-cur');
+    const cati=document.getElementById('ops-cat');
+    const fri =document.getElementById('ops-from');
+    const toi =document.getElementById('ops-to');
+    const f=window._opsFilter;
+    if(qi){qi.value=f.q;qi.oninput=e=>{f.q=e.target.value;applyFilter();};}
+    if(ti){ti.value=f.type;ti.onchange=e=>{f.type=e.target.value;applyFilter();};}
+    if(ci){ci.value=f.currency;ci.onchange=e=>{f.currency=e.target.value;applyFilter();};}
+    if(cati){cati.value=f.category;cati.onchange=e=>{f.category=e.target.value;applyFilter();};}
+    if(fri){fri.value=f.date_from;fri.onchange=e=>{f.date_from=e.target.value;applyFilter();};}
+    if(toi){toi.value=f.date_to;toi.onchange=e=>{f.date_to=e.target.value;applyFilter();};}
   },100);
 
   const canEdit=canWrite();
@@ -2927,27 +2940,44 @@ ops:async()=>{
     </div>
 
     <!-- FILTER BAR -->
-    <div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
-      <div style="position:relative;flex:1;min-width:160px;">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--t4)" stroke-width="1.4" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="5.5" cy="5.5" r="3.5"/><path d="M9 9l2 2" stroke-linecap="round"/></svg>
-        <input id="ops-q" class="fi" placeholder="${t('search_ph')}" style="padding-left:30px;width:100%;">
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px;">
+      <!-- Row 1: search + type + currency + reset -->
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
+        <div style="position:relative;flex:1;min-width:150px;">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--t4)" stroke-width="1.4" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="5.5" cy="5.5" r="3.5"/><path d="M9 9l2 2" stroke-linecap="round"/></svg>
+          <input id="ops-q" class="fi" placeholder="${t('search_ph')}" style="padding-left:30px;width:100%;margin-bottom:0;">
+        </div>
+        <select id="ops-type" class="fi fi-sel" style="width:110px;flex-shrink:0;margin-bottom:0;">
+          <option value="all">${t('all_types')}</option>
+          <option value="income">${t('inc_op')}</option>
+          <option value="expense">${t('exp_op')}</option>
+          <option value="advance">${t('adv_op')}</option>
+        </select>
+        <select id="ops-cur" class="fi fi-sel" style="width:85px;flex-shrink:0;margin-bottom:0;">
+          <option value="all">TJS+USD</option>
+          <option value="TJS">TJS</option>
+          <option value="USD">USD</option>
+        </select>
+        <button class="btn btn-s btn-sm" style="flex-shrink:0;white-space:nowrap;"
+          onclick="window._opsFilter={q:'',type:'all',currency:'all',category:'all',date_from:'',date_to:''};['ops-q','ops-from','ops-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});['ops-type','ops-cur','ops-cat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=el.id==='ops-cat'?'all':'all';});if(window._applyOpsFilter)window._applyOpsFilter();">
+          ✕ ${t('reset')}
+        </button>
       </div>
-      <select id="ops-type" class="fi fi-sel" style="width:120px;flex-shrink:0;">
-        <option value="all">${t('all_types')}</option>
-        <option value="income">${t('inc_op')}</option>
-        <option value="expense">${t('exp_op')}</option>
-        <option value="advance">${t('adv_op')}</option>
-      </select>
-      <select id="ops-cur" class="fi fi-sel" style="width:90px;flex-shrink:0;">
-        <option value="all">TJS+USD</option>
-        <option value="TJS">TJS</option>
-        <option value="USD">USD</option>
-      </select>
-      <input id="ops-date" class="fi" type="date" style="width:145px;flex-shrink:0;" title="Фильтр по дате">
-      <button class="btn btn-s btn-sm" style="flex-shrink:0;"
-        onclick="window._opsFilter={q:'',type:'all',date:'',currency:'all'};['ops-q','ops-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});['ops-type','ops-cur'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='all';});if(window._applyOpsFilter)window._applyOpsFilter();">
-        ${t('reset')}
-      </button>
+      <!-- Row 2: category + date range -->
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
+        <select id="ops-cat" class="fi fi-sel" style="flex:1;min-width:140px;margin-bottom:0;">
+          <option value="all">📂 ${t('all_cats')}</option>
+          ${opsCats.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">${c}</option>`).join('')}
+        </select>
+        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+          <span style="font-size:11px;color:var(--t4);white-space:nowrap;">${t('date_from')}</span>
+          <input id="ops-from" class="fi" type="date" style="width:135px;margin-bottom:0;" title="${t('date_from')}">
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+          <span style="font-size:11px;color:var(--t4);white-space:nowrap;">${t('date_to')}</span>
+          <input id="ops-to" class="fi" type="date" style="width:135px;margin-bottom:0;" title="${t('date_to')}">
+        </div>
+      </div>
     </div>
 
     <div style="font-size:11px;color:var(--t4);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;">
