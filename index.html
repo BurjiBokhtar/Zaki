@@ -363,7 +363,7 @@ html{height:100dvh;}
 .fi-sel{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7' fill='none'%3E%3Cpath d='M1 1l4.5 5L10 1' stroke='%236B7A99' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px;cursor:pointer;}
 /* SEARCH SELECT (bottom-sheet) */
 .ss-bg{position:fixed;inset:0;z-index:600;background:rgba(15,25,35,.55);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;backdrop-filter:blur(3px);animation:fadeIn .18s ease;}
-.ss-sheet{background:var(--w);width:100%;max-width:520px;min-height:62vh;max-height:90vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:ssUp .22s cubic-bezier(.25,.8,.25,1);}
+.ss-sheet{background:var(--w);width:100%;max-width:520px;max-height:84vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:ssUp .22s cubic-bezier(.25,.8,.25,1);}
 @keyframes ssUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes ringPulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.5);}65%{box-shadow:0 0 0 11px rgba(255,255,255,0);}100%{box-shadow:0 0 0 0 rgba(255,255,255,0);}}
 @keyframes btnGlow{0%,100%{opacity:.7}50%{opacity:1}}
@@ -854,7 +854,7 @@ const T={
     recv:'Нам должны',paybl:'Мы должны',
     cashflow:'Cash Flow',recent:'Последние операции',all_ops:'Все →',rates:'Курсы валют',
     new_op:'Новая операция',op_type:'Тип операции',
-    inc_op:'↑ Приход',exp_op:'↓ Расход',adv_op:'→ Аванс',adv_op2:'Аванс',
+    inc_op:'↑ Приход',exp_op:'↓ Расход',adv_op:'→ Аванс',
     obj:'① Объект',cat:'② Категория',det:'③ Детали',
     date:'Дата',currency:'Валюта',desc:'Описание',amount:'Сумма',
     qty:'Кол-во',unit:'Ед.',price:'Цена',total:'Итого',
@@ -896,7 +896,7 @@ const T={
     by_obj_tip:'По объектам — нажмите на столбец для фильтра',
     reset_filter:'✕ Сброс фильтра',
     all_ops_title:'Все операции',search_ph:'Поиск по описанию, категории, объекту...',
-    all_types:'Все типы',reset:'Сброс',no_ops:'Нет операций за выбранный период',all_cats:'Все категории',date_from:'С',date_to:'По',from_of:'из',
+    all_types:'Все типы',reset:'✕ Сброс',no_ops:'Нет операций за выбранный период',
     role_acc_edit:'Бухгалтер: редактирование доступно всегда',
     role_sup_edit:'Снабженец: редактирование только сегодня',
     new_debt:'+ Новый долг',money:'Деньги',history:'История',
@@ -950,7 +950,7 @@ const T={
     recv:'Аз мо қарздоранд',paybl:'Мо қарздорем',
     cashflow:'Cash Flow',recent:'Амалиётҳои охирин',all_ops:'Ҳама →',rates:'Курсҳои асъор',
     new_op:'Амалиёти нав',op_type:'Навъи амалиёт',
-    inc_op:'↑ Даромад',exp_op:'↓ Харҷ',adv_op:'→ Пешпардохт',adv_op2:'Пешпардохт',
+    inc_op:'↑ Даромад',exp_op:'↓ Харҷ',adv_op:'→ Пешпардохт',
     obj:'① Объект',cat:'② Категория',det:'③ Тафсилот',
     date:'Сана',currency:'Асъор',desc:'Тавсиф',amount:'Маблағ',
     qty:'Миқдор',unit:'Воҳид',price:'Нарх',total:'Ҷамъ',
@@ -992,7 +992,7 @@ const T={
     by_obj_tip:'Аз рӯи объект — рӯи сутун пахш кунед',
     reset_filter:'✕ Тоза кардан',
     all_ops_title:'Ҳама амалиётҳо',search_ph:'Ҷустуҷӯ аз рӯи тавсиф, категория, объект...',
-    all_types:'Ҳама навъҳо',reset:'Тоза',no_ops:'Амалиёт барои давраи интихобшуда нест',all_cats:'Ҳама категорияҳо',date_from:'Аз',date_to:'То',from_of:'аз',
+    all_types:'Ҳама навъҳо',reset:'✕ Тоза',no_ops:'Амалиёт барои давраи интихобшуда нест',
     role_acc_edit:'Ҳисобдор: таҳрир ҳамеша дастрас аст',
     role_sup_edit:'Таъминотчӣ: таҳрир танҳо имрӯз',
     new_debt:'+ Қарзи нав',money:'Пул',history:'Таърих',
@@ -1479,11 +1479,7 @@ function go(id){
   buildNav();closeSidebar();destroyCharts();renderPage(id);
 }
 function setPeriod(p,el){
-  PERIOD=p;
-  // Sync all .pb buttons by id (works for both sidebar and any inline strip)
-  document.querySelectorAll('.pb').forEach(b=>b.classList.remove('on'));
-  const target=document.getElementById('pb-'+p);
-  if(target)target.classList.add('on');
+  PERIOD=p;document.querySelectorAll('.pb').forEach(b=>b.classList.remove('on'));el.classList.add('on');
   destroyCharts();renderPage(CUR_PAGE);
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('mob-overlay').classList.toggle('show');}
@@ -2660,6 +2656,21 @@ home:async()=>{
     <div style="position:absolute;top:-50px;right:-30px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(57,185,128,.15) 0%,transparent 70%);pointer-events:none;"></div>
     <div style="position:absolute;bottom:-60px;left:-20px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(49,130,206,.12) 0%,transparent 70%);pointer-events:none;"></div>
 
+    <!-- top row -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;position:relative;z-index:1;">
+      <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:5px 13px;">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="rgba(255,255,255,.6)" stroke-width="1.2"/><path d="M6 3.5v3l2 1" stroke="#39B980" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.65);">ZAKI ERP</span>
+      </div>
+      <div style="display:flex;gap:4px;">
+        ${[['today',t('today')],['month',t('month')],['year',t('year')]].map(([p,lbl])=>`
+          <span onclick="PERIOD='${p}';destroyCharts();renderPage('home')"
+            style="padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;
+            ${PERIOD===p?'background:rgba(57,185,128,.25);color:#39B980;':'color:rgba(255,255,255,.45);'}">${lbl}</span>
+        `).join('')}
+      </div>
+    </div>
+
     <!-- main balance -->
     <div style="position:relative;z-index:1;">
       <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px;">${t('balance')}</div>
@@ -2681,21 +2692,6 @@ home:async()=>{
         <div style="font-size:9px;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">↓ ${t('expense')}</div>
         <div style="font-size:17px;font-weight:800;color:#fc8181;">${fmtN(expTJS)}<span style="font-size:10px;opacity:.55;margin-left:3px;">TJS</span></div>
         <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;">${exp.length} ${t('ops_count')}${expUSD>0?` · $${fmtN(expUSD)}`:''}</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ STICKY PERIOD STRIP (home only) ══ -->
-  <div style="position:sticky;top:-18px;z-index:20;margin:0 -18px 16px;background:var(--w);border-bottom:1px solid var(--bd);padding:8px 16px;">
-    <div style="display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
-      ${[['today',t('today')],['month',t('month')],['year',t('year')],['all',t('all')]].map(([p,lbl])=>`
-        <button onclick="setPeriod('${p}')"
-          class="pb${PERIOD===p?' on':''}"
-          style="flex-shrink:0;">${lbl}</button>
-      `).join('')}
-      <div style="margin-left:auto;display:flex;gap:4px;flex-shrink:0;">
-        <div class="cp cp-tjs">TJS</div>
-        <div class="cp cp-usd">USD</div>
       </div>
     </div>
   </div>
@@ -2839,12 +2835,6 @@ ops:async()=>{
   const expTJS=allOps.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const expUSD=allOps.filter(o=>o.type==='expense'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
 
-  // Collect unique categories from ALL ops for the category filter dropdown
-  const opsCats=[...new Set(allOps.map(o=>o.category_name).filter(Boolean))].sort();
-
-  // Ensure filter state has all fields (backwards compatible)
-  window._opsFilter=Object.assign({q:'',type:'all',currency:'all',category:'all',date_from:'',date_to:''},window._opsFilter||{});
-
   const applyFilter=()=>{
     const f=window._opsFilter;
     let list=window._ops||[];
@@ -2856,39 +2846,25 @@ ops:async()=>{
     );
     if(f.type!=='all') list=list.filter(o=>o.type===f.type);
     if(f.currency!=='all') list=list.filter(o=>o.currency===f.currency);
-    if(f.category!=='all') list=list.filter(o=>(o.category_name||'')===(f.category));
-    if(f.date_from) list=list.filter(o=>o.date&&o.date>=f.date_from);
-    if(f.date_to)   list=list.filter(o=>o.date&&o.date<=f.date_to);
+    if(f.date) list=list.filter(o=>o.date===f.date);
     const ol=document.getElementById('ops-list');
     const oc=document.getElementById('ops-count');
     if(ol) ol.innerHTML=list.length
       ? list.map(o=>txRow(o,true)).join('')
       : `<div class="empty"><div class="empty-icon">🔍</div>${t('no_data')}</div>`;
-    if(oc) oc.textContent=list.length+' '+t('from_of')+' '+(window._ops||[]).length;
+    if(oc) oc.textContent=list.length+' из '+window._ops.length;
   };
   window._applyOpsFilter=applyFilter;
 
   setTimeout(()=>{
-    const qi =document.getElementById('ops-q');
-    const ti =document.getElementById('ops-type');
-    const ci =document.getElementById('ops-cur');
-    const cati=document.getElementById('ops-cat');
-    const fri =document.getElementById('ops-from');
-    const toi =document.getElementById('ops-to');
-    const f=window._opsFilter;
-    function updateResetBtn(){
-      const rb=document.getElementById('ops-reset-btn');
-      if(!rb)return;
-      const active=f.q||f.type!=='all'||f.currency!=='all'||f.category!=='all'||f.date_from||f.date_to;
-      rb.style.display=active?'block':'none';
-    }
-    const origApply=applyFilter;
-    window._applyOpsFilter=()=>{origApply();updateResetBtn();};
-    if(qi){qi.value=f.q;qi.oninput=e=>{f.q=e.target.value;window._applyOpsFilter();};}
-    if(cati){cati.value=f.category;cati.onchange=e=>{f.category=e.target.value;window._applyOpsFilter();};}
-    if(fri){fri.value=f.date_from;fri.onchange=e=>{f.date_from=e.target.value;window._applyOpsFilter();};}
-    if(toi){toi.value=f.date_to;toi.onchange=e=>{f.date_to=e.target.value;window._applyOpsFilter();};}
-    updateResetBtn();
+    const qi=document.getElementById('ops-q');
+    const ti=document.getElementById('ops-type');
+    const ci=document.getElementById('ops-cur');
+    const di=document.getElementById('ops-date');
+    if(qi){qi.value=window._opsFilter.q;qi.oninput=e=>{window._opsFilter.q=e.target.value;applyFilter();};}
+    if(ti){ti.value=window._opsFilter.type;ti.onchange=e=>{window._opsFilter.type=e.target.value;applyFilter();};}
+    if(ci){ci.value=window._opsFilter.currency;ci.onchange=e=>{window._opsFilter.currency=e.target.value;applyFilter();};}
+    if(di){di.value=window._opsFilter.date;di.onchange=e=>{window._opsFilter.date=e.target.value;applyFilter();};}
   },100);
 
   const canEdit=canWrite();
@@ -2950,64 +2926,28 @@ ops:async()=>{
       </div>
     </div>
 
-    <!-- FILTER BAR — modern -->
-    <div style="background:var(--bg);border-radius:16px;padding:12px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px;">
-
-      <!-- Search -->
-      <div style="position:relative;">
-        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="var(--t4)" stroke-width="1.6" stroke-linecap="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l2.5 2.5"/></svg>
-        <input id="ops-q" placeholder="${t('search_ph')}"
-          style="width:100%;padding:10px 12px 10px 34px;border:1.5px solid var(--bd);border-radius:12px;font-size:13px;color:var(--t);background:var(--w);font-family:var(--ff);outline:none;box-sizing:border-box;transition:border-color .18s,box-shadow .18s;"
-          onfocus="this.style.borderColor='var(--a)';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.12)'"
-          onblur="this.style.borderColor='var(--bd)';this.style.boxShadow=''">
+    <!-- FILTER BAR -->
+    <div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <div style="position:relative;flex:1;min-width:160px;">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--t4)" stroke-width="1.4" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="5.5" cy="5.5" r="3.5"/><path d="M9 9l2 2" stroke-linecap="round"/></svg>
+        <input id="ops-q" class="fi" placeholder="${t('search_ph')}" style="padding-left:30px;width:100%;">
       </div>
-
-      <!-- Type pills -->
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${[['all',t('all_types'),'var(--t3)','var(--bg2)','var(--bd)'],
-           ['income','↑ '+t('income'),'#fff','#2ecc71','transparent'],
-           ['expense','↓ '+t('expense'),'#fff','#e74c3c','transparent'],
-           ['advance','→ '+t('adv_op2'),'#fff','#f39c12','transparent']
-          ].map(([v,lbl,tc,bg,bc])=>`
-          <button data-ftype="${v}"
-            style="padding:6px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--ff);border:1.5px solid ${bc};background:${(window._opsFilter||{}).type===v?bg:'var(--w)'};color:${(window._opsFilter||{}).type===v?tc:'var(--t3)'};transition:all .15s;white-space:nowrap;"
-            onclick="(function(el){window._opsFilter=window._opsFilter||{};window._opsFilter.type='${v}';document.querySelectorAll('[data-ftype]').forEach(b=>{const vv=b.dataset.ftype;const active=vv==='${v}';const map={all:['var(--t3)','var(--bg2)','var(--bd)'],income:['#fff','#2ecc71','transparent'],expense:['#fff','#e74c3c','transparent'],advance:['#fff','#f39c12','transparent']};b.style.background=active?map[vv][1]:'var(--w)';b.style.color=active?map[vv][0]:'var(--t3)';b.style.borderColor=active?map[vv][2]:'var(--bd)';});if(window._applyOpsFilter)window._applyOpsFilter();})(this)">${lbl}</button>`).join('')}
-      </div>
-
-      <!-- Row: category + currency -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <div style="position:relative;flex:1;min-width:140px;">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--t4)" stroke-width="1.4" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;"><path d="M2 3h9M2 6.5h6M2 10h4" stroke-linecap="round"/></svg>
-          <select id="ops-cat"
-            style="width:100%;padding:8px 28px 8px 28px;border:1.5px solid var(--bd);border-radius:12px;font-size:12px;font-weight:500;color:var(--t);background:var(--w);font-family:var(--ff);outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 5L10 1' stroke='%236B7A99' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 10px center;">
-            <option value="all">📂 ${t('all_cats')}</option>
-            ${opsCats.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">${c}</option>`).join('')}
-          </select>
-        </div>
-        <div style="display:flex;gap:4px;flex-shrink:0;">
-          ${[['all','TJS+USD'],['TJS','TJS'],['USD','USD']].map(([v,lbl])=>`
-          <button data-fcur="${v}"
-            style="padding:7px 11px;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--ff);border:1.5px solid ${(window._opsFilter||{}).currency===v?'var(--a)':'var(--bd)'};background:${(window._opsFilter||{}).currency===v?'var(--al)':'var(--w)'};color:${(window._opsFilter||{}).currency===v?'var(--adk)':'var(--t3)'};transition:all .15s;"
-            onclick="(function(){window._opsFilter=window._opsFilter||{};window._opsFilter.currency='${v}';document.querySelectorAll('[data-fcur]').forEach(b=>{const active=b.dataset.fcur==='${v}';b.style.background=active?'var(--al)':'var(--w)';b.style.color=active?'var(--adk)':'var(--t3)';b.style.borderColor=active?'var(--a)':'var(--bd)';});if(window._applyOpsFilter)window._applyOpsFilter();})()">${lbl}</button>`).join('')}
-        </div>
-      </div>
-
-      <!-- Date range -->
-      <div style="display:flex;align-items:center;gap:8px;background:var(--w);border:1.5px solid var(--bd);border-radius:12px;padding:8px 12px;">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--t4)" stroke-width="1.4" stroke-linecap="round"><rect x="1" y="2" width="12" height="11" rx="2"/><path d="M1 5.5h12M4.5 1v2M9.5 1v2"/></svg>
-        <input id="ops-from" type="date"
-          style="flex:1;border:none;outline:none;font-size:12px;font-weight:500;color:var(--t);font-family:var(--ff);background:transparent;min-width:0;"
-          title="${t('date_from')}">
-        <span style="font-size:13px;color:var(--t4);font-weight:500;">→</span>
-        <input id="ops-to" type="date"
-          style="flex:1;border:none;outline:none;font-size:12px;font-weight:500;color:var(--t);font-family:var(--ff);background:transparent;min-width:0;"
-          title="${t('date_to')}">
-        <button id="ops-reset-btn"
-          style="display:none;padding:4px 10px;border-radius:8px;background:var(--redl);border:none;font-size:11px;font-weight:700;color:var(--red);cursor:pointer;font-family:var(--ff);white-space:nowrap;flex-shrink:0;"
-          onclick="window._opsFilter=Object.assign(window._opsFilter||{},{q:'',type:'all',currency:'all',category:'all',date_from:'',date_to:''});['ops-q','ops-from','ops-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('ops-cat').value='all';document.querySelectorAll('[data-ftype]').forEach((b,i)=>{b.style.background=i===0?'var(--bg2)':'var(--w)';b.style.color=i===0?'var(--t3)':'var(--t3)';b.style.borderColor=i===0?'var(--bd)':'var(--bd)';});document.querySelectorAll('[data-fcur]').forEach((b,i)=>{b.style.background=i===0?'var(--al)':'var(--w)';b.style.color=i===0?'var(--adk)':'var(--t3)';b.style.borderColor=i===0?'var(--a)':'var(--bd)';});document.getElementById('ops-reset-btn').style.display='none';if(window._applyOpsFilter)window._applyOpsFilter();">
-          ✕ ${t('reset')}
-        </button>
-      </div>
+      <select id="ops-type" class="fi fi-sel" style="width:120px;flex-shrink:0;">
+        <option value="all">${t('all_types')}</option>
+        <option value="income">${t('inc_op')}</option>
+        <option value="expense">${t('exp_op')}</option>
+        <option value="advance">${t('adv_op')}</option>
+      </select>
+      <select id="ops-cur" class="fi fi-sel" style="width:90px;flex-shrink:0;">
+        <option value="all">TJS+USD</option>
+        <option value="TJS">TJS</option>
+        <option value="USD">USD</option>
+      </select>
+      <input id="ops-date" class="fi" type="date" style="width:145px;flex-shrink:0;" title="Фильтр по дате">
+      <button class="btn btn-s btn-sm" style="flex-shrink:0;"
+        onclick="window._opsFilter={q:'',type:'all',date:'',currency:'all'};['ops-q','ops-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});['ops-type','ops-cur'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='all';});if(window._applyOpsFilter)window._applyOpsFilter();">
+        ${t('reset')}
+      </button>
     </div>
 
     <div style="font-size:11px;color:var(--t4);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;">
@@ -3465,39 +3405,15 @@ settings:async()=>{
   const{data:users}=USER?.role==='director'?{data:[]}:await SB.from('profiles').select('id,name,role,phone');
 
   function sSection(title,items,addFn,editFn,delFn){
-    const uid='ss_'+Math.random().toString(36).slice(2,7);
-    const rows=items.map((it,i)=>{
-      const id=it.id||"'"+String(it).replace(/'/g,"\\'")+"'";
-      const name=it.name||it;
-      return `<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:${i%2===0?'var(--bg)':'transparent'};">
-        <div style="width:22px;height:22px;border-radius:7px;background:var(--al);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;color:var(--adk);">${i+1}</div>
-        <span style="flex:1;font-size:13px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
-        <button onclick="${editFn}(${id})" style="width:26px;height:26px;background:var(--al);border:none;border-radius:8px;font-size:12px;cursor:pointer;color:var(--adk);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✏</button>
-        <button onclick="${delFn}(${id})" style="width:26px;height:26px;background:var(--redl);border:none;border-radius:8px;font-size:12px;cursor:pointer;color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
-      </div>`;
-    }).join('');
-    return `<div class="card mb8" style="padding:0;overflow:hidden;">
-      <!-- Accordion header -->
-      <div onclick="(function(){const b=document.getElementById('${uid}');const a=document.getElementById('${uid}-a');const open=b.style.display==='none';b.style.display=open?'block':'none';a.style.transform=open?'rotate(180deg)':'rotate(0deg)';})()"
-        style="display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;user-select:none;transition:background .15s;"
-        onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
-        <div style="flex:1;">
-          <span style="font-size:13px;font-weight:700;color:var(--t);">${title}</span>
-          <span style="margin-left:7px;font-size:11px;font-weight:600;color:var(--w);background:var(--a);border-radius:10px;padding:1px 7px;">${items.length}</span>
-        </div>
-        <svg id="${uid}-a" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--t4)" stroke-width="2" stroke-linecap="round" style="transition:transform .22s;transform:rotate(0deg);flex-shrink:0;"><path d="M3 6l5 5 5-5"/></svg>
-      </div>
-      <!-- Collapsible body -->
-      <div id="${uid}" style="display:none;border-top:1px solid var(--bd);">
-        <div style="padding:10px 12px 8px;display:flex;gap:7px;">
-          <input class="fi" id="inp-${title}" placeholder="+ ${t('add')}…" style="flex:1;margin-bottom:0;padding:8px 11px;">
-          <button class="btn btn-p btn-sm" onclick="${addFn}" style="flex-shrink:0;">${t('add')}</button>
-        </div>
-        <div style="margin:0 12px 10px;border:1px solid var(--bd);border-radius:10px;overflow:hidden;">
-          ${rows||`<div style="font-size:12px;color:var(--t4);padding:12px;">${t('no_data')}</div>`}
-        </div>
-      </div>
-    </div>`;
+    return `<div class="card mb16">
+      <div class="sh"><div class="sh-t">${title}</div></div>
+      <div style="display:flex;gap:7px;margin-bottom:11px;"><input class="fi" id="inp-${title}" placeholder="${t('add')}" style="flex:1;"><button class="btn btn-p btn-sm" onclick="${addFn}">${t('add')}</button></div>
+      <div>${items.map(it=>`<div class="si"><div class="si-inf"><div class="si-name">${it.name||it}</div></div>
+        <div class="si-acts">
+          <button class="si-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="${editFn}(${it.id||"'"+it+"'"})">✏</button>
+          <button class="si-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="${delFn}(${it.id||"'"+it+"'"})">✕</button>
+        </div></div>`).join('')||`<div class="empty" style="padding:16px;">${t('no_data')}</div>`}
+      </div></div>`;
   }
   return `
   <div class="card mb16" style="animation:fadeUp .3s ease both;">
