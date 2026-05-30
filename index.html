@@ -3435,26 +3435,37 @@ settings:async()=>{
   const{data:users}=USER?.role==='director'?{data:[]}:await SB.from('profiles').select('id,name,role,phone');
 
   function sSection(title,items,addFn,editFn,delFn){
+    const uid='ss_'+Math.random().toString(36).slice(2,7);
     const rows=items.map((it,i)=>{
       const id=it.id||"'"+String(it).replace(/'/g,"\\'")+"'";
       const name=it.name||it;
-      return `<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;background:${i%2===0?'var(--bg)':'transparent'};">
+      return `<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:${i%2===0?'var(--bg)':'transparent'};">
         <div style="width:22px;height:22px;border-radius:7px;background:var(--al);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;color:var(--adk);">${i+1}</div>
         <span style="flex:1;font-size:13px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
         <button onclick="${editFn}(${id})" style="width:26px;height:26px;background:var(--al);border:none;border-radius:8px;font-size:12px;cursor:pointer;color:var(--adk);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✏</button>
         <button onclick="${delFn}(${id})" style="width:26px;height:26px;background:var(--redl);border:none;border-radius:8px;font-size:12px;cursor:pointer;color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
       </div>`;
     }).join('');
-    return `<div class="card mb12">
-      <div class="sh" style="margin-bottom:9px;">
-        <div class="sh-t">${title} <span style="color:var(--t4);font-weight:400;font-size:11px;">(${items.length})</span></div>
+    return `<div class="card mb8" style="padding:0;overflow:hidden;">
+      <!-- Accordion header -->
+      <div onclick="(function(){const b=document.getElementById('${uid}');const a=document.getElementById('${uid}-a');const open=b.style.display==='none';b.style.display=open?'block':'none';a.style.transform=open?'rotate(180deg)':'rotate(0deg)';})()"
+        style="display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;user-select:none;transition:background .15s;"
+        onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
+        <div style="flex:1;">
+          <span style="font-size:13px;font-weight:700;color:var(--t);">${title}</span>
+          <span style="margin-left:7px;font-size:11px;font-weight:600;color:var(--w);background:var(--a);border-radius:10px;padding:1px 7px;">${items.length}</span>
+        </div>
+        <svg id="${uid}-a" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--t4)" stroke-width="2" stroke-linecap="round" style="transition:transform .22s;transform:rotate(0deg);flex-shrink:0;"><path d="M3 6l5 5 5-5"/></svg>
       </div>
-      <div style="display:flex;gap:7px;margin-bottom:10px;">
-        <input class="fi" id="inp-${title}" placeholder="+ ${t('add')}…" style="flex:1;margin-bottom:0;padding:8px 11px;">
-        <button class="btn btn-p btn-sm" onclick="${addFn}" style="flex-shrink:0;">${t('add')}</button>
-      </div>
-      <div style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;">
-        ${rows||`<div style="font-size:12px;color:var(--t4);padding:12px;">${t('no_data')}</div>`}
+      <!-- Collapsible body -->
+      <div id="${uid}" style="display:none;border-top:1px solid var(--bd);">
+        <div style="padding:10px 12px 8px;display:flex;gap:7px;">
+          <input class="fi" id="inp-${title}" placeholder="+ ${t('add')}…" style="flex:1;margin-bottom:0;padding:8px 11px;">
+          <button class="btn btn-p btn-sm" onclick="${addFn}" style="flex-shrink:0;">${t('add')}</button>
+        </div>
+        <div style="margin:0 12px 10px;border:1px solid var(--bd);border-radius:10px;overflow:hidden;">
+          ${rows||`<div style="font-size:12px;color:var(--t4);padding:12px;">${t('no_data')}</div>`}
+        </div>
       </div>
     </div>`;
   }
