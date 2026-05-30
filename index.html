@@ -854,7 +854,7 @@ const T={
     recv:'Нам должны',paybl:'Мы должны',
     cashflow:'Cash Flow',recent:'Последние операции',all_ops:'Все →',rates:'Курсы валют',
     new_op:'Новая операция',op_type:'Тип операции',
-    inc_op:'↑ Приход',exp_op:'↓ Расход',adv_op:'→ Аванс',
+    inc_op:'↑ Приход',exp_op:'↓ Расход',adv_op:'→ Аванс',adv_op2:'Аванс',
     obj:'① Объект',cat:'② Категория',det:'③ Детали',
     date:'Дата',currency:'Валюта',desc:'Описание',amount:'Сумма',
     qty:'Кол-во',unit:'Ед.',price:'Цена',total:'Итого',
@@ -950,7 +950,7 @@ const T={
     recv:'Аз мо қарздоранд',paybl:'Мо қарздорем',
     cashflow:'Cash Flow',recent:'Амалиётҳои охирин',all_ops:'Ҳама →',rates:'Курсҳои асъор',
     new_op:'Амалиёти нав',op_type:'Навъи амалиёт',
-    inc_op:'↑ Даромад',exp_op:'↓ Харҷ',adv_op:'→ Пешпардохт',
+    inc_op:'↑ Даромад',exp_op:'↓ Харҷ',adv_op:'→ Пешпардохт',adv_op2:'Пешпардохт',
     obj:'① Объект',cat:'② Категория',det:'③ Тафсилот',
     date:'Сана',currency:'Асъор',desc:'Тавсиф',amount:'Маблағ',
     qty:'Миқдор',unit:'Воҳид',price:'Нарх',total:'Ҷамъ',
@@ -2872,12 +2872,19 @@ ops:async()=>{
     const fri =document.getElementById('ops-from');
     const toi =document.getElementById('ops-to');
     const f=window._opsFilter;
-    if(qi){qi.value=f.q;qi.oninput=e=>{f.q=e.target.value;applyFilter();};}
-    if(ti){ti.value=f.type;ti.onchange=e=>{f.type=e.target.value;applyFilter();};}
-    if(ci){ci.value=f.currency;ci.onchange=e=>{f.currency=e.target.value;applyFilter();};}
-    if(cati){cati.value=f.category;cati.onchange=e=>{f.category=e.target.value;applyFilter();};}
-    if(fri){fri.value=f.date_from;fri.onchange=e=>{f.date_from=e.target.value;applyFilter();};}
-    if(toi){toi.value=f.date_to;toi.onchange=e=>{f.date_to=e.target.value;applyFilter();};}
+    function updateResetBtn(){
+      const rb=document.getElementById('ops-reset-btn');
+      if(!rb)return;
+      const active=f.q||f.type!=='all'||f.currency!=='all'||f.category!=='all'||f.date_from||f.date_to;
+      rb.style.display=active?'block':'none';
+    }
+    const origApply=applyFilter;
+    window._applyOpsFilter=()=>{origApply();updateResetBtn();};
+    if(qi){qi.value=f.q;qi.oninput=e=>{f.q=e.target.value;window._applyOpsFilter();};}
+    if(cati){cati.value=f.category;cati.onchange=e=>{f.category=e.target.value;window._applyOpsFilter();};}
+    if(fri){fri.value=f.date_from;fri.onchange=e=>{f.date_from=e.target.value;window._applyOpsFilter();};}
+    if(toi){toi.value=f.date_to;toi.onchange=e=>{f.date_to=e.target.value;window._applyOpsFilter();};}
+    updateResetBtn();
   },100);
 
   const canEdit=canWrite();
@@ -2939,44 +2946,63 @@ ops:async()=>{
       </div>
     </div>
 
-    <!-- FILTER BAR -->
-    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px;">
-      <!-- Row 1: search + type + currency + reset -->
-      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
-        <div style="position:relative;flex:1;min-width:150px;">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--t4)" stroke-width="1.4" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="5.5" cy="5.5" r="3.5"/><path d="M9 9l2 2" stroke-linecap="round"/></svg>
-          <input id="ops-q" class="fi" placeholder="${t('search_ph')}" style="padding-left:30px;width:100%;margin-bottom:0;">
+    <!-- FILTER BAR — modern -->
+    <div style="background:var(--bg);border-radius:16px;padding:12px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px;">
+
+      <!-- Search -->
+      <div style="position:relative;">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="var(--t4)" stroke-width="1.6" stroke-linecap="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l2.5 2.5"/></svg>
+        <input id="ops-q" placeholder="${t('search_ph')}"
+          style="width:100%;padding:10px 12px 10px 34px;border:1.5px solid var(--bd);border-radius:12px;font-size:13px;color:var(--t);background:var(--w);font-family:var(--ff);outline:none;box-sizing:border-box;transition:border-color .18s,box-shadow .18s;"
+          onfocus="this.style.borderColor='var(--a)';this.style.boxShadow='0 0 0 3px rgba(57,185,128,.12)'"
+          onblur="this.style.borderColor='var(--bd)';this.style.boxShadow=''">
+      </div>
+
+      <!-- Type pills -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${[['all',t('all_types'),'var(--t3)','var(--bg2)','var(--bd)'],
+           ['income','↑ '+t('income'),'#fff','#2ecc71','transparent'],
+           ['expense','↓ '+t('expense'),'#fff','#e74c3c','transparent'],
+           ['advance','→ '+t('adv_op2'),'#fff','#f39c12','transparent']
+          ].map(([v,lbl,tc,bg,bc])=>`
+          <button data-ftype="${v}"
+            style="padding:6px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--ff);border:1.5px solid ${bc};background:${(window._opsFilter||{}).type===v?bg:'var(--w)'};color:${(window._opsFilter||{}).type===v?tc:'var(--t3)'};transition:all .15s;white-space:nowrap;"
+            onclick="(function(el){window._opsFilter=window._opsFilter||{};window._opsFilter.type='${v}';document.querySelectorAll('[data-ftype]').forEach(b=>{const vv=b.dataset.ftype;const active=vv==='${v}';const map={all:['var(--t3)','var(--bg2)','var(--bd)'],income:['#fff','#2ecc71','transparent'],expense:['#fff','#e74c3c','transparent'],advance:['#fff','#f39c12','transparent']};b.style.background=active?map[vv][1]:'var(--w)';b.style.color=active?map[vv][0]:'var(--t3)';b.style.borderColor=active?map[vv][2]:'var(--bd)';});if(window._applyOpsFilter)window._applyOpsFilter();})(this)">${lbl}</button>`).join('')}
+      </div>
+
+      <!-- Row: category + currency -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="position:relative;flex:1;min-width:140px;">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--t4)" stroke-width="1.4" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;"><path d="M2 3h9M2 6.5h6M2 10h4" stroke-linecap="round"/></svg>
+          <select id="ops-cat"
+            style="width:100%;padding:8px 28px 8px 28px;border:1.5px solid var(--bd);border-radius:12px;font-size:12px;font-weight:500;color:var(--t);background:var(--w);font-family:var(--ff);outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 5L10 1' stroke='%236B7A99' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 10px center;">
+            <option value="all">📂 ${t('all_cats')}</option>
+            ${opsCats.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">${c}</option>`).join('')}
+          </select>
         </div>
-        <select id="ops-type" class="fi fi-sel" style="width:110px;flex-shrink:0;margin-bottom:0;">
-          <option value="all">${t('all_types')}</option>
-          <option value="income">${t('inc_op')}</option>
-          <option value="expense">${t('exp_op')}</option>
-          <option value="advance">${t('adv_op')}</option>
-        </select>
-        <select id="ops-cur" class="fi fi-sel" style="width:85px;flex-shrink:0;margin-bottom:0;">
-          <option value="all">TJS+USD</option>
-          <option value="TJS">TJS</option>
-          <option value="USD">USD</option>
-        </select>
-        <button class="btn btn-s btn-sm" style="flex-shrink:0;white-space:nowrap;"
-          onclick="window._opsFilter={q:'',type:'all',currency:'all',category:'all',date_from:'',date_to:''};['ops-q','ops-from','ops-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});['ops-type','ops-cur','ops-cat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=el.id==='ops-cat'?'all':'all';});if(window._applyOpsFilter)window._applyOpsFilter();">
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          ${[['all','TJS+USD'],['TJS','TJS'],['USD','USD']].map(([v,lbl])=>`
+          <button data-fcur="${v}"
+            style="padding:7px 11px;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--ff);border:1.5px solid ${(window._opsFilter||{}).currency===v?'var(--a)':'var(--bd)'};background:${(window._opsFilter||{}).currency===v?'var(--al)':'var(--w)'};color:${(window._opsFilter||{}).currency===v?'var(--adk)':'var(--t3)'};transition:all .15s;"
+            onclick="(function(){window._opsFilter=window._opsFilter||{};window._opsFilter.currency='${v}';document.querySelectorAll('[data-fcur]').forEach(b=>{const active=b.dataset.fcur==='${v}';b.style.background=active?'var(--al)':'var(--w)';b.style.color=active?'var(--adk)':'var(--t3)';b.style.borderColor=active?'var(--a)':'var(--bd)';});if(window._applyOpsFilter)window._applyOpsFilter();})()">${lbl}</button>`).join('')}
+        </div>
+      </div>
+
+      <!-- Date range -->
+      <div style="display:flex;align-items:center;gap:8px;background:var(--w);border:1.5px solid var(--bd);border-radius:12px;padding:8px 12px;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--t4)" stroke-width="1.4" stroke-linecap="round"><rect x="1" y="2" width="12" height="11" rx="2"/><path d="M1 5.5h12M4.5 1v2M9.5 1v2"/></svg>
+        <input id="ops-from" type="date"
+          style="flex:1;border:none;outline:none;font-size:12px;font-weight:500;color:var(--t);font-family:var(--ff);background:transparent;min-width:0;"
+          title="${t('date_from')}">
+        <span style="font-size:13px;color:var(--t4);font-weight:500;">→</span>
+        <input id="ops-to" type="date"
+          style="flex:1;border:none;outline:none;font-size:12px;font-weight:500;color:var(--t);font-family:var(--ff);background:transparent;min-width:0;"
+          title="${t('date_to')}">
+        <button id="ops-reset-btn"
+          style="display:none;padding:4px 10px;border-radius:8px;background:var(--redl);border:none;font-size:11px;font-weight:700;color:var(--red);cursor:pointer;font-family:var(--ff);white-space:nowrap;flex-shrink:0;"
+          onclick="window._opsFilter=Object.assign(window._opsFilter||{},{q:'',type:'all',currency:'all',category:'all',date_from:'',date_to:''});['ops-q','ops-from','ops-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('ops-cat').value='all';document.querySelectorAll('[data-ftype]').forEach((b,i)=>{b.style.background=i===0?'var(--bg2)':'var(--w)';b.style.color=i===0?'var(--t3)':'var(--t3)';b.style.borderColor=i===0?'var(--bd)':'var(--bd)';});document.querySelectorAll('[data-fcur]').forEach((b,i)=>{b.style.background=i===0?'var(--al)':'var(--w)';b.style.color=i===0?'var(--adk)':'var(--t3)';b.style.borderColor=i===0?'var(--a)':'var(--bd)';});document.getElementById('ops-reset-btn').style.display='none';if(window._applyOpsFilter)window._applyOpsFilter();">
           ✕ ${t('reset')}
         </button>
-      </div>
-      <!-- Row 2: category + date range -->
-      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
-        <select id="ops-cat" class="fi fi-sel" style="flex:1;min-width:140px;margin-bottom:0;">
-          <option value="all">📂 ${t('all_cats')}</option>
-          ${opsCats.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">${c}</option>`).join('')}
-        </select>
-        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
-          <span style="font-size:11px;color:var(--t4);white-space:nowrap;">${t('date_from')}</span>
-          <input id="ops-from" class="fi" type="date" style="width:135px;margin-bottom:0;" title="${t('date_from')}">
-        </div>
-        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
-          <span style="font-size:11px;color:var(--t4);white-space:nowrap;">${t('date_to')}</span>
-          <input id="ops-to" class="fi" type="date" style="width:135px;margin-bottom:0;" title="${t('date_to')}">
-        </div>
       </div>
     </div>
 
