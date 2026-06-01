@@ -1,48 +1,93 @@
-const CACHE = 'burji-v1';
-const SHELL = ['/', '/index.html', '/logo192.png', '/logo512.png', '/logo.png', '/manifest.json', '/offline.html'];
+/* ── ZAKI ERP Service Worker ── */
+const CACHE_VER = 'zaki-v3';
+const SHELL = ['/', '/index.html', '/manifest.json'];
 
+/* ── Install: pre-cache app shell ── */
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())
+    caches.open(CACHE_VER)
+      .then(c => c.addAll(SHELL))
+      .then(() => self.skipWaiting())
   );
 });
 
+/* ── Activate: purge old caches ── */
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_VER).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
+/* ── Fetch ── */
 self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
+  const { request } = e;
+  const url = new URL(request.url);
 
-  // API and Supabase requests — always network, no cache
-  if (url.pathname.startsWith('/api/') || url.hostname.includes('supabase')) {
-    e.respondWith(fetch(e.request).catch(() => new Response('', {status: 503})));
-    return;
-  }
-
-  // Navigate requests — network first, fallback to offline page
-  if (e.request.mode === 'navigate') {
+  /* 1. Navigate → stale-while-revalidate for app shell */
+  if (request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request).catch(() => caches.match('/offline.html'))
+      caches.open(CACHE_VER).then(cache =>
+        cache.match('/index.html').then(cached => {
+          const fresh = fetch(request).then(res => {
+            cache.put('/index.html', res.clone());
+            return res;
+          }).catch(() => cached || new Response('Offline', { status: 503 }));
+          return cached || fresh;   // instant if cached
+        })
+      )
     );
     return;
   }
 
-  // App shell — cache-first, fallback to network, then offline
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
-        if (res.ok && e.request.method === 'GET') {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
+  /* 2. Supabase REST GET → network-first, cache fallback */
+  if (
+    url.hostname.includes('supabase.co') &&
+    url.pathname.includes('/rest/v1/') &&
+    request.method === 'GET'
+  ) {
+    e.respondWith(
+      fetch(request.clone())
+        .then(res => {
+          if (res.ok) {
+            caches.open(CACHE_VER).then(c => c.put(request, res.clone()));
+          }
+          return res;
+        })
+        .catch(() => caches.match(request).then(r => r || new Response('[]', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        })))
+    );
+    return;
+  }
+
+  /* 3. Static assets (fonts, CDN scripts) → cache-first */
+  if (
+    url.hostname !== self.location.hostname &&
+    (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.hostname.includes('fonts'))
+  ) {
+    e.respondWith(
+      caches.match(request).then(cached => cached || fetch(request).then(res => {
+        caches.open(CACHE_VER).then(c => c.put(request, res.clone()));
         return res;
-      }).catch(() => caches.match('/offline.html'));
-    })
-  );
+      }))
+    );
+    return;
+  }
+
+  /* 4. Everything else → network only */
+  e.respondWith(fetch(request).catch(() => caches.match(request)));
+});
+
+/* ── Background Sync: process offline queue ── */
+self.addEventListener('sync', e => {
+  if (e.tag === 'zaki-sync') {
+    e.waitUntil(
+      self.clients.matchAll().then(clients =>
+        clients.forEach(c => c.postMessage({ type: 'SYNC_NOW' }))
+      )
+    );
+  }
 });

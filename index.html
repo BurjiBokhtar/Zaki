@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Бурчи Бохтар">
+<meta name="apple-mobile-web-app-title" content="ZAKI ERP">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#39B980">
+<meta name="description" content="ZAKI ERP — управление финансами">
+<link rel="manifest" href="/manifest.json">
 <title>Бурчи Бохтар — Ширкати Сохтмонй</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/png" href="/logo192.png">
@@ -521,10 +523,65 @@ html{height:100dvh;}
   .money-map{grid-template-columns:1fr 1fr;}
   .rates-grid{grid-template-columns:1fr 1fr;}
   .mob-2col{grid-template-columns:1fr 1fr!important;}
+  /* Reduce chart heights on small screens */
+  .ch240{height:180px;}.ch200{height:160px;}.ch280{height:200px;}
+  /* KPI 4-col → 2-col on tiny screens */
+  .g4{grid-template-columns:1fr 1fr;}
+}
+
+/* ── Global mobile refinements ── */
+/* Prevent double-tap zoom on all interactive elements */
+a,button,select,input,label,[onclick]{touch-action:manipulation;}
+/* Prevent iOS font-size zoom on input focus (must be ≥16px) */
+@media(max-width:768px){
+  input,select,textarea{font-size:16px!important;}
+}
+/* Prevent body scroll bounce / overscroll */
+html{overscroll-behavior:none;}
+/* Prevent horizontal overflow */
+body{overflow-x:hidden;max-width:100vw;}
+/* Chart canvases must never exceed container */
+canvas{max-width:100%!important;display:block;}
+
+/* ── Offline banner ── */
+#offline-banner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
+  padding:8px 16px 8px max(16px,env(safe-area-inset-left));
+  background:linear-gradient(90deg,#c0392b,#e74c3c);
+  color:#fff;font-size:12px;font-weight:700;font-family:var(--ff);
+  align-items:center;gap:8px;justify-content:space-between;
+}
+#offline-banner.show{display:flex;}
+#offline-banner .ob-sync{
+  display:none;padding:3px 10px;background:rgba(255,255,255,.2);
+  border-radius:10px;font-size:11px;cursor:pointer;white-space:nowrap;
+  border:1px solid rgba(255,255,255,.35);
+}
+#offline-banner .ob-sync.visible{display:block;}
+
+/* ── Sync indicator ── */
+#sync-dot{
+  width:8px;height:8px;border-radius:50%;background:#39B980;
+  position:fixed;bottom:max(78px,calc(72px + env(safe-area-inset-bottom)));
+  right:14px;z-index:200;display:none;
+  box-shadow:0 0 0 0 rgba(57,185,128,.6);
+  animation:syncPulse 1.2s ease-in-out infinite;
+}
+@keyframes syncPulse{
+  0%{box-shadow:0 0 0 0 rgba(57,185,128,.7);}
+  70%{box-shadow:0 0 0 8px rgba(57,185,128,0);}
+  100%{box-shadow:0 0 0 0 rgba(57,185,128,0);}
 }
 </style>
 </head>
 <body>
+
+<!-- ── Offline banner ── -->
+<div id="offline-banner">
+  <span>📴 Нет интернета — данные из кэша</span>
+  <button class="ob-sync" id="ob-sync-btn" onclick="syncOfflineQueue()">↑ Синхронизировать</button>
+</div>
+<div id="sync-dot" title="Синхронизация..."></div>
 
 <!-- ══ LOGIN ══ -->
 <div id="login-page" style="display:none;position:fixed;inset:0;z-index:9998;flex-direction:row;align-items:stretch;overflow:hidden;">
@@ -4968,5 +5025,106 @@ function ssBind(triggerId, hiddenId, title, getItems, allowCustom){
   </div>
 
 </div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   OFFLINE QUEUE — writes while no internet
+   ═══════════════════════════════════════════════════ */
+const OQ_KEY = 'zaki_oq_v1';
+
+function oqGet(){ try{return JSON.parse(localStorage.getItem(OQ_KEY)||'[]');}catch{return[];} }
+function oqSet(q){ localStorage.setItem(OQ_KEY, JSON.stringify(q)); }
+function oqAdd(table, method, data, matchId){
+  const q = oqGet();
+  q.push({ id: Date.now()+'_'+Math.random().toString(36).slice(2), table, method, data, matchId, ts: Date.now() });
+  oqSet(q);
+  updateOfflineUI();
+}
+
+async function syncOfflineQueue(){
+  const q = oqGet();
+  if(!q.length){ showToast('✅ Всё синхронизировано'); return; }
+  const dot = document.getElementById('sync-dot');
+  if(dot) dot.style.display = 'block';
+  const failed = [];
+  let synced = 0;
+  for(const item of q){
+    try{
+      let res;
+      if(item.method === 'insert')      res = await SB.from(item.table).insert(item.data);
+      else if(item.method === 'upsert') res = await SB.from(item.table).upsert(item.data);
+      else if(item.method === 'update') res = await SB.from(item.table).update(item.data).eq('id', item.matchId);
+      else if(item.method === 'delete') res = await SB.from(item.table).delete().eq('id', item.matchId);
+      if(res?.error) failed.push(item); else synced++;
+    }catch{ failed.push(item); }
+  }
+  oqSet(failed);
+  if(dot) dot.style.display = 'none';
+  updateOfflineUI();
+  if(synced > 0){
+    showToast(`✅ Синхронизировано: ${synced} записей`);
+    destroyCharts?.(); renderPage?.(CUR_PAGE);
+  }
+  if(failed.length) showToast(`⚠️ Не удалось синхронизировать: ${failed.length}`, true);
+}
+
+function updateOfflineUI(){
+  const banner = document.getElementById('offline-banner');
+  const syncBtn = document.getElementById('ob-sync-btn');
+  if(!banner) return;
+  const isOffline = !navigator.onLine;
+  const pending = oqGet().length;
+  banner.classList.toggle('show', isOffline || pending > 0);
+  if(syncBtn){
+    syncBtn.classList.toggle('visible', pending > 0 && navigator.onLine);
+    syncBtn.textContent = `↑ Синхронизировать (${pending})`;
+  }
+  if(banner.classList.contains('show')){
+    banner.querySelector('span').textContent = isOffline
+      ? `📴 Нет интернета — кэш${pending ? ` · ${pending} в очереди` : ''}`
+      : `🔄 ${pending} записей ожидают синхронизации`;
+  }
+}
+
+/* Online/offline events */
+window.addEventListener('offline', () => {
+  updateOfflineUI();
+  showToast('📴 Нет интернета — данные из кэша', true);
+});
+
+window.addEventListener('online', () => {
+  updateOfflineUI();
+  showToast('🌐 Интернет восстановлен');
+  setTimeout(() => syncOfflineQueue(), 800);
+});
+
+/* SW message: trigger sync */
+navigator.serviceWorker?.addEventListener('message', e => {
+  if(e.data?.type === 'SYNC_NOW') syncOfflineQueue();
+});
+
+/* Initial state */
+document.addEventListener('DOMContentLoaded', () => {
+  updateOfflineUI();
+  // Register background sync when SW is ready
+  navigator.serviceWorker?.ready.then(reg => {
+    if(oqGet().length && reg.sync) reg.sync.register('zaki-sync').catch(()=>{});
+  });
+});
+
+/* ═══════════════════════════════════════════════════
+   SERVICE WORKER REGISTRATION
+   ═══════════════════════════════════════════════════ */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(reg => {
+        // Check for updates every 60s when app is active
+        setInterval(() => reg.update(), 60000);
+      })
+      .catch(err => console.warn('SW registration failed:', err));
+  });
+}
+</script>
 </body>
 </html>
