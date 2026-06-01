@@ -1154,6 +1154,18 @@ function mkChart(id,cfg){
   const el=document.getElementById(id);if(!el)return null;
   const ch=new Chart(el.getContext('2d'),cfg);CHARTS[id]=ch;return ch;
 }
+/* Render chart only when element scrolls into view */
+function mkChartWhenVisible(id,cfg){
+  const el=document.getElementById(id);if(!el)return;
+  if(CHARTS[id])return; // already rendered
+  const obs=new IntersectionObserver((entries,o)=>{
+    if(entries[0].isIntersecting){
+      o.disconnect();
+      if(!CHARTS[id]) mkChart(id,cfg);
+    }
+  },{threshold:0.15});
+  obs.observe(el);
+}
 function destroyCharts(){Object.values(CHARTS).forEach(c=>{try{c.destroy();}catch(e){}});CHARTS={};}
 
 /* ── TX ROW ── */
@@ -2602,7 +2614,7 @@ home:async()=>{
     /* ── CHARTS ── */
     const chartAnim={duration:1100,easing:'easeOutQuart'};
     // Cash flow line chart
-    mkChart('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[
+    mkChartWhenVisible('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[
       {label:t('income')+' TJS',data:mInc,borderColor:'#39B980',backgroundColor:'rgba(57,185,128,.10)',fill:true,tension:.45,borderWidth:2.5,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:'white',pointBorderColor:'#39B980',pointBorderWidth:2},
       {label:t('expense')+' TJS',data:mExp,borderColor:'#E53E3E',backgroundColor:'rgba(229,62,62,.07)',fill:true,tension:.45,borderWidth:2.5,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:'white',pointBorderColor:'#E53E3E',pointBorderWidth:2}
     ]},options:{responsive:true,maintainAspectRatio:false,animation:chartAnim,interaction:{mode:'index',intersect:false},
@@ -2611,7 +2623,7 @@ home:async()=>{
 
     // Donut — categories
     if(ck.length){
-      mkChart('ch-cat',{type:'doughnut',data:{labels:ck,datasets:[{data:ck.map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:0,borderRadius:4,spacing:3}]},
+      mkChartWhenVisible('ch-cat',{type:'doughnut',data:{labels:ck,datasets:[{data:ck.map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:0,borderRadius:4,spacing:3}]},
         options:{responsive:true,maintainAspectRatio:false,cutout:'68%',animation:{...chartAnim,animateRotate:true,animateScale:true},
           plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8}},
             tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS`}}}}});
@@ -2619,7 +2631,7 @@ home:async()=>{
 
     // Bar chart — by object
     if(objKeys.length){
-      mkChart('ch-obj',{type:'bar',data:{labels:objKeys,datasets:[
+      mkChartWhenVisible('ch-obj',{type:'bar',data:{labels:objKeys,datasets:[
         {label:t('income'),data:objKeys.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.85)',borderRadius:7,borderSkipped:false},
         {label:t('expense'),data:objKeys.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.8)',borderRadius:7,borderSkipped:false}
       ]},options:{responsive:true,maintainAspectRatio:false,animation:{...chartAnim,delay:ctx=>ctx.dataIndex*60},interaction:{mode:'index',intersect:false},
@@ -3372,11 +3384,12 @@ stats:async()=>{
   const ok=Object.keys(byObj);
 
   setTimeout(()=>{
-    mkChart('ch-bars',{type:'bar',data:{labels:months.map(m=>m.slice(5)),datasets:[{label:t('income')+' TJS',data:mInc,backgroundColor:'rgba(57,185,128,.8)',borderRadius:6,borderSkipped:false},{label:t('expense')+' TJS',data:mExp,backgroundColor:'rgba(229,62,62,.7)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:10,padding:10}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
-    mkChart('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[{label:'Net CF',data:mNet,segment:{borderColor:ctx=>ctx.p1.parsed.y<0?'#E53E3E':'#39B980'},backgroundColor:ctx=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,ctx.chart.height);g.addColorStop(0,'rgba(57,185,128,.12)');g.addColorStop(1,'rgba(57,185,128,0)');return g;},fill:true,tension:.4,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'white',pointBorderWidth:2,pointBorderColor:ctx=>ctx.raw>=0?'#39B980':'#E53E3E'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...CT.tooltip}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
-    if(ck.length)mkChart('ch-donut',{type:'doughnut',data:{labels:ck.slice(0,7),datasets:[{data:ck.slice(0,7).map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:0,borderRadius:3,spacing:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS`}}}}});
-    if(ok.length)mkChart('ch-obj',{type:'bar',data:{labels:ok,datasets:[{label:t('income'),data:ok.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.75)',borderRadius:4,borderSkipped:false},{label:t('expense'),data:ok.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.7)',borderRadius:4,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:9,padding:8}},tooltip:{...CT.tooltip}},scales:{x:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}},y:{grid:{display:false},ticks:CT.ticks}}}});
-    mkChart('ch-usd',{type:'bar',data:{labels:[t('income'),t('expense'),t('balance')],datasets:[{data:[incUSD,expUSD,incUSD-expUSD],backgroundColor:['rgba(57,185,128,.8)','rgba(229,62,62,.8)',incUSD-expUSD>=0?'rgba(49,130,206,.8)':'rgba(229,62,62,.8)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`$${fmtN(ctx.raw)}`}}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>'$'+fmtN(v)},border:{display:false}}}}});
+    const sAnim={duration:1100,easing:'easeOutQuart'};
+    mkChartWhenVisible('ch-bars',{type:'bar',data:{labels:months.map(m=>m.slice(5)),datasets:[{label:t('income')+' TJS',data:mInc,backgroundColor:'rgba(57,185,128,.8)',borderRadius:6,borderSkipped:false},{label:t('expense')+' TJS',data:mExp,backgroundColor:'rgba(229,62,62,.7)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,animation:{...sAnim,delay:ctx=>ctx.dataIndex*50},interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:10,padding:10}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
+    mkChartWhenVisible('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[{label:'Net CF',data:mNet,segment:{borderColor:ctx=>ctx.p1.parsed.y<0?'#E53E3E':'#39B980'},backgroundColor:ctx=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,ctx.chart.height);g.addColorStop(0,'rgba(57,185,128,.12)');g.addColorStop(1,'rgba(57,185,128,0)');return g;},fill:true,tension:.45,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'white',pointBorderWidth:2,pointBorderColor:ctx=>ctx.raw>=0?'#39B980':'#E53E3E'}]},options:{responsive:true,maintainAspectRatio:false,animation:sAnim,plugins:{legend:{display:false},tooltip:{...CT.tooltip}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
+    if(ck.length)mkChartWhenVisible('ch-donut',{type:'doughnut',data:{labels:ck.slice(0,7),datasets:[{data:ck.slice(0,7).map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:0,borderRadius:3,spacing:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',animation:{...sAnim,animateRotate:true,animateScale:true},plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS`}}}}});
+    if(ok.length)mkChartWhenVisible('ch-obj',{type:'bar',data:{labels:ok,datasets:[{label:t('income'),data:ok.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.75)',borderRadius:4,borderSkipped:false},{label:t('expense'),data:ok.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.7)',borderRadius:4,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{...sAnim,delay:ctx=>ctx.dataIndex*60},interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:9,padding:8}},tooltip:{...CT.tooltip}},scales:{x:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}},y:{grid:{display:false},ticks:CT.ticks}}}});
+    mkChartWhenVisible('ch-usd',{type:'bar',data:{labels:[t('income'),t('expense'),t('balance')],datasets:[{data:[incUSD,expUSD,incUSD-expUSD],backgroundColor:['rgba(57,185,128,.8)','rgba(229,62,62,.8)',incUSD-expUSD>=0?'rgba(49,130,206,.8)':'rgba(229,62,62,.8)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,animation:sAnim,plugins:{legend:{display:false},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`$${fmtN(ctx.raw)}`}}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>'$'+fmtN(v)},border:{display:false}}}}});
   },80);
 
   return `
@@ -4540,9 +4553,11 @@ if('serviceWorker' in navigator){
       buildNav();updatePeriodBtns();
       CUR_PAGE=USER.role==='supplier'?'my':'home';
       go(CUR_PAGE);
-      // Always require PIN on app start/reload
+      // Only require PIN if idle >3min (or no activity recorded yet)
       if(localStorage.getItem(PIN_KEY)){
-        showPinLock('lock');          // every open → PIN required
+        const idle=Date.now()-_lastAct();
+        if(idle>PIN_TIMEOUT||_lastAct()===0) showPinLock('lock');
+        else updateActivity(); // fresh session, reset timer
       } else {
         setTimeout(()=>showPinLock('setup1'),400);
       }
@@ -4655,7 +4670,7 @@ function openSS(title, items, currentVal, onSelect, allowCustom=false){
 /* ══════════════════════════════════════════════
    PIN-LOCK  —  4-digit lock screen
    ══════════════════════════════════════════════ */
-const PIN_TIMEOUT   = 2 * 60 * 1000; // 2 min idle while app is open
+const PIN_TIMEOUT   = 3 * 60 * 1000; // 3 min idle → lock
 const PIN_MAX_ATT   = 3;
 const PIN_KEY       = 'zaki_pin';
 const PIN_ACT_KEY   = 'zaki_last_act';
@@ -4816,20 +4831,23 @@ document.addEventListener('keydown',e=>{
 let _pinWasHidden = false;
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='hidden'){
-    _pinWasHidden = true;           // app went to background
+    _pinWasHidden = true;
   } else if(_pinWasHidden){
     _pinWasHidden = false;
+    // Only lock if idle longer than timeout
     if(USER && localStorage.getItem(PIN_KEY)){
-      showPinLock('lock');           // always lock on return
+      if(Date.now()-_lastAct()>PIN_TIMEOUT) showPinLock('lock');
     }
   }
 });
 
-// Also lock when browser window regains focus
+// Lock on focus only if truly idle
 window.addEventListener('focus',()=>{
   if(USER && localStorage.getItem(PIN_KEY)){
     const ov=document.getElementById('pin-overlay');
-    if(ov && ov.style.display==='none') showPinLock('lock');
+    if(ov && ov.style.display==='none' && Date.now()-_lastAct()>PIN_TIMEOUT){
+      showPinLock('lock');
+    }
   }
 });
 
