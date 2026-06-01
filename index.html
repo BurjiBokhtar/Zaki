@@ -3447,10 +3447,10 @@ stats:async()=>{
   <!-- KPI row -->
   <div class="g4 mb14">
     ${[
-      {lbl:'↑ TJS '+t('income'), val:'+'+fmtN(incTJS), sub:inc.filter(o=>o.currency==='TJS').length+' '+t('ops_count'), c1:'#1a6645',c2:'rgba(57,185,128,.12)',b:'rgba(57,185,128,.25)',icon:'↑'},
-      {lbl:'↓ TJS '+t('expense'),val:'-'+fmtN(expTJS), sub:exp.filter(o=>o.currency==='TJS').length+' '+t('ops_count'), c1:'#C53030',c2:'rgba(229,62,62,.1)',b:'rgba(229,62,62,.25)',icon:'↓'},
-      {lbl:'↑ USD '+t('income'), val:'+$'+fmtN(incUSD), sub:inc.filter(o=>o.currency==='USD').length+' '+t('ops_count'), c1:'#2C5282',c2:'rgba(49,130,206,.1)',b:'rgba(49,130,206,.25)',icon:'$'},
-      {lbl:'↓ USD '+t('expense'),val:'-$'+fmtN(expUSD), sub:exp.filter(o=>o.currency==='USD').length+' '+t('ops_count'), c1:'#C05621',c2:'rgba(221,107,32,.1)',b:'rgba(221,107,32,.25)',icon:'↓'},
+      {lbl:'↑ TJS '+t('income'), val:'+'+fmtN(incTJS), sub:ops.filter(o=>o.type==='income'&&o.currency==='TJS').length+' '+t('ops_count'), c1:'#1a6645',c2:'rgba(57,185,128,.12)',b:'rgba(57,185,128,.25)'},
+      {lbl:'↓ TJS '+t('expense'),val:'-'+fmtN(expTJS), sub:ops.filter(o=>o.type==='expense'&&o.currency==='TJS').length+' '+t('ops_count'), c1:'#C53030',c2:'rgba(229,62,62,.1)',b:'rgba(229,62,62,.25)'},
+      {lbl:'↑ USD '+t('income'), val:'+$'+fmtN(incUSD), sub:ops.filter(o=>o.type==='income'&&o.currency==='USD').length+' '+t('ops_count'), c1:'#2C5282',c2:'rgba(49,130,206,.1)',b:'rgba(49,130,206,.25)'},
+      {lbl:'↓ USD '+t('expense'),val:'-$'+fmtN(expUSD), sub:ops.filter(o=>o.type==='expense'&&o.currency==='USD').length+' '+t('ops_count'), c1:'#C05621',c2:'rgba(221,107,32,.1)',b:'rgba(221,107,32,.25)'},
     ].map((k,i)=>`
     <div class="kpi-tile" style="background:${k.c2};border:1px solid ${k.b};animation-delay:${i*.06}s;">
       <div style="font-size:9px;font-weight:700;color:${k.c1};text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;opacity:.75;">${k.lbl}</div>
