@@ -423,6 +423,15 @@ html{height:100dvh;}
 /* CHART */
 .ch-wrap{position:relative;}
 .ch160{height:160px;}.ch200{height:200px;}.ch240{height:240px;}.ch280{height:280px;}
+/* Premium chart card */
+.ch-card{background:var(--w);border-radius:20px;border:1px solid rgba(0,0,0,.06);box-shadow:0 4px 24px rgba(0,0,0,.07),0 1px 4px rgba(0,0,0,.04);overflow:hidden;position:relative;animation:fadeUp .35s ease both;}
+.ch-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--ch-top,linear-gradient(90deg,#39B980 0%,#3182CE 100%));border-radius:20px 20px 0 0;}
+.ch-card .sh{padding:15px 16px 6px;}
+.ch-card .ch-wrap{padding:0 10px 14px;}
+/* KPI mini tiles on stats page */
+.kpi-tile{border-radius:16px;padding:14px 15px;position:relative;overflow:hidden;animation:fadeUp .3s ease both;}
+.kpi-tile::after{content:'';position:absolute;bottom:-14px;right:-10px;width:60px;height:60px;border-radius:50%;opacity:.15;}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
 
 /* MONEY MAP */
 .money-map{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px;}
@@ -1153,6 +1162,17 @@ const CT={
 function mkChart(id,cfg){
   const el=document.getElementById(id);if(!el)return null;
   const ch=new Chart(el.getContext('2d'),cfg);CHARTS[id]=ch;return ch;
+}
+/* Create vertical gradient fill for area charts */
+function chartGrad(id,r,g,b,a0=0.32,a1=0.0){
+  const el=document.getElementById(id);
+  if(!el)return `rgba(${r},${g},${b},${a0})`;
+  const h=el.parentElement?.clientHeight||240;
+  const g2=el.getContext('2d').createLinearGradient(0,0,0,h);
+  g2.addColorStop(0,`rgba(${r},${g},${b},${a0})`);
+  g2.addColorStop(0.7,`rgba(${r},${g},${b},${a0*.3})`);
+  g2.addColorStop(1,`rgba(${r},${g},${b},${a1})`);
+  return g2;
 }
 /* Render chart only when element scrolls into view */
 function mkChartWhenVisible(id,cfg){
@@ -2612,20 +2632,22 @@ home:async()=>{
     drawSparkline('spark-debt', netData7, '#DD6B20', 'rgba(221,107,32,.10)');
 
     /* ── CHARTS ── */
-    const chartAnim={duration:1100,easing:'easeOutQuart'};
-    // Cash flow line chart
+    const lineAnim={duration:1200,easing:'easeOutQuart'};
+    const barAnim={duration:900,easing:'easeOutBack',delay:ctx=>ctx.dataIndex*70};
+    const donutAnim={duration:1000,easing:'easeOutElastic',animateRotate:true,animateScale:true};
+    // Cash flow line chart — gradient fill
     mkChartWhenVisible('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[
-      {label:t('income')+' TJS',data:mInc,borderColor:'#39B980',backgroundColor:'rgba(57,185,128,.10)',fill:true,tension:.45,borderWidth:2.5,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:'white',pointBorderColor:'#39B980',pointBorderWidth:2},
-      {label:t('expense')+' TJS',data:mExp,borderColor:'#E53E3E',backgroundColor:'rgba(229,62,62,.07)',fill:true,tension:.45,borderWidth:2.5,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:'white',pointBorderColor:'#E53E3E',pointBorderWidth:2}
-    ]},options:{responsive:true,maintainAspectRatio:false,animation:chartAnim,interaction:{mode:'index',intersect:false},
-      plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:10,padding:10,usePointStyle:true}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},
+      {label:t('income')+' TJS',data:mInc,borderColor:'#39B980',backgroundColor:chartGrad('ch-cf',57,185,128,.35),fill:true,tension:.45,borderWidth:2.5,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:'#fff',pointBorderColor:'#39B980',pointBorderWidth:2.5},
+      {label:t('expense')+' TJS',data:mExp,borderColor:'#E53E3E',backgroundColor:chartGrad('ch-cf',229,62,62,.28),fill:true,tension:.45,borderWidth:2.5,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:'#fff',pointBorderColor:'#E53E3E',pointBorderWidth:2.5}
+    ]},options:{responsive:true,maintainAspectRatio:false,animation:lineAnim,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:10,padding:10,usePointStyle:true,pointStyleWidth:8}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},
       scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
 
     // Donut — categories
     if(ck.length){
-      mkChartWhenVisible('ch-cat',{type:'doughnut',data:{labels:ck,datasets:[{data:ck.map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:0,borderRadius:4,spacing:3}]},
-        options:{responsive:true,maintainAspectRatio:false,cutout:'68%',animation:{...chartAnim,animateRotate:true,animateScale:true},
-          plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8}},
+      mkChartWhenVisible('ch-cat',{type:'doughnut',data:{labels:ck,datasets:[{data:ck.map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:2,borderColor:'#fff',borderRadius:5,spacing:3}]},
+        options:{responsive:true,maintainAspectRatio:false,cutout:'68%',animation:donutAnim,
+          plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8,usePointStyle:true}},
             tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS`}}}}});
     }
 
@@ -2633,8 +2655,8 @@ home:async()=>{
     if(objKeys.length){
       mkChartWhenVisible('ch-obj',{type:'bar',data:{labels:objKeys,datasets:[
         {label:t('income'),data:objKeys.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.85)',borderRadius:7,borderSkipped:false},
-        {label:t('expense'),data:objKeys.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.8)',borderRadius:7,borderSkipped:false}
-      ]},options:{responsive:true,maintainAspectRatio:false,animation:{...chartAnim,delay:ctx=>ctx.dataIndex*60},interaction:{mode:'index',intersect:false},
+        {label:t('expense'),data:objKeys.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.82)',borderRadius:8,borderSkipped:false}
+      ]},options:{responsive:true,maintainAspectRatio:false,animation:barAnim,interaction:{mode:'index',intersect:false},
         plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:9,padding:8}},
           tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},
         scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}},
@@ -2831,11 +2853,11 @@ home:async()=>{
 
   <!-- CHARTS -->
   <div class="g2 mb20">
-    <div class="card" style="animation:fadeUp .3s ease .06s both;">
+    <div class="ch-card" style="animation-delay:.06s;--ch-top:linear-gradient(90deg,#39B980,#2176ae);">
       <div class="sh"><div class="sh-t">${t('cashflow')} TJS${window._homeObj?' — '+window._homeObj:' — '+t('all_obj')}</div></div>
       <div class="ch-wrap ch240"><canvas id="ch-cf"></canvas></div>
     </div>
-    <div class="card" style="animation:fadeUp .3s ease .08s both;">
+    <div class="ch-card" style="animation-delay:.09s;--ch-top:linear-gradient(90deg,#f39c12,#e74c3c);">
       <div class="sh"><div class="sh-t">${t('exp_by_cat')}</div></div>
       ${ck.length?`<div class="ch-wrap ch240"><canvas id="ch-cat"></canvas></div>`:`<div class="empty" style="height:200px;"><div class="empty-icon">📋</div>${t('no_data')}</div>`}
     </div>
@@ -2843,7 +2865,7 @@ home:async()=>{
 
   <!-- BY OBJECT — click to filter -->
   ${objKeys.length?`
-  <div class="card mb20" style="animation:fadeUp .3s ease .1s both;">
+  <div class="ch-card mb20" style="animation-delay:.12s;--ch-top:linear-gradient(90deg,#8e44ad,#3182CE);">
     <div class="sh">
       <div class="sh-t">${t('by_obj_tip')}</div>
       ${window._homeObj?`<div class="sh-a" onclick="window._homeObj='';destroyCharts();renderPage('home')">${t('reset_filter')}</div>`:''}
@@ -3384,45 +3406,81 @@ stats:async()=>{
   const ok=Object.keys(byObj);
 
   setTimeout(()=>{
-    const sAnim={duration:1100,easing:'easeOutQuart'};
-    mkChartWhenVisible('ch-bars',{type:'bar',data:{labels:months.map(m=>m.slice(5)),datasets:[{label:t('income')+' TJS',data:mInc,backgroundColor:'rgba(57,185,128,.8)',borderRadius:6,borderSkipped:false},{label:t('expense')+' TJS',data:mExp,backgroundColor:'rgba(229,62,62,.7)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,animation:{...sAnim,delay:ctx=>ctx.dataIndex*50},interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:10,padding:10}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
-    mkChartWhenVisible('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[{label:'Net CF',data:mNet,segment:{borderColor:ctx=>ctx.p1.parsed.y<0?'#E53E3E':'#39B980'},backgroundColor:ctx=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,ctx.chart.height);g.addColorStop(0,'rgba(57,185,128,.12)');g.addColorStop(1,'rgba(57,185,128,0)');return g;},fill:true,tension:.45,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'white',pointBorderWidth:2,pointBorderColor:ctx=>ctx.raw>=0?'#39B980':'#E53E3E'}]},options:{responsive:true,maintainAspectRatio:false,animation:sAnim,plugins:{legend:{display:false},tooltip:{...CT.tooltip}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
-    if(ck.length)mkChartWhenVisible('ch-donut',{type:'doughnut',data:{labels:ck.slice(0,7),datasets:[{data:ck.slice(0,7).map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:0,borderRadius:3,spacing:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',animation:{...sAnim,animateRotate:true,animateScale:true},plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS`}}}}});
-    if(ok.length)mkChartWhenVisible('ch-obj',{type:'bar',data:{labels:ok,datasets:[{label:t('income'),data:ok.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.75)',borderRadius:4,borderSkipped:false},{label:t('expense'),data:ok.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.7)',borderRadius:4,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{...sAnim,delay:ctx=>ctx.dataIndex*60},interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:9,padding:8}},tooltip:{...CT.tooltip}},scales:{x:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}},y:{grid:{display:false},ticks:CT.ticks}}}});
-    mkChartWhenVisible('ch-usd',{type:'bar',data:{labels:[t('income'),t('expense'),t('balance')],datasets:[{data:[incUSD,expUSD,incUSD-expUSD],backgroundColor:['rgba(57,185,128,.8)','rgba(229,62,62,.8)',incUSD-expUSD>=0?'rgba(49,130,206,.8)':'rgba(229,62,62,.8)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,animation:sAnim,plugins:{legend:{display:false},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`$${fmtN(ctx.raw)}`}}},scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>'$'+fmtN(v)},border:{display:false}}}}});
+    const sBarAnim={duration:900,easing:'easeOutBack',delay:ctx=>ctx.dataIndex*65};
+    const sLineAnim={duration:1200,easing:'easeOutQuart'};
+    const sDoughAnim={duration:1000,easing:'easeOutElastic',animateRotate:true,animateScale:true};
+    mkChartWhenVisible('ch-bars',{type:'bar',data:{labels:months.map(m=>m.slice(5)),datasets:[
+      {label:t('income')+' TJS',data:mInc,backgroundColor:'rgba(57,185,128,.85)',borderRadius:8,borderSkipped:false},
+      {label:t('expense')+' TJS',data:mExp,backgroundColor:'rgba(229,62,62,.78)',borderRadius:8,borderSkipped:false}
+    ]},options:{responsive:true,maintainAspectRatio:false,animation:sBarAnim,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:10,padding:10,usePointStyle:true}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},
+      scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
+    mkChartWhenVisible('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[
+      {label:'Net CF',data:mNet,segment:{borderColor:ctx=>ctx.p1.parsed.y<0?'#E53E3E':'#39B980'},
+       backgroundColor:chartGrad('ch-cf',57,185,128,.3),fill:true,tension:.45,borderWidth:2.5,
+       pointRadius:4,pointHoverRadius:7,pointBackgroundColor:'#fff',pointBorderWidth:2.5,
+       pointBorderColor:ctx=>ctx.raw>=0?'#39B980':'#E53E3E'}
+    ]},options:{responsive:true,maintainAspectRatio:false,animation:sLineAnim,
+      plugins:{legend:{display:false},tooltip:{...CT.tooltip}},
+      scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
+    if(ck.length)mkChartWhenVisible('ch-donut',{type:'doughnut',data:{labels:ck.slice(0,7),datasets:[
+      {data:ck.slice(0,7).map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:2,borderColor:'#fff',borderRadius:5,spacing:3}
+    ]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',animation:sDoughAnim,
+      plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8,usePointStyle:true}},
+        tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS`}}}}});
+    if(ok.length)mkChartWhenVisible('ch-obj',{type:'bar',data:{labels:ok,datasets:[
+      {label:t('income'),data:ok.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.82)',borderRadius:6,borderSkipped:false},
+      {label:t('expense'),data:ok.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.76)',borderRadius:6,borderSkipped:false}
+    ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:sBarAnim,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:9,padding:8,usePointStyle:true}},tooltip:{...CT.tooltip}},
+      scales:{x:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}},y:{grid:{display:false},ticks:CT.ticks}}}});
+    mkChartWhenVisible('ch-usd',{type:'bar',data:{labels:[t('income'),t('expense'),t('balance')],datasets:[
+      {data:[incUSD,expUSD,incUSD-expUSD],
+       backgroundColor:['rgba(57,185,128,.85)','rgba(229,62,62,.82)',incUSD-expUSD>=0?'rgba(49,130,206,.85)':'rgba(229,62,62,.82)'],
+       borderRadius:10,borderSkipped:false}
+    ]},options:{responsive:true,maintainAspectRatio:false,animation:{...sBarAnim,delay:ctx=>ctx.dataIndex*120},
+      plugins:{legend:{display:false},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`$${fmtN(ctx.raw)}`}}},
+      scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>'$'+fmtN(v)},border:{display:false}}}}});
   },80);
 
   return `
-  <div class="card mb20" style="animation:fadeUp .3s ease both;">
-    <div class="sh"><div class="sh-t">${t('pl')}</div></div>
-    <div class="g4 mb12">
-      <div style="padding:11px;background:var(--ap);border-radius:var(--r);border:1px solid var(--al);"><div class="sc-lbl" style="color:var(--ad);">TJS ${t('income')}</div><div style="font-size:18px;font-weight:800;color:var(--ad);">+${fmtN(incTJS)}</div></div>
-      <div style="padding:11px;background:var(--redl);border-radius:var(--r);border:1px solid var(--redb);"><div class="sc-lbl" style="color:var(--red);">TJS ${t('expense')}</div><div style="font-size:18px;font-weight:800;color:var(--red);">-${fmtN(expTJS)}</div></div>
-      <div style="padding:11px;background:var(--bluel);border-radius:var(--r);border:1px solid var(--blueb);"><div class="sc-lbl" style="color:var(--blue);">USD ${t('income')}</div><div style="font-size:18px;font-weight:800;color:var(--blue);">+$${fmtN(incUSD)}</div></div>
-      <div style="padding:11px;background:var(--redl);border-radius:var(--r);border:1px solid var(--redb);"><div class="sc-lbl" style="color:var(--red);">USD ${t('expense')}</div><div style="font-size:18px;font-weight:800;color:var(--red);">-$${fmtN(expUSD)}</div></div>
+  <!-- KPI row -->
+  <div class="g4 mb14">
+    ${[
+      {lbl:'↑ TJS '+t('income'), val:'+'+fmtN(incTJS), sub:inc.filter(o=>o.currency==='TJS').length+' '+t('ops_count'), c1:'#1a6645',c2:'rgba(57,185,128,.12)',b:'rgba(57,185,128,.25)',icon:'↑'},
+      {lbl:'↓ TJS '+t('expense'),val:'-'+fmtN(expTJS), sub:exp.filter(o=>o.currency==='TJS').length+' '+t('ops_count'), c1:'#C53030',c2:'rgba(229,62,62,.1)',b:'rgba(229,62,62,.25)',icon:'↓'},
+      {lbl:'↑ USD '+t('income'), val:'+$'+fmtN(incUSD), sub:inc.filter(o=>o.currency==='USD').length+' '+t('ops_count'), c1:'#2C5282',c2:'rgba(49,130,206,.1)',b:'rgba(49,130,206,.25)',icon:'$'},
+      {lbl:'↓ USD '+t('expense'),val:'-$'+fmtN(expUSD), sub:exp.filter(o=>o.currency==='USD').length+' '+t('ops_count'), c1:'#C05621',c2:'rgba(221,107,32,.1)',b:'rgba(221,107,32,.25)',icon:'↓'},
+    ].map((k,i)=>`
+    <div class="kpi-tile" style="background:${k.c2};border:1px solid ${k.b};animation-delay:${i*.06}s;">
+      <div style="font-size:9px;font-weight:700;color:${k.c1};text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;opacity:.75;">${k.lbl}</div>
+      <div style="font-size:20px;font-weight:900;color:${k.c1};letter-spacing:-.3px;line-height:1;">${k.val}</div>
+      <div style="font-size:10px;color:${k.c1};opacity:.5;margin-top:4px;">${k.sub}</div>
+    </div>`).join('')}
+  </div>
+  <!-- Net P&L -->
+  <div class="g2 mb16">
+    <div style="padding:14px 16px;background:${incTJS-expTJS>=0?'linear-gradient(135deg,rgba(57,185,128,.12),rgba(57,185,128,.05))':'linear-gradient(135deg,rgba(229,62,62,.1),rgba(229,62,62,.04))'};border-radius:16px;border:1px solid ${incTJS-expTJS>=0?'rgba(57,185,128,.25)':'rgba(229,62,62,.2)'};animation:fadeUp .3s ease .24s both;">
+      <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">${t('net_p')} TJS</div>
+      <div style="font-size:26px;font-weight:900;color:${incTJS-expTJS>=0?'var(--ad)':'var(--red)'};">${incTJS-expTJS>=0?'+':''}${fmtN(incTJS-expTJS)}<span style="font-size:13px;opacity:.5;margin-left:4px;">TJS</span></div>
+      <div style="font-size:11px;color:var(--t4);margin-top:3px;">≈ $${fmtN((incTJS-expTJS)/rate)}</div>
     </div>
-    <div class="g2">
-      <div style="padding:13px;background:${incTJS-expTJS>=0?'var(--ap)':'var(--redl)'};border-radius:var(--r2);border:1px solid ${incTJS-expTJS>=0?'var(--al)':'var(--redb)'};">
-        <div class="sc-lbl">${t('net_p')} TJS</div>
-        <div style="font-size:24px;font-weight:800;color:${incTJS-expTJS>=0?'var(--ad)':'var(--red)'};">${incTJS-expTJS>=0?'+':''}${fmtN(incTJS-expTJS)} TJS</div>
-        <div style="font-size:11px;color:var(--t4);margin-top:2px;">≈ $${fmtN((incTJS-expTJS)/rate)}</div>
-      </div>
-      <div style="padding:13px;background:${incUSD-expUSD>=0?'var(--bluel)':'var(--redl)'};border-radius:var(--r2);border:1px solid ${incUSD-expUSD>=0?'var(--blueb)':'var(--redb)'};">
-        <div class="sc-lbl">${t('net_p')} USD</div>
-        <div style="font-size:24px;font-weight:800;color:${incUSD-expUSD>=0?'var(--blue)':'var(--red)'};">${incUSD-expUSD>=0?'+':''}$${fmtN(incUSD-expUSD)}</div>
-        <div style="font-size:11px;color:var(--t4);margin-top:2px;">≈ ${fmtN((incUSD-expUSD)*rate)} TJS</div>
-      </div>
+    <div style="padding:14px 16px;background:${incUSD-expUSD>=0?'linear-gradient(135deg,rgba(49,130,206,.1),rgba(49,130,206,.04))':'linear-gradient(135deg,rgba(229,62,62,.1),rgba(229,62,62,.04))'};border-radius:16px;border:1px solid ${incUSD-expUSD>=0?'rgba(49,130,206,.25)':'rgba(229,62,62,.2)'};animation:fadeUp .3s ease .28s both;">
+      <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">${t('net_p')} USD</div>
+      <div style="font-size:26px;font-weight:900;color:${incUSD-expUSD>=0?'var(--blue)':'var(--red)'};">${incUSD-expUSD>=0?'+':''}$${fmtN(incUSD-expUSD)}</div>
+      <div style="font-size:11px;color:var(--t4);margin-top:3px;">≈ ${fmtN((incUSD-expUSD)*rate)} TJS</div>
     </div>
   </div>
-  <div class="g2 mb20">
-    <div class="card" style="animation:fadeUp .3s ease .05s both;"><div class="sh"><div class="sh-t">${t('income')} vs ${t('expense')}</div></div><div class="ch-wrap ch240"><canvas id="ch-bars"></canvas></div></div>
-    <div class="card" style="animation:fadeUp .3s ease .07s both;"><div class="sh"><div class="sh-t">Net Cash Flow TJS</div></div><div class="ch-wrap ch240"><canvas id="ch-cf"></canvas></div></div>
+  <!-- Charts grid -->
+  <div class="g2 mb16">
+    <div class="ch-card" style="animation-delay:.05s;--ch-top:linear-gradient(90deg,#39B980,#2176ae);"><div class="sh"><div class="sh-t">${t('income')} vs ${t('expense')}</div></div><div class="ch-wrap ch240"><canvas id="ch-bars"></canvas></div></div>
+    <div class="ch-card" style="animation-delay:.08s;--ch-top:linear-gradient(90deg,#3182CE,#8e44ad);"><div class="sh"><div class="sh-t">Net Cash Flow TJS</div></div><div class="ch-wrap ch240"><canvas id="ch-cf"></canvas></div></div>
   </div>
-  <div class="g2 mb20">
-    <div class="card" style="animation:fadeUp .3s ease .09s both;"><div class="sh"><div class="sh-t">${t('by_cat')}</div></div><div class="ch-wrap ch200"><canvas id="ch-donut"></canvas></div></div>
-    <div class="card" style="animation:fadeUp .3s ease .11s both;"><div class="sh"><div class="sh-t">${t('income')} / ${t('expense')} USD</div></div><div class="ch-wrap ch200"><canvas id="ch-usd"></canvas></div></div>
+  <div class="g2 mb16">
+    <div class="ch-card" style="animation-delay:.11s;--ch-top:linear-gradient(90deg,#f39c12,#e74c3c);"><div class="sh"><div class="sh-t">${t('by_cat')}</div></div><div class="ch-wrap ch200"><canvas id="ch-donut"></canvas></div></div>
+    <div class="ch-card" style="animation-delay:.14s;--ch-top:linear-gradient(90deg,#2176ae,#39B980);"><div class="sh"><div class="sh-t">${t('income')} / ${t('expense')} USD</div></div><div class="ch-wrap ch200"><canvas id="ch-usd"></canvas></div></div>
   </div>
-  ${ok.length?`<div class="card mb20" style="animation:fadeUp .3s ease .13s both;"><div class="sh"><div class="sh-t">${t('by_obj')}</div></div><div class="ch-wrap ch200"><canvas id="ch-obj"></canvas></div></div>`:''}
+  ${ok.length?`<div class="ch-card mb16" style="animation-delay:.17s;--ch-top:linear-gradient(90deg,#8e44ad,#f39c12);"><div class="sh"><div class="sh-t">${t('by_obj')}</div></div><div class="ch-wrap ch200"><canvas id="ch-obj"></canvas></div></div>`:''}
   <div class="card" style="animation:fadeUp .3s ease .15s both;">
     <div class="sh"><div class="sh-t">${t('xl')} / ${t('pdf')}</div></div>
     <div class="exp-row">
