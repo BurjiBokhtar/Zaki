@@ -11,7 +11,6 @@
 <meta name="description" content="ZAKI ERP — управление финансами">
 <link rel="manifest" href="/manifest.json">
 <title>Бурҷи Бохтар — Ширкати Сохтмонй</title>
-<link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/png" href="/logo192.png">
 <link rel="icon" type="image/png" href="/logo.png">
 <link rel="apple-touch-icon" href="/logo.png">
@@ -60,16 +59,12 @@
 }
 @keyframes orbFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-20px) scale(1.02)}}
 @keyframes loginCardIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes countUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulseGreen{0%,100%{box-shadow:0 0 0 0 rgba(57,185,128,.4)}70%{box-shadow:0 0 0 8px rgba(57,185,128,0)}}
 @keyframes slideInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes iconBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
-@keyframes cloudFloat{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}
-@keyframes sunPulse{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-@keyframes countUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulseBar{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
-@keyframes iconBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
 @keyframes shimmerLoad{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
 /* Icon hover animation */
@@ -253,7 +248,6 @@ html{height:100dvh;}
 /* Login dark styles */
 #login-page input::placeholder{color:#B0BAC9!important;}
 #login-page input:-webkit-autofill{-webkit-box-shadow:0 0 0 100px #F5F7FA inset!important;-webkit-text-fill-color:#1A2332!important;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes orb{0%,100%{transform:scale(1) translate(0,0)}50%{transform:scale(1.1) translate(10px,-10px)}}
 /* Weather sky animations */
 @keyframes wxSunPulse{0%,100%{box-shadow:0 0 50px rgba(255,200,0,.7),0 0 110px rgba(255,140,0,.3)}50%{box-shadow:0 0 75px rgba(255,210,0,.9),0 0 160px rgba(255,150,0,.5)}}
@@ -1123,9 +1117,6 @@ function resetConfig(){
 function initSupabase(url,key){
   SB=supabase.createClient(url,key);
 }
-// Keys hardcoded
-const _SB_URL='https://lgqfxinosfuenzqorzrl.supabase.co',_SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxncWZ4aW5vc2Z1ZW56cW9yenJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzQxNzYsImV4cCI6MjA5NDgxMDE3Nn0.scE3s5Yk5cFlcTdpnwzbYlX4o2Ydjxt-kg0R_60NskI';
-
 /* ── DB HELPERS ── */
 async function db(table){return SB.from(table);}
 async function q(table,fn){
@@ -1397,51 +1388,6 @@ function exportPDF(title,ops){
   .sum-val.blue{color:#3182CE;}
   footer{margin-top:20px;padding-top:12px;border-top:1px solid #E4E9F0;text-align:center;font-size:9px;color:#9AA5B8;}
   @media print{body{padding:12px;}@page{margin:15mm;}}
-
-/* ── FINANCIAL PULSE ── */
-.pulse-bar{
-  display:flex;align-items:center;gap:0;padding:0 18px;
-  background:#fff;border-bottom:1px solid var(--bd);
-  flex-shrink:0;overflow-x:auto;
-}
-.pulse-bar::-webkit-scrollbar{display:none;}
-.pulse-item{
-  display:flex;align-items:center;gap:7px;padding:9px 16px;
-  border-right:1px solid var(--bd);white-space:nowrap;flex-shrink:0;
-}
-.pulse-item:last-child{border-right:none;}
-.pulse-lbl{font-size:10px;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
-.pulse-val{font-size:15px;font-weight:800;letter-spacing:-.3px;}
-.pulse-val.inc{color:var(--ad);}
-.pulse-val.exp{color:var(--red);}
-.pulse-val.bal{color:var(--blue);}
-.pulse-dot{width:7px;height:7px;border-radius:50%;}
-.pulse-prog{flex:1;height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;min-width:60px;margin:0 8px;}
-.pulse-prog-fill{height:100%;border-radius:2px;background:var(--a);transition:width .8s cubic-bezier(.22,1,.36,1);}
-
-/* ── GLOBAL ANIMATE COUNTER ── */
-function animateCounter(el, target, duration, prefix, suffix){
-  if(!el) return;
-  prefix = prefix||''; suffix = suffix||'';
-  const startTime = performance.now();
-  const absTarget = Math.abs(target);
-  function step(now){
-    const elapsed = now - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    const ease = 1 - Math.pow(1 - progress, 3);
-    const current = Math.round(absTarget * ease);
-    el.textContent = prefix + current.toLocaleString('ru') + suffix;
-    if(progress < 1) requestAnimationFrame(step);
-    else el.textContent = prefix + absTarget.toLocaleString('ru') + suffix;
-  }
-  requestAnimationFrame(step);
-}
-
-/* ── ANIMATED COUNTERS ── */
-@keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.sc-val{animation:countUp .5s ease both;}
-.sparkline-wrap{display:flex;align-items:flex-end;gap:2px;height:26px;margin-top:6px;}
-.spark-bar{width:5px;border-radius:2px 2px 0 0;transition:height .6s cubic-bezier(.22,1,.36,1);min-height:3px;}
 </style></head><body>
 <div class="header">
   <div>
@@ -2228,7 +2174,7 @@ async function fSubmit(isSupplier){
 
 function canView(){return true;}
 function isDir(){return USER?.role==='director';}
-function isAcc(){return (USER?.role==='accountant'||USER?.role==='admin')||USER?.role==='admin';}
+function isAcc(){return USER?.role==='accountant'||USER?.role==='admin';}
 function canWrite(){return !isDir();}
 function isSup(){return USER?.role==='supplier';}
 
@@ -2743,25 +2689,16 @@ home:async()=>{
         }
       }});
     }
-    // Animated counters
+    // Hero counters and ratio bar (fires after charts settle)
     setTimeout(()=>{
-      // Stat card counters
-      [['cnt-incTJS',incTJS,'+',' TJS'],['cnt-incUSD',incUSD,'$',' USD'],
-       ['cnt-expTJS',expTJS,'-',' TJS'],['cnt-expUSD',expUSD,'$',' USD'],
-       ['cnt-balTJS',Math.abs(balTJS),balTJS>=0?'+':'-',' TJS'],
-       ['cnt-balUSD',Math.abs(balUSD),balUSD>=0?'$':'-$',' USD'],
-       ['cnt-deb',deb,'',' TJS'],['cnt-cred',cred,'',' TJS'],
-      ].forEach(([id,v,pre,suf])=>{const el=document.getElementById(id);if(el)animateCounter(el,v,900,pre,'');});
-      // Hero counters (count up from 0)
       animCounter('hero-bal-num', Math.abs(balTJS), '', '', 1100);
       if(balUSD!==0) animCounter('hero-bal-usd', Math.abs(balUSD), balUSD<0?'−$':'$', '', 1100);
       animCounter('hero-inc-num', incTJS, '', ' TJS', 900);
       animCounter('hero-exp-num', expTJS, '', ' TJS', 900);
-      // Hero ratio bar animate in (all-time data)
       const rb=document.getElementById('hero-ratio-bar');
       if(rb) setTimeout(()=>{ rb.style.width=allRatioPct+'%'; }, 120);
-      drawSparkline('spark-inc',mInc.slice(-7),'#39B980');
-      drawSparkline('spark-exp',mExp.slice(-7),'#E53E3E');
+      drawSparkline('spark-inc',mInc.slice(-7),'#39B980','rgba(57,185,128,.12)');
+      drawSparkline('spark-exp',mExp.slice(-7),'#E53E3E','rgba(229,62,62,.10)');
       renderPulseBar();
     },150);
   },80);
@@ -4204,13 +4141,15 @@ async function advReturn(id){
       if(!amt||amt<=0){showToast(t('enter_amt'),true);return;}
       const desc=(document.getElementById('ar-desc')?.value||'').trim()||'Возврат аванса';
       const rate=COMPANY.usd_rate||10.92;
-      await SB.from('operations').insert({
+      const{error:ie}=await SB.from('operations').insert({
         type:'income',date:today(),category_name:'Возврат аванса',
         description:desc,amount:amt,currency:'TJS',method:'cash',
         amount_tjs:amt,amount_usd:amt/rate,usd_rate:rate,
         worker_name:USER?.name||'',created_by:USER?.id
       });
-      closeModal();showToast('✓ Возврат '+fmtN(amt)+' TJS зафиксирован');
+      if(ie){showToast(ie.message,true);return;}
+      await SB.from('advances').update({status:'done'}).eq('id',id);
+      closeModal();showToast('✓ Возврат '+fmtN(amt)+' TJS · Аванс закрыт');
       renderPage(CUR_PAGE);
     },'Зафиксировать');
   setTimeout(()=>{const el=document.getElementById('ar-amt');if(el)el.focus();},120);
@@ -4779,6 +4718,24 @@ function saveSetup(){
   location.reload();
 }
 
+/* ── ANIMATED COUNTER ── */
+function animateCounter(el, target, duration, prefix, suffix){
+  if(!el) return;
+  prefix=prefix||''; suffix=suffix||'';
+  const startTime=performance.now();
+  const absTarget=Math.abs(target);
+  function step(now){
+    const elapsed=now-startTime;
+    const progress=Math.min(elapsed/duration,1);
+    const ease=1-Math.pow(1-progress,3);
+    const current=Math.round(absTarget*ease);
+    el.textContent=prefix+current.toLocaleString('ru')+suffix;
+    if(progress<1) requestAnimationFrame(step);
+    else el.textContent=prefix+absTarget.toLocaleString('ru')+suffix;
+  }
+  requestAnimationFrame(step);
+}
+
 /* ── STUB FUNCTIONS (referenced but not defined elsewhere) ── */
 function animateAllCounters(){}
 async function updatePulse(){try{await renderPulseBar();}catch(e){}}
@@ -5086,6 +5043,100 @@ function ssBind(triggerId, hiddenId, title, getItems, allowCustom){
 </div>
 
 <script>
+/* ═══════════════════════════════════════════════════
+   LOCAL DB — Electron SQLite bridge
+   Автоматически зеркалирует данные локально
+   ═══════════════════════════════════════════════════ */
+const IS_ELECTRON = typeof window.localDB !== 'undefined' && window.localDB?.isElectron;
+
+/* Зеркалировать данные из Supabase → локальный SQLite */
+async function mirrorLocal(tbl, rows){
+  if(!IS_ELECTRON || !rows || !rows.length) return;
+  try{ await window.localDB.upsertMany(tbl, rows); }catch(e){ console.warn('mirror err', e); }
+}
+
+/* Читать из локального SQLite (офлайн фоллбэк) */
+async function localSelect(tbl, where, orderBy){
+  if(!IS_ELECTRON) return null;
+  try{
+    const r = await window.localDB.select(tbl, where, orderBy);
+    return r?.data || null;
+  }catch{ return null; }
+}
+
+/* Записать в SQLite (параллельно с Supabase) */
+async function localInsert(tbl, data, synced=1){
+  if(!IS_ELECTRON) return;
+  try{ await window.localDB.insert(tbl, data, synced); }catch(e){ console.warn('localInsert err', e); }
+}
+
+/* ─── Патч: после каждого Supabase чтения → зеркалируем локально ─── */
+const _sbFrom = SB ? (() => {
+  const orig = SB.from.bind(SB);
+  return function(tbl){
+    const q = orig(tbl);
+    const origSelect = q.select.bind(q);
+    q.select = function(...args){
+      const chain = origSelect(...args);
+      const origThen = chain.then.bind(chain);
+      chain.then = function(onFulfilled, onRejected){
+        return origThen(async (result) => {
+          if(result?.data && Array.isArray(result.data) && result.data.length > 0){
+            // Зеркалируем в фоне, не блокируя
+            mirrorLocal(tbl, result.data).catch(()=>{});
+          }
+          return onFulfilled ? onFulfilled(result) : result;
+        }, onRejected);
+      };
+      return chain;
+    };
+    return q;
+  };
+})() : null;
+
+/* ─── Показать статус локальной БД (Electron only) ─── */
+async function showLocalDBStatus(){
+  if(!IS_ELECTRON){ showToast('Веб-версия: локальная БД недоступна', true); return; }
+  const s = await window.localDB.stats();
+  showToast(`💾 Локальная БД:\n📋 Операции: ${s.operations||0}\n💳 Авансы: ${s.advances||0}\n📂 ${s.dbPath?.split('\\').pop()||'zaki_local.db'}`);
+}
+
+/* ─── Синхронизация очереди из SQLite → Supabase ─── */
+async function syncLocalQueue(){
+  if(!IS_ELECTRON || !navigator.onLine) return;
+  try{
+    const { queue } = await window.localDB.getQueue();
+    if(!queue?.length) return;
+    const dot = document.getElementById('sync-dot');
+    if(dot) dot.style.display = 'block';
+    const synced = [], failed = [];
+    for(const item of queue){
+      try{
+        let res;
+        const data = item.data ? JSON.parse(item.data) : null;
+        if(item.method==='insert'&&data)      res = await SB.from(item.tbl).insert(data);
+        else if(item.method==='delete')       res = await SB.from(item.tbl).delete().eq('id',item.match_id);
+        if(res?.error) failed.push(item.id); else synced.push(item.id);
+      }catch{ failed.push(item.id); }
+    }
+    if(synced.length) await window.localDB.clearQueue(synced);
+    if(dot) dot.style.display = 'none';
+    if(synced.length){
+      showToast(`✅ Синхронизировано: ${synced.length} записей`);
+      await window.localDB.setMeta('last_sync', Date.now());
+    }
+  }catch(e){ console.warn('syncLocalQueue err', e); }
+}
+
+/* ─── Запуск при старте в Electron ─── */
+if(IS_ELECTRON){
+  document.addEventListener('DOMContentLoaded', async ()=>{
+    const stats = await window.localDB.stats();
+    console.log('Локальная БД:', stats);
+  });
+  window.addEventListener('online', ()=>{ syncLocalQueue(); });
+}
+
 /* ═══════════════════════════════════════════════════
    OFFLINE QUEUE — writes while no internet
    ═══════════════════════════════════════════════════ */
