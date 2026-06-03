@@ -2544,13 +2544,18 @@ home:async()=>{
   const allInc = allTimeOps.filter(o=>o.type==='income');
   const allExp = allTimeOps.filter(o=>o.type==='expense');
   const allAdv = allTimeOps.filter(o=>o.type==='advance');
-  const balTJS = allInc.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0)
-               - allExp.filter(o=>o.currency==='TJS'&&!isAdvExp(o)).reduce((a,o)=>a+o.amount,0)
-               - allAdv.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
-  const balUSD = allInc.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0)
-               - allExp.filter(o=>o.currency==='USD'&&!isAdvExp(o)).reduce((a,o)=>a+o.amount,0)
-               - allAdv.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+  const allIncTJS = allInc.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+  const allExpTJS = allExp.filter(o=>o.currency==='TJS'&&!isAdvExp(o)).reduce((a,o)=>a+o.amount,0);
+  const allAdvTJS = allAdv.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+  const allIncUSD = allInc.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+  const allExpUSD = allExp.filter(o=>o.currency==='USD'&&!isAdvExp(o)).reduce((a,o)=>a+o.amount,0);
+  const allAdvUSD = allAdv.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+  const balTJS = allIncTJS - allExpTJS - allAdvTJS;
+  const balUSD = allIncUSD - allExpUSD - allAdvUSD;
   const bal = balTJS + balUSD*rate;
+  // All-time ratio for the hero progress bar (expense / income, all-time)
+  const allRatioPct = allIncTJS>0 ? Math.min(Math.round((allExpTJS+allAdvTJS)/allIncTJS*100), 100) : 0;
+  const allRatioColor = allRatioPct>90?'#fc8181':allRatioPct>65?'#f6c90e':'#39B980';
 
   // Debts
   const credTJS=debts.filter(d=>d.type==='creditor'&&d.currency!=='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
@@ -2742,9 +2747,9 @@ home:async()=>{
       if(balUSD!==0) animCounter('hero-bal-usd', Math.abs(balUSD), balUSD<0?'−$':'$', '', 1100);
       animCounter('hero-inc-num', incTJS, '', ' TJS', 900);
       animCounter('hero-exp-num', expTJS, '', ' TJS', 900);
-      // Hero ratio bar animate in
+      // Hero ratio bar animate in (all-time data)
       const rb=document.getElementById('hero-ratio-bar');
-      if(rb){const pct=incTJS>0?Math.min(Math.round(expTJS/incTJS*100),100):0;setTimeout(()=>{rb.style.width=pct+'%';},120);}
+      if(rb) setTimeout(()=>{ rb.style.width=allRatioPct+'%'; }, 120);
       drawSparkline('spark-inc',mInc.slice(-7),'#39B980');
       drawSparkline('spark-exp',mExp.slice(-7),'#E53E3E');
       renderPulseBar();
@@ -2816,14 +2821,18 @@ home:async()=>{
       </div>
     </div>
 
-    <!-- income/expense ratio bar -->
-    <div style="margin-top:14px;position:relative;z-index:1;animation:heroPill .4s ease .52s both;">
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,.3);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">
-        <span>${t('income')} vs ${t('expense')}</span>
-        <span>${incTJS>0?Math.round(expTJS/incTJS*100):0}%</span>
+    <!-- income/expense ratio bar — all-time -->
+    <div style="margin-top:16px;position:relative;z-index:1;animation:heroPill .4s ease .52s both;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:9px;color:rgba(255,255,255,.45);font-weight:700;text-transform:uppercase;letter-spacing:.08em;">${t('income')} vs ${t('expense')}</span>
+        <span style="font-size:11px;font-weight:800;color:${allRatioColor};">${allRatioPct}%</span>
       </div>
-      <div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;">
-        <div id="hero-ratio-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#39B980,#fc8181);border-radius:2px;transition:width 1.2s cubic-bezier(.4,0,.2,1);"></div>
+      <div style="height:6px;background:rgba(255,255,255,.18);border-radius:4px;overflow:hidden;">
+        <div id="hero-ratio-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#39B980,${allRatioColor});border-radius:4px;transition:width 1.3s cubic-bezier(.4,0,.2,1);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;">
+        <span style="font-size:9px;color:rgba(255,255,255,.3);">↑ ${fmtN(allIncTJS)} TJS</span>
+        <span style="font-size:9px;color:rgba(255,255,255,.3);">↓ ${fmtN(allExpTJS+allAdvTJS)} TJS</span>
       </div>
     </div>
   </div>
