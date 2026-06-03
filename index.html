@@ -2510,66 +2510,68 @@ const PAGES={
 /* ── HOME ── */
 home:async()=>{
   const rate=COMPANY.usd_rate||10.92;
-  // Load all data (including supplier profiles for advance-expense identification)
-  const[opsR,debtsR,advR,profR,supExpR]=await Promise.all([
-    (()=>{let q=SB.from('operations').select('*');q=periodFilter(q);return q;})(),
-    SB.from('debts').select('*'),
-    SB.from('advances').select('amount,currency'),   // ALL advances (active+closed) for correct balance
-    SB.from('profiles').select('name,role').eq('role','supplier'),
-    SB.from('operations').select('amount_tjs,worker_name,method').eq('type','expense') // all-time for supplier balance
-  ]);
-  const allOps=opsR.data||[], debts=debtsR.data||[], advs=advR.data||[];
-  // Set of supplier names — used to identify advance-funded expenses in historical data
-  const supplierNames=new Set((profR.data||[]).map(p=>p.name));
 
-  // Selected object filter (stored on window)
+  // ── Single parallel fetch: period ops + ALL-TIME ops + debts + advances + profiles ──
+  // KEY FIX: balance must always use ALL-TIME ops, not period-filtered
+  const[periodR, allTimeR, debtsR, advR, profR]=await Promise.all([
+    (()=>{let q=SB.from('operations').select('*');q=periodFilter(q);return q;})(),
+    SB.from('operations').select('type,amount,currency,amount_tjs,method,worker_name,date,object_name,category_name').order('date'),
+    SB.from('debts').select('*'),
+    SB.from('advances').select('amount,currency'),
+    SB.from('profiles').select('name,role').eq('role','supplier'),
+  ]);
+
+  const periodOps = periodR.data||[];       // period-filtered: for display cards
+  const allTimeOps = allTimeR.data||[];     // ALL-TIME: for balance + charts
+  const debts = debtsR.data||[];
+  const advs  = advR.data||[];
+  const supplierNames = new Set((profR.data||[]).map(p=>p.name));
+  const isAdvExp = o => o.method==='from_advance' || supplierNames.has(o.worker_name);
+
+  // Period display (income/expense cards in hero — changes with period selector)
   window._homeObj = window._homeObj||'';
   const ops = window._homeObj
-    ? allOps.filter(o=>o.object_name===window._homeObj)
-    : allOps;
-
+    ? periodOps.filter(o=>o.object_name===window._homeObj)
+    : periodOps;
   const inc=ops.filter(o=>o.type==='income');
   const exp=ops.filter(o=>o.type==='expense');
-  const adv=ops.filter(o=>o.type==='advance');
-
-  // Strict separate currencies
   const incTJS=inc.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
-  // All expenses (for РАСХОДЫ display card)
   const expTJS=exp.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
-  const advTJS=adv.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const incUSD=inc.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
   const expUSD=exp.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
-  const advUSD=adv.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
-  // Cash balance: only subtract DIRECT cash expenses (not advance-funded supplier expenses)
-  // An expense is advance-funded if method='from_advance' OR (historical) if created by a supplier
-  const isAdvExp=o=>o.method==='from_advance'||supplierNames.has(o.worker_name);
-  const cashExpTJS=exp.filter(o=>o.currency==='TJS'&&!isAdvExp(o)).reduce((a,o)=>a+o.amount,0);
-  const cashExpUSD=exp.filter(o=>o.currency==='USD'&&!isAdvExp(o)).reduce((a,o)=>a+o.amount,0);
-  const balTJS=incTJS-cashExpTJS-advTJS;
-  const balUSD=incUSD-cashExpUSD-advUSD;
-  const bal=balTJS+(balUSD*rate);
 
-  // Split debts by currency — never mix TJS and USD raw amounts
+  // ── CASH BALANCE — always ALL-TIME, never period-filtered ──
+  const allInc = allTimeOps.filter(o=>o.type==='income');
+  const allExp = allTimeOps.filter(o=>o.type==='expense');
+  const allAdv = allTimeOps.filter(o=>o.type==='advance');
+  const balTJS = allInc.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0)
+               - allExp.filter(o=>o.currency==='TJS'&&!isAdvExp(o)).reduce((a,o)=>a+o.amount,0)
+               - allAdv.filter(o=>o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
+  const balUSD = allInc.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0)
+               - allExp.filter(o=>o.currency==='USD'&&!isAdvExp(o)).reduce((a,o)=>a+o.amount,0)
+               - allAdv.filter(o=>o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+  const bal = balTJS + balUSD*rate;
+
+  // Debts
   const credTJS=debts.filter(d=>d.type==='creditor'&&d.currency!=='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
   const credUSD=debts.filter(d=>d.type==='creditor'&&d.currency==='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
   const debTJS=debts.filter(d=>d.type==='debtor'&&d.currency!=='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
   const debUSD=debts.filter(d=>d.type==='debtor'&&d.currency==='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
-  // Combined TJS-equivalent for netto line only
   const cred=credTJS+credUSD*rate;
   const deb=debTJS+debUSD*rate;
-  // ALL advances: convert USD→TJS for accurate total
-  const advTot_given=advs.reduce((a,x)=>a+(x.currency==='USD'?x.amount*rate:x.amount),0);
-  // ALL-TIME supplier expenses (not period-filtered) so balance is always current state
-  const advTot_spent=(supExpR.data||[]).filter(o=>o.method==='from_advance'||supplierNames.has(o.worker_name)).reduce((a,o)=>a+(o.amount_tjs||0),0);
 
-  // By category (for selected object or all)
+  // Advances (supplier balance)
+  const advTot_given = advs.reduce((a,x)=>a+(x.currency==='USD'?x.amount*rate:x.amount),0);
+  const advTot_spent = allTimeOps.filter(o=>o.type==='expense'&&isAdvExp(o)).reduce((a,o)=>a+(o.amount_tjs||0),0);
+
+  // By category (period-filtered, for selected object)
   const byCat={};
   exp.forEach(o=>{if(o.category_name)byCat[o.category_name]=(byCat[o.category_name]||0)+o.amount;});
   const ck=Object.keys(byCat).sort((a,b)=>byCat[b]-byCat[a]).slice(0,8);
 
-  // By object (always all data for overview)
+  // By object (all-time for overview)
   const byObj={};
-  allOps.forEach(o=>{
+  allTimeOps.forEach(o=>{
     if(!o.object_name)return;
     if(!byObj[o.object_name])byObj[o.object_name]={inc:0,exp:0};
     if(o.type==='income')byObj[o.object_name].inc+=o.amount;
@@ -2577,13 +2579,13 @@ home:async()=>{
   });
   const objKeys=Object.keys(byObj);
 
-  // Monthly (for selected object or all)
-  const{data:allOpsAll}=await SB.from('operations').select('date,type,amount,currency,object_name').order('date');
+  // Monthly chart data (from allTimeOps — already loaded, no extra query needed)
+  const allOpsAll = allTimeOps; // alias for chart section below
   const months=[];
   for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);months.push(d.toISOString().slice(0,7));}
   const filterForObj=(arr)=>window._homeObj?arr.filter(o=>o.object_name===window._homeObj):arr;
-  const mInc=months.map(m=>filterForObj(allOpsAll||[]).filter(o=>o.type==='income'&&o.date?.startsWith(m)&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0));
-  const mExp=months.map(m=>filterForObj(allOpsAll||[]).filter(o=>o.type==='expense'&&o.date?.startsWith(m)&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0));
+  const mInc=months.map(m=>filterForObj(allOpsAll).filter(o=>o.type==='income'&&o.date?.startsWith(m)&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0));
+  const mExp=months.map(m=>filterForObj(allOpsAll).filter(o=>o.type==='expense'&&o.date?.startsWith(m)&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0));
 
   // Update pulse bar with today's data
   updatePulse();
