@@ -1577,6 +1577,16 @@ function setPeriod(p,el){
   destroyCharts();renderPage(CUR_PAGE);
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('mob-overlay').classList.toggle('show');}
+
+/* Settings accordion toggle */
+function toggleAcc(uid){
+  const body=document.getElementById('acc-body-'+uid);
+  const arrow=document.getElementById('acc-arrow-'+uid);
+  if(!body||!arrow)return;
+  const open=body.style.display==='none'||body.style.display==='';
+  body.style.display=open?'block':'none';
+  arrow.style.transform=open?'rotate(180deg)':'rotate(0deg)';
+}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('mob-overlay').classList.remove('show');}
 
 function renderPage(id){
@@ -3583,15 +3593,38 @@ settings:async()=>{
   const{data:users}=USER?.role==='director'?{data:[]}:await SB.from('profiles').select('id,name,role,phone');
 
   function sSection(title,items,addFn,editFn,delFn){
-    return `<div class="card mb16">
-      <div class="sh"><div class="sh-t">${title}</div></div>
-      <div style="display:flex;gap:7px;margin-bottom:11px;"><input class="fi" id="inp-${title}" placeholder="${t('add')}" style="flex:1;"><button class="btn btn-p btn-sm" onclick="${addFn}">${t('add')}</button></div>
-      <div>${items.map(it=>`<div class="si"><div class="si-inf"><div class="si-name">${it.name||it}</div></div>
-        <div class="si-acts">
-          <button class="si-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="${editFn}(${it.id||"'"+it+"'"})">✏</button>
-          <button class="si-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="${delFn}(${it.id||"'"+it+"'"})">✕</button>
-        </div></div>`).join('')||`<div class="empty" style="padding:16px;">${t('no_data')}</div>`}
-      </div></div>`;
+    const uid='acc'+Math.random().toString(36).slice(2,8);
+    const rows=items.map((it,i)=>{
+      const id=it.id||"'"+String(it).replace(/'/g,"\\'")+"'";
+      const name=(it.name||it)+'';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:${i%2===0?'var(--bg)':'transparent'};border-radius:8px;">
+        <div style="width:20px;height:20px;border-radius:6px;background:var(--al);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--adk);flex-shrink:0;">${i+1}</div>
+        <span style="flex:1;font-size:13px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
+        <button onclick="${editFn}(${id})" style="width:28px;height:28px;background:var(--al);border:none;border-radius:8px;font-size:13px;cursor:pointer;color:var(--adk);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✏</button>
+        <button onclick="${delFn}(${id})" style="width:28px;height:28px;background:var(--redl);border:none;border-radius:8px;font-size:13px;cursor:pointer;color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+      </div>`;
+    }).join('');
+
+    return `<div class="card mb8" style="padding:0;overflow:hidden;">
+      <div onclick="toggleAcc('${uid}')"
+        style="display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;user-select:none;transition:background .15s;"
+        onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
+        <div style="flex:1;">
+          <span style="font-size:13px;font-weight:700;color:var(--t);">${title}</span>
+          <span style="margin-left:8px;font-size:10px;font-weight:700;color:var(--w);background:var(--a);border-radius:10px;padding:1px 7px;">${items.length}</span>
+        </div>
+        <svg id="acc-arrow-${uid}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--t4)" stroke-width="2" stroke-linecap="round" style="transition:transform .22s;flex-shrink:0;"><path d="M3 6l5 5 5-5"/></svg>
+      </div>
+      <div id="acc-body-${uid}" style="display:none;border-top:1px solid var(--bd);">
+        <div style="padding:10px 12px 8px;display:flex;gap:7px;">
+          <input class="fi" id="inp-${title}" placeholder="+ ${t('add')}..." style="flex:1;margin-bottom:0;padding:8px 11px;">
+          <button class="btn btn-p btn-sm" onclick="${addFn}" style="flex-shrink:0;">${t('add')}</button>
+        </div>
+        <div style="margin:0 12px 10px;border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--w);">
+          ${rows||`<div style="font-size:12px;color:var(--t4);padding:12px;">${t('no_data')}</div>`}
+        </div>
+      </div>
+    </div>`;
   }
   return `
   <div class="card mb16" style="animation:fadeUp .3s ease both;">
