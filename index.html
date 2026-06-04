@@ -1362,7 +1362,7 @@ function exportPDF(title,ops){
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Segoe UI',Arial,sans-serif;padding:24px;font-size:11px;color:#1A2332;background:#fff;}
   .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #39B980;}
-  .logo{font-size:24px;font-weight:900;color:#39B980;letter-spacing:-1px;}
+  .logo{font-size:26px;font-weight:900;letter-spacing:-1px;color:#1A2332;}
   .logo span{color:#1A2332;}
   .co-name{font-size:13px;font-weight:600;color:#1A2332;margin-bottom:2px;}
   .co-sub{font-size:10px;color:#6B7A99;}
@@ -1384,14 +1384,15 @@ function exportPDF(title,ops){
   @media print{body{padding:12px;}@page{margin:15mm;}}
 </style></head><body>
 <div class="header">
-  <div>
-    <div class="logo">Бурҷи<span> Бохтар</span></div>
-    <div class="co-sub">Ширкати Сохтмонй</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <img src="${window.location.origin}/zaki.png" style="width:44px;height:44px;object-fit:contain;border-radius:10px;" onerror="this.style.display='none'">
+    <div>
+      <div class="logo"><span style="color:#E8A020;">Бурҷи</span> Бохтар</div>
+      <div class="co-sub">Ширкати Сохтмонй</div>
+    </div>
   </div>
   <div style="text-align:right;">
-    <div class="co-name">${COMPANY.name||'Бурҷи Бохтар'}</div>
-    <div class="co-sub">${COMPANY.address||''}</div>
-    <div class="co-sub">${COMPANY.phone||''}</div>
+    <div style="font-size:11px;color:#9AA5B8;">${new Date().toLocaleDateString('ru',{day:'numeric',month:'long',year:'numeric'})}</div>
   </div>
 </div>
 
