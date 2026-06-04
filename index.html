@@ -1259,7 +1259,7 @@ function txRow(o,canEdit){
       <div class="tx-m">${o.date} · ${o.category_name||''}${o.object_name?' · '+o.object_name:''}${o.worker_name&&o.worker_name!=='Бухгалтер'?' · '+o.worker_name:''}</div>
     </div>
     <div class="tx-rt">
-      <div><div class="tx-amt ${cls}">${sign}${fmtN(o.amount)} ${o.currency}</div><div class="tx-amt2">${usd2}</div></div>
+      <div><div class="tx-amt ${cls}">${sign}${fmtN(o.amount)} ${o.currency}</div></div>
       ${editable?`<div class="act-btn" onclick="editOp('${o.id}')" title="${t('edit')}"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="var(--t3)" stroke-width="1.2"><path d="M7 1.5l2.5 2.5-6 6H1.5V7.5L7.5 1.5z" stroke-linejoin="round"/></svg></div>
       <div class="del-btn" onclick="delOp('${o.id}')" title="${t('delete')}"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="var(--red)" stroke-width="1.2"><path d="M2 3h7M4 3V2h3v1M3.5 4l.5 4.5M7.5 4l-.5 4.5" stroke-linecap="round"/></svg></div>`:''}
     </div>
