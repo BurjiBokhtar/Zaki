@@ -706,10 +706,9 @@ canvas{max-width:100%!important;display:block;}
 
     <!-- Bottom branding -->
     <div style="position:relative;z-index:10;margin-top:auto;padding:0 24px 28px;">
-      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;" id="lp-co"></div>
-      <div style="font-size:34px;font-weight:900;color:#fff;letter-spacing:-1px;font-family:var(--ff);line-height:1;margin-bottom:6px;text-shadow:0 2px 16px rgba(0,0,0,.5);">Бурҷи<span style="color:#E8A020;"> Бохтар</span></div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:14px;font-family:var(--ff);" id="lt-tag">Система управления строительными финансами</div>
-      <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-.4px;font-family:var(--ff);line-height:1.2;text-shadow:0 2px 14px rgba(0,0,0,.5);" id="lp-greeting">Добро пожаловать</div>
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;" id="lp-co"></div>
+      <div style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:14px;font-family:var(--ff);" id="lt-tag">Система управления строительными финансами</div>
+      <div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-.4px;font-family:var(--ff);line-height:1.2;text-shadow:0 2px 14px rgba(0,0,0,.5);" id="lp-greeting">Добро пожаловать</div>
       <div style="margin-top:18px;padding:14px 16px;background:rgba(255,255,255,.07);border-radius:12px;border-left:3px solid #39B980;backdrop-filter:blur(6px);">
         <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-family:var(--ff);" id="lp-quote-label">Мудрость дня</div>
         <div style="font-size:13px;color:rgba(255,255,255,.85);font-style:italic;line-height:1.55;font-family:var(--ff);" id="lp-quote">—</div>
@@ -1556,7 +1555,7 @@ function getTimeOfDay(){
   return'night';
 }
 function updateLoginAmbience(){
-  applyWeatherTheme(63);
+  applyWeatherTheme(0); // apply time-of-day immediately, weather updates async
   fetchWeatherLP();
   setDailyQuote();
   const ql=document.getElementById('lp-quote-label');
@@ -1586,25 +1585,37 @@ function applyWeatherTheme(wc){
   const isThunder=wc>=95;
   const isAnyRain=isDrizzle||isRain||isShower||isThunder;
 
-  // --- Time of day ---
+  // --- Time of day (7 distinct periods) ---
   const _h=new Date().getHours();
-  const _isNight=_h>=21||_h<5;
-  const _isDusk=(_h>=18&&_h<21)||(_h>=5&&_h<7);
+  const _isDawn    = _h>=5  && _h<7;   // 05-07 рассвет
+  const _isMorning = _h>=7  && _h<11;  // 07-11 утро
+  const _isDay     = _h>=11 && _h<16;  // 11-16 день
+  const _isGolden  = _h>=16 && _h<18;  // 16-18 золотой час
+  const _isSunset  = _h>=18 && _h<20;  // 18-20 закат
+  const _isDusk    = _h>=20 && _h<22;  // 20-22 сумерки
+  const _isNight   = _h>=22 || _h<5;   // 22-05 ночь
 
-  // --- Background gradient ---
+  // --- Background gradient per time × weather ---
   const bg={
-    clearDay:'linear-gradient(170deg,#0b2a5a 0%,#112e6a 30%,#0a1e45 65%,#060f20 100%)',
-    clearDusk:'linear-gradient(170deg,#1a0e30 0%,#3a1a50 25%,#7a2a40 55%,#c05020 75%,#080e18 100%)',
-    clearNight:'linear-gradient(170deg,#040a14 0%,#070f1c 40%,#030810 100%)',
-    partly:'linear-gradient(170deg,#112240 0%,#0e1d38 40%,#0b1930 70%,#070f1e 100%)',
-    overcast:'linear-gradient(170deg,#141e2c 0%,#101825 50%,#0c1320 100%)',
-    fog:'linear-gradient(170deg,#17222f 0%,#121c28 50%,#0d1620 100%)',
-    rain:'linear-gradient(170deg,#152235 0%,#0c1a2e 55%,#091525 100%)',
-    snow:'linear-gradient(170deg,#1b2a3e 0%,#142030 50%,#0e1824 100%)',
-    thunder:'linear-gradient(170deg,#070d16 0%,#050b12 55%,#03080f 100%)'
+    // Clear sky — distinct per time period
+    dawn:    'linear-gradient(175deg,#0c0418 0%,#2d0d24 20%,#6b2518 40%,#c25818 58%,#e8901a 72%,#0a1018 100%)',
+    morning: 'linear-gradient(175deg,#051528 0%,#0a2245 25%,#0d2e5a 50%,#c8781a 75%,#0a1220 100%)',
+    day:     'linear-gradient(175deg,#041830 0%,#082040 22%,#0c2c58 48%,#0a2248 72%,#060e1c 100%)',
+    golden:  'linear-gradient(175deg,#080818 0%,#181030 25%,#3a1e10 50%,#9a5010 68%,#d88018 80%,#080c14 100%)',
+    sunset:  'linear-gradient(175deg,#06020e 0%,#200618 22%,#5a1010 42%,#c03010 58%,#e86018 72%,#060810 100%)',
+    dusk:    'linear-gradient(175deg,#040210 0%,#100818 28%,#200c30 55%,#080610 100%)',
+    night:   'linear-gradient(175deg,#020408 0%,#04060e 35%,#030508 100%)',
+    // Overcast/rain — always dark
+    partly:  'linear-gradient(170deg,#0e1c32 0%,#0b1828 40%,#08121e 100%)',
+    overcast:'linear-gradient(170deg,#0c1622 0%,#091220 55%,#070e18 100%)',
+    fog:     'linear-gradient(170deg,#141e2a 0%,#0f1820 55%,#0a1218 100%)',
+    rain:    'linear-gradient(170deg,#0a1422 0%,#08101c 55%,#060c16 100%)',
+    snow:    'linear-gradient(170deg,#121e2e 0%,#0e1828 50%,#0a1220 100%)',
+    thunder: 'linear-gradient(170deg,#040608 0%,#060a0e 55%,#030508 100%)',
   };
+  const _clearKey=_isDawn?'dawn':_isMorning?'morning':_isDay?'day':_isGolden?'golden':_isSunset?'sunset':_isDusk?'dusk':'night';
   left.style.background=
-    isClear?(_isNight?bg.clearNight:_isDusk?bg.clearDusk:bg.clearDay):
+    isClear?bg[_clearKey]:
     isPartly?bg.partly:isOvercast?bg.overcast:
     isFog?bg.fog:isSnow?bg.snow:isThunder?bg.thunder:bg.rain;
 
@@ -1615,36 +1626,75 @@ function applyWeatherTheme(wc){
 
   if(isClear){
     if(_isNight){
-      // Moon + many stars
+      // Ночь — луна + много звёзд
       sky.innerHTML=`
-        <div style="position:absolute;top:55px;right:60px;">
-          <div style="width:54px;height:54px;border-radius:50%;background:radial-gradient(circle,#d8e4f0 0%,#b0c8e0 60%,rgba(180,210,240,0) 100%);animation:wxMoonGlow 5s ease-in-out infinite;"></div>
-          <div style="position:absolute;top:8px;right:10px;width:18px;height:18px;border-radius:50%;background:#070f1c;"></div>
+        <div style="position:absolute;top:48px;right:58px;">
+          <div style="width:52px;height:52px;border-radius:50%;background:radial-gradient(circle,#d8e8f8 0%,#a8c8e0 55%,rgba(160,200,230,0) 100%);box-shadow:0 0 28px rgba(180,210,240,.25);animation:wxMoonGlow 5s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:7px;right:9px;width:17px;height:17px;border-radius:50%;background:#030508;"></div>
         </div>
-        ${[{x:12,y:30,s:2.5,d:2.1},{x:60,y:55,s:1.5,d:3.4},{x:110,y:28,s:2,d:2.8},{x:160,y:62,s:1.5,d:1.9},{x:220,y:38,s:2,d:3.2},{x:280,y:50,s:1.5,d:2.5},{x:340,y:25,s:2.5,d:1.7},{x:40,y:90,s:1.5,d:3.8},{x:180,y:90,s:2,d:2.3},{x:320,y:80,s:1.5,d:3.1},{x:140,y:15,s:2,d:2.7},{x:260,y:15,s:1.5,d:1.6}]
-          .map(s=>`<div style="position:absolute;top:${s.y}px;left:${s.x}px;width:${s.s}px;height:${s.s}px;border-radius:50%;background:#fff;animation:wxStar ${s.d}s ease-in-out infinite;opacity:.7;"></div>`)
+        ${[{x:14,y:28,s:2.5,d:2.1},{x:58,y:52,s:1.5,d:3.4},{x:108,y:26,s:2,d:2.8},{x:158,y:60,s:1.5,d:1.9},{x:218,y:36,s:2.2,d:3.2},{x:276,y:48,s:1.5,d:2.5},{x:338,y:22,s:2.5,d:1.7},{x:42,y:88,s:1.5,d:3.8},{x:178,y:86,s:2,d:2.3},{x:318,y:78,s:1.5,d:3.1},{x:138,y:14,s:2,d:2.7},{x:258,y:14,s:1.8,d:1.6},{x:82,y:18,s:1.5,d:2.9},{x:200,y:66,s:1.8,d:3.5},{x:290,y:32,s:2,d:2.2}]
+          .map(s=>`<div style="position:absolute;top:${s.y}px;left:${s.x}px;width:${s.s}px;height:${s.s}px;border-radius:50%;background:#fff;animation:wxStar ${s.d}s ease-in-out infinite;opacity:.75;"></div>`)
           .join('')}`;
     } else if(_isDusk){
-      // Sunset — warm gradient sky + fading sun
+      // Сумерки — фиолетовый с уходящим светом + несколько звёзд
       sky.innerHTML=`
-        <div style="position:absolute;top:80px;right:50px;">
-          <div style="width:58px;height:58px;border-radius:50%;background:radial-gradient(circle,#ff9a3c 0%,#ff5e00 55%,rgba(255,80,0,0) 100%);animation:wxSunPulse 4s ease-in-out infinite;"></div>
+        <div style="position:absolute;top:0;left:0;right:0;height:55%;background:linear-gradient(180deg,rgba(20,8,40,0) 0%,rgba(80,20,80,.15) 100%);pointer-events:none;"></div>
+        <div style="position:absolute;bottom:35%;left:0;right:0;height:28px;background:radial-gradient(ellipse at 60% 100%,rgba(180,60,20,.18),transparent 70%);"></div>
+        ${[{x:30,y:35,s:2,d:2.5},{x:110,y:22,s:1.5,d:3.1},{x:200,y:42,s:2,d:2.0},{x:280,y:28,s:1.5,d:3.6},{x:170,y:18,s:2.2,d:2.3}]
+          .map(s=>`<div style="position:absolute;top:${s.y}px;left:${s.x}px;width:${s.s}px;height:${s.s}px;border-radius:50%;background:#fff;animation:wxStar ${s.d}s ease-in-out infinite;opacity:.5;"></div>`)
+          .join('')}`;
+    } else if(_isSunset){
+      // Закат — яркое солнце у горизонта + горящее небо
+      sky.innerHTML=`
+        <div style="position:absolute;top:0;left:0;right:0;height:60%;background:linear-gradient(180deg,rgba(8,2,14,0) 0%,rgba(200,50,10,.22) 60%,rgba(240,100,10,.35) 100%);pointer-events:none;"></div>
+        <div style="position:absolute;bottom:28%;right:55px;transform:translateX(50%);">
+          <div style="width:62px;height:62px;border-radius:50%;background:radial-gradient(circle,#fff5a0 0%,#ffaa10 35%,#ff5500 65%,rgba(255,60,0,0) 100%);box-shadow:0 0 40px rgba(255,100,0,.45);animation:wxSunPulse 4s ease-in-out infinite;"></div>
         </div>
-        <div style="position:absolute;top:50px;left:30px;width:2px;height:2px;border-radius:50%;background:#ffcc88;animation:wxStar 3s ease-in-out infinite;opacity:.4;"></div>
-        <div style="position:absolute;top:80px;left:160px;width:1.5px;height:1.5px;border-radius:50%;background:#ffcc88;animation:wxStar 2.5s ease-in-out infinite .8s;opacity:.35;"></div>`;
+        <div style="position:absolute;bottom:25%;left:0;right:0;height:20px;background:radial-gradient(ellipse at 50% 100%,rgba(255,80,0,.2),transparent 70%);"></div>`;
+    } else if(_isGolden){
+      // Золотой час — тёплое солнце, длинные тени
+      sky.innerHTML=`
+        <div style="position:absolute;top:0;left:0;right:0;height:65%;background:linear-gradient(180deg,rgba(4,12,24,0) 0%,rgba(180,90,10,.18) 70%,rgba(220,130,20,.28) 100%);pointer-events:none;"></div>
+        <div style="position:absolute;bottom:32%;right:48px;transform:translateX(50%);">
+          <div style="width:58px;height:58px;border-radius:50%;background:radial-gradient(circle,#ffe088 0%,#ffb820 45%,rgba(255,180,0,0) 100%);box-shadow:0 0 35px rgba(255,160,0,.38);animation:wxSunPulse 5s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:2px;height:14px;background:rgba(255,200,50,.4);border-radius:2px;animation:wxSunRay 4s ease-in-out infinite;"></div>
+          <div style="position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);width:2px;height:14px;background:rgba(255,200,50,.4);border-radius:2px;animation:wxSunRay 4s ease-in-out infinite .6s;"></div>
+          <div style="position:absolute;left:-20px;top:50%;transform:translateY(-50%);width:14px;height:2px;background:rgba(255,200,50,.4);border-radius:2px;animation:wxSunRay 4s ease-in-out infinite 1.2s;"></div>
+          <div style="position:absolute;right:-20px;top:50%;transform:translateY(-50%);width:14px;height:2px;background:rgba(255,200,50,.4);border-radius:2px;animation:wxSunRay 4s ease-in-out infinite 1.8s;"></div>
+        </div>`;
+    } else if(_isDay){
+      // День — высокое солнце, ярко-синее небо
+      sky.innerHTML=`
+        <div style="position:absolute;top:0;left:0;right:0;height:60%;background:linear-gradient(180deg,rgba(4,24,60,.15) 0%,rgba(8,40,100,.1) 100%);pointer-events:none;"></div>
+        <div style="position:absolute;top:48px;right:52px;">
+          <div style="width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,#fff8c0 0%,#ffe040 40%,#ffb800 65%,rgba(255,180,0,0) 100%);box-shadow:0 0 45px rgba(255,200,50,.4);animation:wxSunPulse 5s ease-in-out infinite;"></div>
+          ${['top:-22px','bottom:-22px','left:-22px','right:-22px'].map((p,i)=>`<div style="position:absolute;${p};${i<2?'left:50%;transform:translateX(-50%);width:2px;height:16px':'top:50%;transform:translateY(-50%);height:2px;width:16px'};background:rgba(255,230,80,.45);border-radius:2px;animation:wxSunRay ${3+i*.4}s ease-in-out infinite ${i*.5}s;"></div>`).join('')}
+        </div>
+        ${[{x:55,y:42,s:2,d:2.8},{x:140,y:30,s:1.5,d:3.3},{x:220,y:52,s:2,d:2.1}]
+          .map(s=>`<div style="position:absolute;top:${s.y}px;left:${s.x}px;width:${s.s}px;height:${s.s}px;border-radius:50%;background:#fff;animation:wxStar ${s.d}s ease-in-out infinite;opacity:.3;"></div>`)
+          .join('')}`;
+    } else if(_isMorning){
+      // Утро — восходящее солнце, тёплый горизонт
+      sky.innerHTML=`
+        <div style="position:absolute;top:0;left:0;right:0;height:70%;background:linear-gradient(180deg,rgba(4,16,36,0) 0%,rgba(140,70,10,.14) 75%,rgba(200,120,20,.22) 100%);pointer-events:none;"></div>
+        <div style="position:absolute;bottom:36%;right:60px;transform:translateX(50%);">
+          <div style="width:56px;height:56px;border-radius:50%;background:radial-gradient(circle,#fff0b0 0%,#ffc040 45%,rgba(255,180,20,0) 100%);box-shadow:0 0 32px rgba(255,160,30,.32);animation:wxSunPulse 4.5s ease-in-out infinite;"></div>
+        </div>
+        <div style="position:absolute;bottom:32%;left:0;right:0;height:18px;background:radial-gradient(ellipse at 70% 100%,rgba(220,120,20,.16),transparent 65%);"></div>
+        ${[{x:20,y:45,s:2,d:2.6},{x:90,y:30,s:1.5,d:3.2},{x:190,y:55,s:1.5,d:2.0}]
+          .map(s=>`<div style="position:absolute;top:${s.y}px;left:${s.x}px;width:${s.s}px;height:${s.s}px;border-radius:50%;background:#fff;animation:wxStar ${s.d}s ease-in-out infinite;opacity:.4;"></div>`)
+          .join('')}`;
     } else {
-      // Day — sun + rays + faint stars
+      // Рассвет — пурпурно-оранжевое небо
       sky.innerHTML=`
-        <div style="position:absolute;top:70px;right:55px;">
-          <div style="width:66px;height:66px;border-radius:50%;background:radial-gradient(circle,#ffe566 0%,#ffb700 55%,rgba(255,183,0,0) 100%);animation:wxSunPulse 4s ease-in-out infinite;"></div>
-          <div style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:2px;height:14px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite;"></div>
-          <div style="position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);width:2px;height:14px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite .5s;"></div>
-          <div style="position:absolute;left:-18px;top:50%;transform:translateY(-50%);width:14px;height:2px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite 1s;"></div>
-          <div style="position:absolute;right:-18px;top:50%;transform:translateY(-50%);width:14px;height:2px;background:rgba(255,220,60,.5);border-radius:2px;animation:wxSunRay 3s ease-in-out infinite 1.5s;"></div>
+        <div style="position:absolute;top:0;left:0;right:0;height:65%;background:linear-gradient(180deg,rgba(8,2,20,0) 0%,rgba(90,20,30,.2) 40%,rgba(180,60,20,.28) 70%,rgba(230,110,20,.38) 100%);pointer-events:none;"></div>
+        <div style="position:absolute;bottom:30%;left:50%;transform:translateX(-50%);">
+          <div style="width:70px;height:35px;border-radius:35px 35px 0 0;background:radial-gradient(ellipse at 50% 100%,rgba(255,160,20,.55) 0%,rgba(255,80,10,.2) 60%,transparent 100%);"></div>
         </div>
-        <div style="position:absolute;top:55px;left:60px;width:3px;height:3px;border-radius:50%;background:#fff;animation:wxStar 2.2s ease-in-out infinite;opacity:.5;"></div>
-        <div style="position:absolute;top:90px;left:140px;width:2px;height:2px;border-radius:50%;background:#fff;animation:wxStar 3.1s ease-in-out infinite .7s;opacity:.4;"></div>
-        <div style="position:absolute;top:40px;left:220px;width:2px;height:2px;border-radius:50%;background:#fff;animation:wxStar 2.7s ease-in-out infinite 1.2s;opacity:.45;"></div>`;
+        <div style="position:absolute;bottom:28%;left:0;right:0;height:24px;background:radial-gradient(ellipse at 50% 100%,rgba(255,100,10,.2),transparent 70%);"></div>
+        ${[{x:18,y:38,s:2,d:2.4},{x:85,y:22,s:1.5,d:3.0},{x:168,y:44,s:2,d:2.7},{x:250,y:30,s:1.5,d:3.5},{x:310,y:50,s:1.8,d:2.1}]
+          .map(s=>`<div style="position:absolute;top:${s.y}px;left:${s.x}px;width:${s.s}px;height:${s.s}px;border-radius:50%;background:#ffddaa;animation:wxStar ${s.d}s ease-in-out infinite;opacity:.5;"></div>`)
+          .join('')}`;
     }
   } else if(isPartly){
     // Partial clouds + dim glow
