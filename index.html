@@ -1359,11 +1359,12 @@ function exportPDF(title,ops){
   const incUSD=ops.filter(o=>o.type==='income'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
   const expTJS=ops.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const expUSD=ops.filter(o=>o.type==='expense'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
+  // Type labels in current UI language — no arrows
+  const _tj=LANG==='tj';
+  const typeLabel=o=>o.type==='income'?(_tj?'Даромад':'Приход'):o.type==='advance'?(_tj?'Пешпардохт':'Аванс'):(_tj?'Харҷ':'Расход');
   const rows=ops.map(o=>`<tr>
     <td>${o.date||'—'}</td>
-    <td style="color:${o.type==='income'?'#2A9066':o.type==='advance'?'#3182CE':'#E53E3E'};font-weight:600;">
-      ${o.type==='income'?'↑ Приход':o.type==='advance'?'→ Аванс':'↓ Расход'}
-    </td>
+    <td style="color:${o.type==='income'?'#2A9066':o.type==='advance'?'#3182CE':'#E53E3E'};font-weight:600;">${typeLabel(o)}</td>
     <td>${o.object_name||'—'}</td>
     <td>${o.category_name||'—'}</td>
     <td>${o.description||'—'}</td>
@@ -1398,7 +1399,8 @@ function exportPDF(title,ops){
   .sum-val.red{color:#E53E3E;}
   .sum-val.blue{color:#3182CE;}
   footer{margin-top:20px;padding-top:12px;border-top:1px solid #E4E9F0;text-align:center;font-size:9px;color:#9AA5B8;}
-  @media print{body{padding:12px;}@page{margin:15mm;}}
+  @page{size:A4;margin:0;}
+  @media print{body{padding:16mm 14mm;}}
 </style></head><body>
 <div class="header">
   <div style="display:flex;align-items:center;gap:12px;">
