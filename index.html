@@ -1291,8 +1291,6 @@ function exportXL(ops,filename){
     'Цена за ед.': o.price||'',
     'Сумма': o.amount||0,
     'Валюта': o.currency||'TJS',
-    'Сумма TJS': o.currency==='TJS'?o.amount:parseFloat((o.amount*rate).toFixed(2)),
-    'Сумма USD': o.currency==='USD'?o.amount:parseFloat((o.amount/rate).toFixed(4)),
     'Способ оплаты': o.method||'',
     'Сотрудник': o.worker_name||'',
     'Примечание': o.note||'',
@@ -1305,7 +1303,7 @@ function exportXL(ops,filename){
   ws['!cols']=[
     {wch:12},{wch:10},{wch:16},{wch:20},{wch:30},
     {wch:8},{wch:8},{wch:10},{wch:12},{wch:8},
-    {wch:14},{wch:14},{wch:14},{wch:18},{wch:20},{wch:18}
+    {wch:14},{wch:18},{wch:20},{wch:18}
   ];
 
   const wb=XLSX.utils.book_new();
@@ -1355,9 +1353,6 @@ function exportPDF(title,ops){
     <td>${o.description||'—'}</td>
     <td style="text-align:right;font-weight:600;color:${o.type==='income'?'#2A9066':'#E53E3E'};">
       ${o.type==='income'?'+':'−'}${Number(o.amount||0).toLocaleString('ru')} ${o.currency}
-    </td>
-    <td style="text-align:right;color:#6B7A99;font-size:10px;">
-      ${o.currency==='TJS'?'$'+Number(o.amount/rate).toFixed(2):Number(o.amount*rate).toLocaleString('ru')+' TJS'}
     </td>
     <td>${o.worker_name&&o.worker_name!=='Бухгалтер'?o.worker_name:''}</td>
   </tr>`).join('');
@@ -1418,7 +1413,6 @@ function exportPDF(title,ops){
       <th>Категория</th>
       <th>Описание</th>
       <th style="text-align:right;">Сумма</th>
-      <th style="text-align:right;">Эквивалент</th>
       <th>Сотрудник</th>
     </tr>
   </thead>
