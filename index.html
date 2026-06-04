@@ -1300,10 +1300,27 @@ function exportXL(ops,filename){
 
   // Column widths
   ws['!cols']=[
-    {wch:12},{wch:10},{wch:16},{wch:20},{wch:30},
+    {wch:12},{wch:10},{wch:18},{wch:22},{wch:32},
     {wch:8},{wch:8},{wch:10},{wch:12},{wch:8},
-    {wch:14},{wch:18},{wch:20},{wch:18}
+    {wch:14},{wch:18},{wch:22},{wch:18}
   ];
+
+  // Row heights (header + data rows)
+  const rng=XLSX.utils.decode_range(ws['!ref']||'A1');
+  ws['!rows']=[{hpt:22}]; // header row height
+  for(let r=1;r<=rng.e.r;r++) ws['!rows'].push({hpt:28});
+
+  // Center alignment + text wrap for all cells
+  const centerWrap={horizontal:'center',vertical:'center',wrapText:true};
+  const headerStyle={font:{bold:true,sz:10},alignment:{...centerWrap},fill:{fgColor:{rgb:'E8F8F0'}},border:{bottom:{style:'medium',color:{rgb:'39B980'}}}};
+  const cellStyle={alignment:{...centerWrap}};
+  for(let R=rng.s.r;R<=rng.e.r;R++){
+    for(let C=rng.s.c;C<=rng.e.c;C++){
+      const addr=XLSX.utils.encode_cell({r:R,c:C});
+      if(!ws[addr])continue;
+      ws[addr].s=R===0?headerStyle:cellStyle;
+    }
+  }
 
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Операции');
@@ -1360,7 +1377,7 @@ function exportPDF(title,ops){
 <html><head><meta charset="UTF-8"><title>${title} — ZAKI ERP</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Segoe UI',Arial,sans-serif;padding:24px;font-size:11px;color:#1A2332;background:#fff;}
+  body{font-family:'Palatino Linotype','Palatino','Book Antiqua',Palatino,Georgia,serif;padding:24px;font-size:11px;color:#1A2332;background:#fff;}
   .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #39B980;}
   .logo{font-size:26px;font-weight:900;letter-spacing:-1px;color:#1A2332;}
   .logo span{color:#1A2332;}
@@ -1387,7 +1404,7 @@ function exportPDF(title,ops){
   <div style="display:flex;align-items:center;gap:12px;">
     <img src="${location.origin}/logo.png" style="width:44px;height:44px;object-fit:contain;border-radius:10px;" onerror="this.style.display='none'">
     <div>
-      <div class="logo"><span style="color:#CFEA2A;">Бурҷи</span> Бохтар</div>
+      <div class="logo"><span style="color:#E8A020;">Бурҷи</span> Бохтар</div>
       <div class="co-sub">Ширкати Сохтмонй</div>
     </div>
   </div>
