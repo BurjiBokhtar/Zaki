@@ -1932,6 +1932,8 @@ async function doLogin(){
       throw new Error(LANG==='tj'?'Профили шумо ёфт нашуд. Бо администратор тамос гиред.':'Профиль не найден. Обратитесь к администратору.');
     }
     USER={id:data.user.id,email,name:profile.name,role:profile.role};
+    // Log login event (silent fail if table doesn't exist)
+    SB.from('user_logs').insert({user_name:profile.name,user_role:profile.role,action:'login'}).catch(()=>{});
     await loadBaseData();
     document.getElementById('login-page').style.display='none';
     document.getElementById('app').style.display='flex';
@@ -1951,6 +1953,7 @@ async function doLogin(){
 }
 
 async function logOut(){
+  if(USER) SB.from('user_logs').insert({user_name:USER.name,user_role:USER.role,action:'logout'}).catch(()=>{});
   await SB.auth.signOut();
   USER=null;
   // Clear PIN activity timestamp on logout (force re-PIN-setup for next login)
@@ -5168,17 +5171,20 @@ async function loadActivityLog(){
   if(!body)return;
 
   try{
-    // Fetch last 50 operations ordered by created_at
-    const[{data:ops},{data:advs}]=await Promise.all([
+    // Fetch last 50 operations + advances + user login/logout logs
+    const[{data:ops},{data:advs},logsRes]=await Promise.all([
       SB.from('operations').select('id,type,amount,currency,description,category_name,object_name,worker_name,created_at,date').order('created_at',{ascending:false}).limit(50),
       SB.from('advances').select('id,amount,currency,worker_name,status,created_at').order('created_at',{ascending:false}).limit(20),
+      SB.from('user_logs').select('id,user_name,user_role,action,created_at').order('created_at',{ascending:false}).limit(30).catch(()=>({data:null})),
     ]);
+    const logs=logsRes?.data||[];
 
-    // Merge and sort
+    // Merge and sort all events
     const events=[
       ...(ops||[]).map(o=>({...o,_kind:'op'})),
       ...(advs||[]).map(a=>({...a,_kind:'adv'})),
-    ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,40);
+      ...logs.map(l=>({...l,_kind:'log'})),
+    ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,60);
 
     if(!events.length){
       body.innerHTML=`<div class="np-empty">📋 Нет данных</div>`;
@@ -5220,7 +5226,7 @@ async function loadActivityLog(){
             </div>
             <div class="np-amt" style="color:${amtClr};">${sign}${fmtN(e.amount)} ${e.currency}</div>
           </div>`;
-        } else {
+        } else if(e._kind==='adv'){
           // Advance
           const stColor=e.status==='done'||e.status==='closed'?'var(--t4)':'var(--adk)';
           html+=`<div class="np-item">
@@ -5230,6 +5236,20 @@ async function loadActivityLog(){
               <div class="np-meta">${time} · ${e.status==='done'||e.status==='closed'?'Закрыт':'Активен'}</div>
             </div>
             <div class="np-amt" style="color:${stColor};">${fmtN(e.amount)} ${e.currency}</div>
+          </div>`;
+        } else {
+          // Login / Logout
+          const isLogin=e.action==='login';
+          const ico=isLogin?'🔐':'🚪';
+          const bg=isLogin?'rgba(57,185,128,.12)':'rgba(229,62,62,.08)';
+          const roleLabel=e.user_role==='accountant'?'Бухгалтер':e.user_role==='admin'?'Админ':e.user_role==='supplier'?'Снабженец':e.user_role==='director'?'Директор':e.user_role||'';
+          html+=`<div class="np-item">
+            <div class="np-ico" style="background:${bg};font-size:14px;">${ico}</div>
+            <div class="np-info">
+              <div class="np-name" style="font-weight:700;">${e.user_name||'—'}</div>
+              <div class="np-meta">${time} · ${roleLabel}</div>
+            </div>
+            <div class="np-amt" style="color:${isLogin?'var(--adk)':'var(--t4)'};font-size:10px;">${isLogin?'Вошёл':'Вышел'}</div>
           </div>`;
         }
       });
