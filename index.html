@@ -314,21 +314,24 @@ html{height:100dvh;}
 .bar-fi{height:100%;border-radius:3px;transform-origin:left;animation:barGrow .9s cubic-bezier(.22,1,.36,1) both;}
 
 /* TX ROW */
-.tx-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);}
+.tx-row{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--bd);border-radius:var(--r);transition:background .13s;}
+.tx-row:hover{background:var(--bg);}
 .tx-row:last-child{border:none;}
-.tx-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tx-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .18s;}
+.tx-row:hover .tx-ico{transform:scale(1.08);}
 .tx-bd{flex:1;min-width:0;}
-.tx-n{font-size:13px;font-weight:500;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.tx-m{font-size:11px;color:var(--t4);margin-top:1px;}
+.tx-n{font-size:13px;font-weight:600;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tx-m{font-size:11px;color:var(--t4);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
 .tx-rt{display:flex;align-items:center;gap:5px;flex-shrink:0;}
-.tx-amt{font-size:13px;font-weight:700;}
-.tx-amt.inc{color:var(--ad);}
-.tx-amt.exp{color:var(--red);}
-.tx-amt.adv{color:var(--blue);}
+.tx-amt{font-size:12px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+.tx-amt.inc{color:var(--ad);background:var(--al);border:1px solid rgba(57,185,128,.18);}
+.tx-amt.exp{color:var(--red);background:var(--redl);border:1px solid rgba(229,62,62,.15);}
+.tx-amt.adv{color:var(--blue);background:var(--bluel);border:1px solid var(--blueb);}
 .tx-amt2{font-size:10px;color:var(--t4);text-align:right;}
-.act-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--bd);background:var(--w);display:flex;align-items:center;justify-content:center;cursor:pointer;}
-.act-btn:hover{background:var(--bg);}
-.del-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--redb);background:var(--redl);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.act-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--bd);background:var(--w);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .13s;}
+.act-btn:hover{background:var(--bg2);border-color:var(--bd2);}
+.del-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--redb);background:var(--redl);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .13s;}
+.del-btn:hover{background:var(--redb);}
 
 /* PROG CARD */
 .pc{background:var(--w);border:1px solid var(--bd);border-radius:var(--r2);padding:13px 15px;margin-bottom:8px;box-shadow:var(--sh);cursor:pointer;transition:all .15s;animation:fadeUp .3s ease both;}
@@ -446,6 +449,8 @@ html{height:100dvh;}
 .kpi-tile{border-radius:16px;padding:14px 15px;position:relative;overflow:hidden;animation:fadeUp .3s ease both;}
 .kpi-tile::after{content:'';position:absolute;bottom:-14px;right:-10px;width:60px;height:60px;border-radius:50%;opacity:.15;}
 @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.skel{background:linear-gradient(90deg,var(--bg) 25%,var(--bg2) 37%,var(--bg) 63%);background-size:800px 100%;animation:shimmer 1.5s ease-in-out infinite;border-radius:6px;display:block;}
+.skel-h{height:12px;}.skel-l{height:10px;}.skel-xl{height:22px;}.skel-2xl{height:36px;}.skel-3xl{height:48px;}
 
 /* MONEY MAP */
 .money-map{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px;}
@@ -1150,6 +1155,18 @@ function resetConfig(){
 function initSupabase(url,key){
   SB=supabase.createClient(url,key);
 }
+/* ── QUERY CACHE (TTL 45s) ── */
+const _QC={};
+function qCached(key,fn,ttl=45000){
+  const now=Date.now();
+  if(_QC[key]&&(now-_QC[key].ts)<ttl)return Promise.resolve(_QC[key].val);
+  return fn().then(v=>{_QC[key]={val:v,ts:now};return v;});
+}
+function qCacheClear(prefix){Object.keys(_QC).forEach(k=>{if(!prefix||k.startsWith(prefix))delete _QC[k];});}
+
+/* ── DEBOUNCE ── */
+function debounce(fn,ms=260){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
+
 /* ── DB HELPERS ── */
 async function db(table){return SB.from(table);}
 async function q(table,fn){
@@ -1567,7 +1584,7 @@ function go(id){
 }
 function setPeriod(p,el){
   PERIOD=p;document.querySelectorAll('.pb').forEach(b=>b.classList.remove('on'));el.classList.add('on');
-  destroyCharts();renderPage(CUR_PAGE);
+  qCacheClear('home_period_');destroyCharts();renderPage(CUR_PAGE);
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('mob-overlay').classList.toggle('show');}
 
@@ -1582,17 +1599,77 @@ function toggleAcc(uid){
 }
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('mob-overlay').classList.remove('show');}
 
+let _renderToken=0;
 function renderPage(id){
   const c=document.getElementById('content');
+  const token=++_renderToken;
   c.style.opacity='0';
   setTimeout(async()=>{
-    c.innerHTML=`<div class="pg-loader"><div class="loader"></div></div>`;
-    c.style.transition='opacity .25s ease';
+    if(token!==_renderToken)return;
+    c.innerHTML=SKELETONS[id]||`<div class="pg-loader"><div class="loader"></div></div>`;
+    c.style.transition='opacity .22s ease';
     requestAnimationFrame(()=>{c.style.opacity='1';});
-    try{const html=await PAGES[id]?.();if(html!==undefined){c.innerHTML=html;animateAllCounters();}}
-    catch(e){c.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div>${e.message}</div>`;}
-  },60);
+    try{
+      const html=await PAGES[id]?.();
+      if(token!==_renderToken)return;
+      if(html!==undefined){c.innerHTML=html;animateAllCounters();}
+    }catch(e){
+      if(token!==_renderToken)return;
+      c.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div>${e.message}</div>`;
+    }
+  },50);
 }
+
+/* ── SKELETON SCREENS ── */
+function _skelRow(n=5){return Array(n).fill(0).map((_,i)=>`
+  <div style="display:flex;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--bd);animation:fadeIn .3s ease ${i*.04}s both;">
+    <span class="skel" style="width:36px;height:36px;border-radius:10px;flex-shrink:0;"></span>
+    <div style="flex:1;"><span class="skel skel-l" style="width:58%;display:block;margin-bottom:5px;"></span><span class="skel skel-l" style="width:38%;"></span></div>
+    <span class="skel skel-h" style="width:76px;"></span>
+  </div>`).join('');}
+const SKELETONS={
+  home:`<div style="animation:fadeIn .18s ease">
+    <div style="margin:-18px -18px 20px;margin-top:10px;height:204px;background:linear-gradient(135deg,#0c1e2b,#133040,#0b2e20);border-radius:0 0 24px 24px;padding:24px 20px;overflow:hidden;">
+      <span class="skel skel-l" style="width:70px;opacity:.25;margin-bottom:14px;"></span>
+      <span class="skel skel-3xl" style="width:190px;opacity:.2;margin-bottom:8px;"></span>
+      <span class="skel skel-l" style="width:110px;opacity:.18;margin-bottom:18px;"></span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <span class="skel" style="height:68px;border-radius:16px;opacity:.18;"></span>
+        <span class="skel" style="height:68px;border-radius:16px;opacity:.18;"></span>
+      </div>
+    </div>
+    <div class="g2 mb12">
+      ${[0,1,2,3].map(i=>`<div class="sc" style="animation-delay:${i*.05}s"><span class="skel skel-l" style="width:80px;margin-bottom:10px;"></span><span class="skel skel-xl" style="width:110px;"></span></div>`).join('')}
+    </div>
+    <div class="card">${_skelRow(5)}</div>
+  </div>`,
+  ops:`<div style="animation:fadeIn .18s ease">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+      <span class="skel" style="height:88px;border-radius:20px;"></span>
+      <span class="skel" style="height:88px;border-radius:20px;"></span>
+    </div>
+    <div class="g4 mob-2col" style="gap:10px;margin-bottom:18px;">
+      ${[0,1,2,3].map(i=>`<div class="sc" style="animation-delay:${i*.04}s"><span class="skel skel-l" style="width:50px;margin-bottom:8px;"></span><span class="skel skel-xl" style="width:85px;"></span></div>`).join('')}
+    </div>
+    <div class="card">
+      <span class="skel" style="height:96px;border-radius:14px;width:100%;margin-bottom:14px;"></span>
+      ${_skelRow(7)}
+    </div>
+  </div>`,
+  stats:`<div style="animation:fadeIn .18s ease">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px;">
+      ${[0,1,2,3].map(i=>`<div class="sc" style="animation-delay:${i*.04}s"><span class="skel skel-l" style="width:60px;margin-bottom:8px;"></span><span class="skel skel-xl" style="width:80px;"></span></div>`).join('')}
+    </div>
+    <div class="card" style="margin-bottom:14px;"><span class="skel" style="height:220px;width:100%;border-radius:8px;"></span></div>
+    <div class="card"><span class="skel" style="height:180px;width:100%;border-radius:8px;"></span></div>
+  </div>`,
+  debts:`<div style="animation:fadeIn .18s ease">
+    <div class="g2 mb12">
+      ${[0,1].map(i=>`<div class="sc" style="animation-delay:${i*.06}s"><span class="skel skel-l" style="width:90px;margin-bottom:10px;"></span><span class="skel skel-xl" style="width:120px;"></span></div>`).join('')}
+    </div>
+    <div class="card">${_skelRow(6)}</div>
+  </div>`,
+};
 
 /* ══════════════════════════════════════════════
    AUTH
@@ -2069,7 +2146,7 @@ async function delOp(id){
     if(op&&!isEditable(op.date)){showToast(USER?.role==='supplier'?t('ed_today'):t('ed_2d'),true);return;}
     const{error}=await SB.from('operations').delete().eq('id',id);
     if(error){showToast(error.message,true);return;}
-    showToast(t('deleted'));renderPage(CUR_PAGE);
+    qCacheClear('home_');showToast(t('deleted'));renderPage(CUR_PAGE);
   });
 }
 async function editOp(id){
@@ -2099,7 +2176,7 @@ async function editOp(id){
         updated_at:new Date().toISOString()
       }).eq('id',id);
       if(error){showToast(error.message,true);return;}
-      closeModal();showToast(t('saved'));renderPage(CUR_PAGE);
+      qCacheClear('home_');closeModal();showToast(t('saved'));renderPage(CUR_PAGE);
     }
   );
 }
@@ -2258,6 +2335,7 @@ async function fSubmit(isSupplier){
     created_by:USER?.id
   });
   if(error){showToast(error.message,true);return;}
+  qCacheClear('home_');
   // Auto-close active advances if supplier balance exhausted
   if(isSupplier||isSup()){
     const wName=USER.name;
@@ -2570,19 +2648,20 @@ home:async()=>{
 
   // ── Single parallel fetch: period ops + ALL-TIME ops + debts + advances + profiles ──
   // KEY FIX: balance must always use ALL-TIME ops, not period-filtered
+  const periodKey='home_period_'+PERIOD+'_'+(window._homeObj||'');
   const[periodR, allTimeR, debtsR, advR, profR]=await Promise.all([
-    (()=>{let q=SB.from('operations').select('*');q=periodFilter(q);return q;})(),
-    SB.from('operations').select('type,amount,currency,amount_tjs,method,worker_name,date,object_name,category_name').order('date'),
-    SB.from('debts').select('*'),
-    SB.from('advances').select('amount,currency'),
-    SB.from('profiles').select('name,role').eq('role','supplier'),
+    qCached(periodKey,()=>{let q=SB.from('operations').select('*');q=periodFilter(q);return q;}),
+    qCached('home_alltime',()=>SB.from('operations').select('type,amount,currency,amount_tjs,method,worker_name,date,object_name,category_name').order('date')),
+    qCached('home_debts',()=>SB.from('debts').select('*')),
+    qCached('home_advances',()=>SB.from('advances').select('amount,currency')),
+    qCached('home_profiles',()=>SB.from('profiles').select('name,role').eq('role','supplier')),
   ]);
 
-  const periodOps = periodR.data||[];       // period-filtered: for display cards
-  const allTimeOps = allTimeR.data||[];     // ALL-TIME: for balance + charts
-  const debts = debtsR.data||[];
-  const advs  = advR.data||[];
-  const supplierNames = new Set((profR.data||[]).map(p=>p.name));
+  const periodOps = (periodR.data||periodR||[]);
+  const allTimeOps = (allTimeR.data||allTimeR||[]);
+  const debts = (debtsR.data||debtsR||[]);
+  const advs  = (advR.data||advR||[]);
+  const supplierNames = new Set((profR.data||profR||[]).map(p=>p.name));
   const isAdvExp = o => o.method==='from_advance' || supplierNames.has(o.worker_name);
 
   // Period display (income/expense cards in hero — changes with period selector)
@@ -3078,13 +3157,14 @@ ops:async()=>{
 
   setTimeout(()=>{
     const f=window._opsFilter;
-    const bind=(id,key,evt='onchange')=>{
+    const debouncedFilter=debounce(applyFilter,220);
+    const bind=(id,key,evt='onchange',useDebounce=false)=>{
       const el=document.getElementById(id);
       if(!el)return;
       el.value=f[key]||'';
-      el[evt]=e=>{f[key]=e.target.value;applyFilter();};
+      el[evt]=e=>{f[key]=e.target.value;useDebounce?debouncedFilter():applyFilter();};
     };
-    bind('ops-q','q','oninput');
+    bind('ops-q','q','oninput',true);
     bind('ops-type','type');
     bind('ops-cur','currency');
     bind('ops-obj','object');
