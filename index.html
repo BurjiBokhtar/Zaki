@@ -3017,6 +3017,7 @@ ops:async()=>{
     if(f.date_to)          list=list.filter(o=>o.date&&o.date<=f.date_to);
     const ol=document.getElementById('ops-list');
     const oc=document.getElementById('ops-count');
+    window._filteredOps=list; // save for export
     if(ol) ol.innerHTML=list.length
       ? list.map(o=>txRow(o,true)).join('')
       : `<div class="empty"><div class="empty-icon">🔍</div>${t('no_data')}</div>`;
@@ -3110,8 +3111,8 @@ ops:async()=>{
     <div class="sh">
       <div class="sh-t">${t('all_ops_title')}</div>
       <div class="exp-row">
-        <button class="eb eb-xl" onclick="exportXL(window._ops||[],'BurjiBokhtar_ops')">Excel</button>
-        <button class="eb eb-pdf" onclick="exportPDF('Операции',window._ops||[])">PDF</button>
+        <button class="eb eb-xl" onclick="exportXL(window._filteredOps||window._ops||[],'BurjiBokhtar_ops')">Excel</button>
+        <button class="eb eb-pdf" onclick="exportPDF(t('all_ops_title'),window._filteredOps||window._ops||[])">PDF</button>
       </div>
     </div>
 
