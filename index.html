@@ -1933,7 +1933,7 @@ async function doLogin(){
     }
     USER={id:data.user.id,email,name:profile.name,role:profile.role};
     // Log login event (silent fail if table doesn't exist)
-    SB.from('user_logs').insert({user_name:profile.name,user_role:profile.role,action:'login'}).catch(()=>{});
+    try{await SB.from('user_logs').insert({user_name:profile.name,user_role:profile.role,action:'login'});}catch(e){}
     await loadBaseData();
     document.getElementById('login-page').style.display='none';
     document.getElementById('app').style.display='flex';
@@ -1953,7 +1953,7 @@ async function doLogin(){
 }
 
 async function logOut(){
-  if(USER) SB.from('user_logs').insert({user_name:USER.name,user_role:USER.role,action:'logout'}).catch(()=>{});
+  if(USER){try{await SB.from('user_logs').insert({user_name:USER.name,user_role:USER.role,action:'logout'});}catch(e){}}
   await SB.auth.signOut();
   USER=null;
   // Clear PIN activity timestamp on logout (force re-PIN-setup for next login)
@@ -5171,13 +5171,14 @@ async function loadActivityLog(){
   if(!body)return;
 
   try{
-    // Fetch last 50 operations + advances + user login/logout logs
-    const[{data:ops},{data:advs},logsRes]=await Promise.all([
+    // Fetch last 50 operations + advances in parallel
+    const[{data:ops},{data:advs}]=await Promise.all([
       SB.from('operations').select('id,type,amount,currency,description,category_name,object_name,worker_name,created_at,date').order('created_at',{ascending:false}).limit(50),
       SB.from('advances').select('id,amount,currency,worker_name,status,created_at').order('created_at',{ascending:false}).limit(20),
-      SB.from('user_logs').select('id,user_name,user_role,action,created_at').order('created_at',{ascending:false}).limit(30).catch(()=>({data:null})),
     ]);
-    const logs=logsRes?.data||[];
+    // Fetch user_logs separately — silent fail if table not created yet
+    let logs=[];
+    try{const{data:ld}=await SB.from('user_logs').select('id,user_name,user_role,action,created_at').order('created_at',{ascending:false}).limit(30);logs=ld||[];}catch(e){}
 
     // Merge and sort all events
     const events=[
@@ -5273,14 +5274,15 @@ async function loadActivityLog(){
 }
 
 // Update badge on page load (for admins)
-function updateNotifBadge(){
+async function updateNotifBadge(){
   if(!canAdmin())return;
-  SB.from('operations').select('id',{count:'exact',head:true}).gte('created_at',new Date().toISOString().slice(0,10)+'T00:00:00').then(({count})=>{
+  try{
+    const{count}=await SB.from('operations').select('id',{count:'exact',head:true}).gte('created_at',new Date().toISOString().slice(0,10)+'T00:00:00');
     const badge=document.getElementById('notif-badge');
     if(!badge)return;
-    if(count>0){badge.style.display='flex';badge.textContent=count>9?'9+':count;}
+    if(count>0){badge.style.display='flex';badge.textContent=count>9?'9+':String(count);}
     else badge.style.display='none';
-  }).catch(()=>{});
+  }catch(e){}
 }
 
 function ssBind(triggerId, hiddenId, title, getItems, allowCustom){
