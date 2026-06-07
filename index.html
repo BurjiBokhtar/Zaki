@@ -3614,50 +3614,22 @@ debts:async()=>{
       `:''}
     </div>`;
   }
-  // Overdue counts
-  const credLate=cred.filter(d=>d.due_date&&d.due_date<today()&&d.paid_amount<d.total_amount).length;
-  const debLate=deb.filter(d=>d.due_date&&d.due_date<today()&&d.paid_amount<d.total_amount).length;
-  const netto=sumD-sumC;
   return `
-  <!-- Summary KPI cards -->
-  <div class="g2 mb14">
-    <div style="padding:16px 18px;border-radius:18px;background:linear-gradient(135deg,rgba(229,62,62,.1),rgba(229,62,62,.03));border:1px solid rgba(229,62,62,.2);position:relative;overflow:hidden;animation:fadeUp .3s ease .03s both;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <div style="width:30px;height:30px;border-radius:9px;background:rgba(229,62,62,.15);display:flex;align-items:center;justify-content:center;">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#E53E3E" stroke-width="1.8" stroke-linecap="round"><path d="M11 4l-7 7M11 11H4V4"/></svg>
-        </div>
-        <span style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.07em;">${t('paybl')}</span>
-        ${credLate>0?`<span style="margin-left:auto;font-size:9px;font-weight:700;background:var(--red);color:#fff;border-radius:8px;padding:1px 7px;">${credLate} ${t('overdue').toLowerCase()}</span>`:''}
+  <div class="g2 mb20">
+    <div class="sc r" style="animation-delay:.03s;"><div class="sc-lbl">${t('paybl')}</div>
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+        ${sumC_TJS>0?`<div class="sc-val" style="color:var(--red);">${fmtN(sumC_TJS)}<span style="font-size:11px;opacity:.6;"> TJS</span></div>`:''}
+        ${sumC_USD>0?`<div class="sc-val" style="color:var(--red);">$${fmtN(sumC_USD)}</div>`:''}
+        ${sumC_TJS===0&&sumC_USD===0?`<div class="sc-val" style="color:var(--t4);">0</div>`:''}
       </div>
-      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
-        ${sumC_TJS>0?`<div style="font-size:24px;font-weight:900;color:var(--red);letter-spacing:-.3px;">${fmtN(sumC_TJS)}<span style="font-size:11px;opacity:.5;"> TJS</span></div>`:''}
-        ${sumC_USD>0?`<div style="font-size:20px;font-weight:800;color:var(--red);">$${fmtN(sumC_USD)}</div>`:''}
-        ${sumC_TJS===0&&sumC_USD===0?`<div style="font-size:24px;font-weight:900;color:var(--t4);">0</div>`:''}
+      <div class="sc-val2">${t('net_lbl')}: ${fmtN(sumC)} TJS</div></div>
+    <div class="sc g" style="animation-delay:.06s;"><div class="sc-lbl">${t('recv')}</div>
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+        ${sumD_TJS>0?`<div class="sc-val" style="color:var(--ad);">${fmtN(sumD_TJS)}<span style="font-size:11px;opacity:.6;"> TJS</span></div>`:''}
+        ${sumD_USD>0?`<div class="sc-val" style="color:var(--ad);">$${fmtN(sumD_USD)}</div>`:''}
+        ${sumD_TJS===0&&sumD_USD===0?`<div class="sc-val" style="color:var(--t4);">0</div>`:''}
       </div>
-      <div style="font-size:10px;color:var(--t4);margin-top:4px;">${cred.length} ${t('debts').toLowerCase()} · ≈${fmtN(sumC)} TJS</div>
-    </div>
-
-    <div style="padding:16px 18px;border-radius:18px;background:linear-gradient(135deg,rgba(57,185,128,.1),rgba(57,185,128,.03));border:1px solid rgba(57,185,128,.2);position:relative;overflow:hidden;animation:fadeUp .3s ease .06s both;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <div style="width:30px;height:30px;border-radius:9px;background:rgba(57,185,128,.15);display:flex;align-items:center;justify-content:center;">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#39B980" stroke-width="1.8" stroke-linecap="round"><path d="M5 12l7-7M5 5h7v7"/></svg>
-        </div>
-        <span style="font-size:10px;font-weight:700;color:var(--adk);text-transform:uppercase;letter-spacing:.07em;">${t('recv')}</span>
-        ${debLate>0?`<span style="margin-left:auto;font-size:9px;font-weight:700;background:var(--ora);color:#fff;border-radius:8px;padding:1px 7px;">${debLate} ${t('overdue').toLowerCase()}</span>`:''}
-      </div>
-      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
-        ${sumD_TJS>0?`<div style="font-size:24px;font-weight:900;color:var(--ad);letter-spacing:-.3px;">${fmtN(sumD_TJS)}<span style="font-size:11px;opacity:.5;"> TJS</span></div>`:''}
-        ${sumD_USD>0?`<div style="font-size:20px;font-weight:800;color:var(--ad);">$${fmtN(sumD_USD)}</div>`:''}
-        ${sumD_TJS===0&&sumD_USD===0?`<div style="font-size:24px;font-weight:900;color:var(--t4);">0</div>`:''}
-      </div>
-      <div style="font-size:10px;color:var(--t4);margin-top:4px;">${deb.length} ${t('debts').toLowerCase()} · ≈${fmtN(sumD)} TJS</div>
-    </div>
-  </div>
-
-  <!-- Netto bar -->
-  <div style="padding:12px 16px;border-radius:14px;background:${netto>=0?'rgba(57,185,128,.08)':'rgba(229,62,62,.07)'};border:1px solid ${netto>=0?'rgba(57,185,128,.18)':'rgba(229,62,62,.16)'};margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;animation:fadeUp .3s ease .09s both;">
-    <span style="font-size:11px;font-weight:600;color:var(--t3);">${t('net_lbl')} (${t('recv').toLowerCase()} − ${t('paybl').toLowerCase()})</span>
-    <span style="font-size:18px;font-weight:900;color:${netto>=0?'var(--ad)':'var(--red)'};">${netto>=0?'+':'−'}${fmtN(Math.abs(netto))} TJS</span>
+      <div class="sc-val2">${t('net_lbl')}: ${fmtN(sumD)} TJS</div></div>
   </div>
   ${canAdmin()?`
   <button onclick="openNewDebt()"
