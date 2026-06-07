@@ -1,5 +1,5 @@
 /* ── ZAKI ERP Service Worker ── */
-const CACHE_VER = 'zaki-v3';
+const CACHE_VER = 'zaki-v4';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 /* ── Install: pre-cache app shell ── */
@@ -25,17 +25,16 @@ self.addEventListener('fetch', e => {
   const { request } = e;
   const url = new URL(request.url);
 
-  /* 1. Navigate → stale-while-revalidate for app shell */
+  /* 1. Navigate → network-first (always fresh HTML), cache fallback offline */
   if (request.mode === 'navigate') {
     e.respondWith(
-      caches.open(CACHE_VER).then(cache =>
-        cache.match('/index.html').then(cached => {
-          const fresh = fetch(request).then(res => {
-            cache.put('/index.html', res.clone());
-            return res;
-          }).catch(() => cached || new Response('Offline', { status: 503 }));
-          return cached || fresh;   // instant if cached
-        })
+      fetch(request).then(res => {
+        caches.open(CACHE_VER).then(cache => cache.put('/index.html', res.clone()));
+        return res;
+      }).catch(() =>
+        caches.open(CACHE_VER).then(cache =>
+          cache.match('/index.html').then(c => c || new Response('Offline', { status: 503 }))
+        )
       )
     );
     return;
