@@ -2069,7 +2069,7 @@ async function loadBaseData(){
     const[{data:obs},{data:cats},{data:uns},{data:co}]=await Promise.all([
       SB.from('objects').select('*').order('name'),
       SB.from('categories').select('*').order('name'),
-      SB.from('units').select('*'),
+      SB.from('units').select('*').order('name'),
       SB.from('company').select('*').eq('id',1).single()
     ]);
     OBJECTS=obs||[];CATEGORIES=cats||[];UNITS=uns||[];
