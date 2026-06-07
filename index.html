@@ -893,7 +893,7 @@ canvas{max-width:100%!important;display:block;}
 <div class="toast" id="toast"></div>
 
 <!-- ══ ACTIVITY / NOTIFICATION PANEL ══ -->
-<div id="notif-overlay" onclick="e=>{if(e.target===this)closeNotifPanel()}">
+<div id="notif-overlay" onclick="if(event.target===this)closeNotifPanel()">
   <div id="notif-panel">
     <div class="np-hd">
       <div>
@@ -1496,10 +1496,6 @@ function exportPDF(title,ops){
   <div class="sum-item"><div class="sum-label">USD</div><div class="sum-val blue">$${Number(incUSD-expUSD).toFixed(2)}</div></div>
 </div>
 
-<footer>
-  ${COMPANY.name||'Бурҷи Бохтар'} &nbsp;·&nbsp; ${COMPANY.phone||''} &nbsp;·&nbsp; ${COMPANY.email||''}<br>
-  Разработчик: +992 103 005 003 · iammirzozoda@gmail.com
-</footer>
 </body></html>`;
   w.document.write(pdfSrc);w.document.close();setTimeout(()=>w.print(),500);
   showToast('✓ PDF: '+ops.length+' записей');
@@ -5233,11 +5229,12 @@ setInterval(checkPinTimeout, 30000); // idle check every 30 sec
    ═══════════════════════════════════════════════════ */
 let _notifLoaded=false;
 
+function canSeeLog(){return !isDir()&&!isSup();} // admin/accountant/manager/owner
 function openNotifPanel(){
-  if(!canAdmin()){showToast(t('no_notif'));return;}
+  if(!canSeeLog()){showToast(t('no_notif'));return;}
   const ov=document.getElementById('notif-overlay');
   if(ov){ov.style.display='flex';ov.onclick=e=>{if(e.target===ov)closeNotifPanel();};}
-  if(!_notifLoaded) loadActivityLog();
+  loadActivityLog(); // always reload fresh on open
 }
 function closeNotifPanel(){
   const ov=document.getElementById('notif-overlay');
@@ -5355,7 +5352,7 @@ async function loadActivityLog(){
 
 // Update badge on page load (for admins)
 async function updateNotifBadge(){
-  if(!canAdmin())return;
+  if(isDir()||isSup())return;
   try{
     const{count}=await SB.from('operations').select('id',{count:'exact',head:true}).gte('created_at',new Date().toISOString().slice(0,10)+'T00:00:00');
     const badge=document.getElementById('notif-badge');
