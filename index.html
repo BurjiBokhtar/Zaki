@@ -1480,9 +1480,7 @@ function exportPDF(title,ops,opts){
 
 <div class="report-title">${title}</div>
 <div class="report-meta">
-  Дата формирования: ${new Date().toLocaleDateString('ru',{day:'numeric',month:'long',year:'numeric'})} &nbsp;|&nbsp;
-  Курс: 1 USD = ${rate} TJS &nbsp;|&nbsp;
-  Записей: ${ops.length}
+  ${_tj?'Шумораи сабтҳо':'Записей'}: ${ops.length}
 </div>
 
 <br>
