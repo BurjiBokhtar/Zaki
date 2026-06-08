@@ -1231,7 +1231,7 @@ function showPrompt(title,label,defVal,onOk){
 }
 
 /* ── HELPERS ── */
-function fmtN(n){return Number(n||0).toLocaleString('ru',{maximumFractionDigits:0});}
+function fmtN(n){return Number(n||0).toLocaleString('ru',{maximumFractionDigits:2});}
 function today(){return new Date().toISOString().slice(0,10);}
 function isEditable(dateStr){
   if(isDir()) return false;      // директор — никогда
@@ -1302,11 +1302,17 @@ function txRow(o,canEdit){
     ? `≈ $${fmtN(o.amount/rate)}`
     : `≈ ${fmtN(o.amount*rate)} TJS`;
   const editable=canEdit&&isEditable(o.date)&&USER?.role!=='director';
+  // qty × price · unit line (only if present)
+  const hasQP=o.qty||o.price||o.unit;
+  const qpLine=hasQP
+    ? `<div class="tx-qp" style="font-size:10px;color:var(--t3);margin-top:2px;">${o.qty?fmtN(o.qty):''}${o.unit?' '+o.unit:''}${o.qty&&o.price?' × ':''}${o.price?fmtN(o.price)+' '+o.currency:''}</div>`
+    : '';
   return `<div class="tx-row">
     <div class="tx-ico" style="background:${ic.bg};">${ic.ico}</div>
     <div class="tx-bd">
       <div class="tx-n">${o.description||o.category_name||'—'}</div>
       <div class="tx-m">${o.date} · ${o.category_name||''}${o.object_name?' · '+o.object_name:''}${o.worker_name&&o.worker_name!=='Бухгалтер'?' · '+o.worker_name:''}</div>
+      ${qpLine}
     </div>
     <div class="tx-rt">
       <div><div class="tx-amt ${cls}">${sign}${fmtN(o.amount)} ${o.currency}</div></div>
@@ -1413,14 +1419,18 @@ function exportPDF(title,ops){
   // Type labels in current UI language — no arrows
   const _tj=LANG==='tj';
   const typeLabel=o=>o.type==='income'?(_tj?'Даромад':'Приход'):o.type==='advance'?(_tj?'Пешпардохт':'Аванс'):(_tj?'Харҷ':'Расход');
+  const nf=n=>Number(n||0).toLocaleString('ru',{maximumFractionDigits:2});
   const rows=ops.map(o=>`<tr>
     <td>${o.date||'—'}</td>
     <td style="color:${o.type==='income'?'#2A9066':o.type==='advance'?'#3182CE':'#E53E3E'};font-weight:600;">${typeLabel(o)}</td>
     <td>${o.object_name||'—'}</td>
     <td>${o.category_name||'—'}</td>
     <td>${o.description||'—'}</td>
-    <td style="text-align:right;font-weight:600;color:${o.type==='income'?'#2A9066':'#E53E3E'};">
-      ${o.type==='income'?'+':'−'}${Number(o.amount||0).toLocaleString('ru')} ${o.currency}
+    <td style="text-align:right;">${o.qty?nf(o.qty):''}</td>
+    <td style="text-align:center;">${o.unit||''}</td>
+    <td style="text-align:right;">${o.price?nf(o.price):''}</td>
+    <td style="text-align:right;font-weight:600;color:${o.type==='income'?'#2A9066':'#E53E3E'};white-space:nowrap;">
+      ${o.type==='income'?'+':'−'}${nf(o.amount)} ${o.currency}
     </td>
     <td>${o.worker_name&&o.worker_name!=='Бухгалтер'?o.worker_name:''}</td>
   </tr>`).join('');
@@ -1482,6 +1492,9 @@ function exportPDF(title,ops){
       <th>Объект</th>
       <th>Категория</th>
       <th>Описание</th>
+      <th style="text-align:right;">Кол-во</th>
+      <th style="text-align:center;">Ед.</th>
+      <th style="text-align:right;">Цена</th>
       <th style="text-align:right;">Сумма</th>
       <th>Сотрудник</th>
     </tr>
@@ -2150,31 +2163,57 @@ async function editOp(id){
   if(!op)return;
   if(!isEditable(op.date)){showToast(USER?.role==='supplier'?t('ed_today'):t('ed_2d'),true);return;}
   const cats=CATEGORIES.map(c=>`<option ${c.name===op.category_name?'selected':''}>${c.name}</option>`).join('');
+  const objOpts=`<option value="" ${!op.object_name?'selected':''}>${t('no_obj')}</option>`+OBJECTS.map(o=>`<option ${o.name===op.object_name?'selected':''}>${o.name}</option>`).join('');
+  const unitOpts=`<option value="" ${!op.unit?'selected':''}>—</option>`+UNITS.map(u=>`<option ${u.name===op.unit?'selected':''}>${u.name}</option>`).join('');
+  const isAdv=op.type==='advance';
   openModal(t('edit'),`
     <div class="fg f2">
-      <div class="fld s2"><div class="fld-l">${t('desc')}</div><input class="fi" id="e-desc" value="${op.description||''}"></div>
-      <div class="fld"><div class="fld-l">${t('amount')}</div><input class="fi fi-lg" id="e-amt" type="number" value="${op.amount}"></div>
-      <div class="fld"><div class="fld-l">${t('currency')}</div><select class="fi fi-sel" id="e-cur"><option ${op.currency==='TJS'?'selected':''}>TJS</option><option ${op.currency==='USD'?'selected':''}>USD</option></select></div>
+      <div class="fld s2"><div class="fld-l">${t('obj')}</div><select class="fi fi-sel" id="e-obj">${objOpts}</select></div>
       <div class="fld s2"><div class="fld-l">${t('cat')}</div><select class="fi fi-sel" id="e-cat">${cats}</select></div>
-      <div class="fld s2"><div class="fld-l">${t('note')}</div><input class="fi" id="e-note" value="${op.note||''}"></div>
+      <div class="fld s2"><div class="fld-l">${t('desc')}</div><input class="fi" id="e-desc" value="${(op.description||'').replace(/"/g,'&quot;')}"></div>
+      <div class="fld"><div class="fld-l">${t('date')}</div><input class="fi" type="date" id="e-date" value="${op.date||today()}"></div>
+      <div class="fld"><div class="fld-l">${t('currency')}</div><select class="fi fi-sel" id="e-cur"><option ${op.currency==='TJS'?'selected':''}>TJS</option><option ${op.currency==='USD'?'selected':''}>USD</option></select></div>
+      ${!isAdv?`
+      <div class="fld"><div class="fld-l">${t('qty')}</div><input class="fi" id="e-qty" type="number" step="any" value="${op.qty??''}" oninput="_editRecalc()"></div>
+      <div class="fld"><div class="fld-l">${t('unit')}</div><select class="fi fi-sel" id="e-unit">${unitOpts}</select></div>
+      <div class="fld"><div class="fld-l">${t('price')}</div><input class="fi" id="e-price" type="number" step="any" value="${op.price??''}" oninput="_editRecalc()"></div>
+      `:''}
+      <div class="fld${isAdv?' s2':''}"><div class="fld-l">${t('amount')}</div><input class="fi fi-lg" id="e-amt" type="number" step="any" value="${op.amount}"></div>
+      <div class="fld s2"><div class="fld-l">${t('note')}</div><input class="fi" id="e-note" value="${(op.note||'').replace(/"/g,'&quot;')}"></div>
     </div>`,
     async()=>{
       const rate=COMPANY.usd_rate||10.92;
       const amt=parseFloat(document.getElementById('e-amt').value)||op.amount;
       const cur=document.getElementById('e-cur').value;
-      const{error}=await SB.from('operations').update({
+      const upd={
+        object_name:document.getElementById('e-obj').value||null,
         description:document.getElementById('e-desc').value,
+        date:document.getElementById('e-date').value||op.date,
         amount:amt,currency:cur,
         amount_tjs:cur==='USD'?amt*rate:amt,
         amount_usd:cur==='TJS'?amt/rate:amt,
+        usd_rate:rate,
         category_name:document.getElementById('e-cat').value,
         note:document.getElementById('e-note').value,
         updated_at:new Date().toISOString()
-      }).eq('id',id);
+      };
+      if(!isAdv){
+        upd.qty=parseFloat(document.getElementById('e-qty')?.value)||null;
+        upd.unit=document.getElementById('e-unit')?.value||null;
+        upd.price=parseFloat(document.getElementById('e-price')?.value)||null;
+      }
+      const{error}=await SB.from('operations').update(upd).eq('id',id);
       if(error){showToast(error.message,true);return;}
       qCacheClear('home_');closeModal();showToast(t('saved'));renderPage(CUR_PAGE);
     }
   );
+}
+// Recalc amount from qty × price in edit modal
+function _editRecalc(){
+  const q=parseFloat(document.getElementById('e-qty')?.value)||0;
+  const p=parseFloat(document.getElementById('e-price')?.value)||0;
+  const amtEl=document.getElementById('e-amt');
+  if(amtEl&&q&&p) amtEl.value=Math.round(q*p*100)/100;
 }
 
 /* ── OP FORM ── */
