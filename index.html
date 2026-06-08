@@ -992,7 +992,7 @@ const T={
     users:'Пользователи',add_u:'Добавить',
     add_w:'Добавить работу',m_card:'Карточка',
     overdue:'Просрочено',done_ok:'Выполнено ✓',
-    ops_count:'операций',after_adv:'После авансов снабженцам',vs_prev_m:'к прошлому месяцу',
+    ops_count:'операций',after_adv:'После авансов снабженцам',vs_prev_m:'к прошлому месяцу',vs_prev_30:'дох. за 30 дней',
     net_lbl:'Нетто',issued:'Выдано',
     deb_tjs:'TJS дебиторка',cred_tjs:'TJS кредиторка',
     all_obj:'Все объекты',exp_by_cat:'Расходы по категориям',
@@ -1088,7 +1088,7 @@ const T={
     users:'Корбарон',add_u:'Илова',
     add_w:'Кор илова',m_card:'Карточка',
     overdue:'Гузашта',done_ok:'Иҷро ✓',
-    ops_count:'амалиётҳо',after_adv:'Пас аз пешпардохти таъминотчиён',vs_prev_m:'нисбат ба моҳи гузашта',
+    ops_count:'амалиётҳо',after_adv:'Пас аз пешпардохти таъминотчиён',vs_prev_m:'нисбат ба моҳи гузашта',vs_prev_30:'даромад дар 30 рӯз',
     net_lbl:'Холис',issued:'Дода',
     deb_tjs:'TJS дебиторӣ',cred_tjs:'TJS кредиторӣ',
     all_obj:'Ҳама объектҳо',exp_by_cat:'Харҷ аз рӯи категория',
@@ -2926,9 +2926,14 @@ home:async()=>{
     },150);
   },80);
 
-  // Hero: trend vs previous month
-  const heroIncPrev=mInc[4]||0, heroIncCur=mInc[5]||0;
-  const heroTrendPct=heroIncPrev>0?Math.round((heroIncCur-heroIncPrev)/heroIncPrev*100):0;
+  // Hero: trend — income last 30 days vs previous 30 days (period-independent, fair)
+  const _now=new Date();
+  const _d30=new Date(_now-30*864e5).toISOString().slice(0,10);
+  const _d60=new Date(_now-60*864e5).toISOString().slice(0,10);
+  const _today=_now.toISOString().slice(0,10);
+  const inc30=allTimeOps.filter(o=>o.type==='income'&&o.currency==='TJS'&&o.date>_d30&&o.date<=_today).reduce((a,o)=>a+o.amount,0);
+  const incPrev30=allTimeOps.filter(o=>o.type==='income'&&o.currency==='TJS'&&o.date>_d60&&o.date<=_d30).reduce((a,o)=>a+o.amount,0);
+  const heroTrendPct=incPrev30>0?Math.round((inc30-incPrev30)/incPrev30*100):0;
   const heroTrendPos=heroTrendPct>=0;
   const heroAdvRem=Math.max(0,advTot_given-advTot_spent);
 
@@ -2962,8 +2967,8 @@ home:async()=>{
       </div>
 
       <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:7px;animation:heroPill .4s ease .2s both;">${t('after_adv')}</div>
-      ${heroTrendPct!==0?`<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(${heroTrendPos?'57,185,128':'229,62,62'},.2);border:1px solid rgba(${heroTrendPos?'57,185,128':'229,62,62'},.3);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:${heroTrendPos?'#39B980':'#fc8181'};margin-top:10px;animation:heroPill .4s ease .28s both;">
-        ${heroTrendPos?'↑':'↓'} ${heroTrendPos?'+':''}${heroTrendPct}% ${t('vs_prev_m')}
+      ${heroTrendPct!==0?`<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(${heroTrendPos?'57,185,128':'229,62,62'},.2);border:1px solid rgba(${heroTrendPos?'57,185,128':'229,62,62'},.3);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:${heroTrendPos?'#39B980':'#fc8181'};margin-top:10px;animation:heroPill .4s ease .28s both;" title="${t('income')} 30 ${t('days_sfx')}">
+        ${heroTrendPos?'↑':'↓'} ${heroTrendPos?'+':''}${heroTrendPct}% ${t('vs_prev_30')}
       </div>`:''}
     </div>
 
