@@ -1407,8 +1407,9 @@ function exportXL(ops,filename){
 }
 
 
-function exportPDF(title,ops){
+function exportPDF(title,ops,opts){
   if(!ops||!ops.length){showToast(t('no_exp_data'),true);return;}
+  opts=opts||{};
   const rate=COMPANY.usd_rate||10.92;
   const w=window.open('','_blank');
   if(!w){showToast(t('allow_popup'),true);return;}
@@ -1502,12 +1503,19 @@ function exportPDF(title,ops){
   <tbody>${rows}</tbody>
 </table>
 
+${opts.supplier ? `
 <div class="summary">
-  <div class="sum-item"><div class="sum-label">Приходы TJS</div><div class="sum-val green">+${Number(incTJS).toLocaleString('ru')}</div></div>
-  <div class="sum-item"><div class="sum-label">Расходы TJS</div><div class="sum-val red">-${Number(expTJS).toLocaleString('ru')}</div></div>
-  <div class="sum-item"><div class="sum-label">Баланс TJS</div><div class="sum-val ${incTJS-expTJS>=0?'green':'red'}">${incTJS-expTJS>=0?'+':''}${Number(incTJS-expTJS).toLocaleString('ru')}</div></div>
+  <div class="sum-item"><div class="sum-label">${_tj?'Дода шуд':'Выдано'}</div><div class="sum-val green">${nf(opts.given||0)} TJS</div></div>
+  <div class="sum-item"><div class="sum-label">${_tj?'Харҷ шуд':'Потрачено'}</div><div class="sum-val red">-${nf(opts.spent||0)} TJS</div></div>
+  <div class="sum-item"><div class="sum-label">${_tj?'Бақия':'Остаток'}</div><div class="sum-val ${(opts.remain||0)>=0?'green':'red'}">${(opts.remain||0)>=0?'':'-'}${nf(Math.abs(opts.remain||0))} TJS</div></div>
+  <div class="sum-item"><div class="sum-label">${_tj?'Амалиётҳо':'Операций'}</div><div class="sum-val blue">${ops.length}</div></div>
+</div>` : `
+<div class="summary">
+  <div class="sum-item"><div class="sum-label">Приходы TJS</div><div class="sum-val green">+${nf(incTJS)}</div></div>
+  <div class="sum-item"><div class="sum-label">Расходы TJS</div><div class="sum-val red">-${nf(expTJS)}</div></div>
+  <div class="sum-item"><div class="sum-label">Баланс TJS</div><div class="sum-val ${incTJS-expTJS>=0?'green':'red'}">${incTJS-expTJS>=0?'+':''}${nf(incTJS-expTJS)}</div></div>
   <div class="sum-item"><div class="sum-label">USD</div><div class="sum-val blue">$${Number(incUSD-expUSD).toFixed(2)}</div></div>
-</div>
+</div>`}
 
 </body></html>`;
   w.document.write(pdfSrc);w.document.close();setTimeout(()=>w.print(),500);
@@ -4001,7 +4009,7 @@ myexp:async()=>{
   return `
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:9px;">
     <div><div class="sc-lbl">${t('myexp')}</div><div style="font-size:20px;font-weight:800;color:var(--red);">−${fmtN(total)} TJS</div><div style="font-size:11px;color:var(--t4);">≈ $${fmtN(total/rate)}</div></div>
-    <div class="exp-row"><button class="eb eb-xl" onclick="exportXL(window._ops||[],'Мои_расходы')">${t('xl')}</button><button class="eb eb-pdf" onclick="exportPDF('${t('myexp')}',window._ops||[])">${t('pdf')}</button></div>
+    <div class="exp-row"><button class="eb eb-xl" onclick="exportXL(window._ops||[],'Мои_расходы')">${t('xl')}</button><button class="eb eb-pdf" onclick="exportMyPDF('${t('myexp')}')">${t('pdf')}</button></div>
   </div>
   <div class="card">
     <div style="font-size:11px;color:var(--t4);margin-bottom:9px;">${t('ed_today')}</div>
@@ -4093,6 +4101,20 @@ async function getSupplierRemaining(workerName){
   },0);
   const totalSpent=(spentOps||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
   return Math.max(0,Math.round((totalAdv-totalSpent)*100)/100);
+}
+
+/* Supplier PDF export with balance summary (given / spent / remaining) */
+async function exportMyPDF(title){
+  const wName=USER?.name||'';
+  const[{data:advs},{data:spentOps}]=await Promise.all([
+    SB.from('advances').select('amount,currency').eq('worker_name',wName),
+    SB.from('operations').select('amount_tjs').eq('type','expense').eq('worker_name',wName)
+  ]);
+  const rate=COMPANY.usd_rate||10.92;
+  const given=(advs||[]).reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+  const spent=(spentOps||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
+  const remain=Math.round((given-spent)*100)/100;
+  exportPDF(title,window._ops||[],{supplier:true,given,spent,remain});
 }
 
 /* Returns current cash balance in TJS (income − direct_expenses − advances) */
