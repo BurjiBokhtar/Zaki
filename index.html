@@ -1421,8 +1421,9 @@ function exportPDF(title,ops,opts){
   const _tj=LANG==='tj';
   const typeLabel=o=>o.type==='income'?(_tj?'Даромад':'Приход'):o.type==='advance'?(_tj?'Пешпардохт':'Аванс'):(_tj?'Харҷ':'Расход');
   const nf=n=>Number(n||0).toLocaleString('ru',{maximumFractionDigits:2});
+  const fmtDate=d=>{if(!d)return '—';const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:d;};
   const rows=ops.map(o=>`<tr>
-    <td>${o.date||'—'}</td>
+    <td style="white-space:nowrap;">${fmtDate(o.date)}</td>
     <td style="color:${o.type==='income'?'#2A9066':o.type==='advance'?'#3182CE':'#E53E3E'};font-weight:600;">${typeLabel(o)}</td>
     <td>${o.object_name||'—'}</td>
     <td>${o.category_name||'—'}</td>
@@ -1462,7 +1463,7 @@ function exportPDF(title,ops,opts){
   .sum-val.blue{color:#3182CE;}
   footer{margin-top:20px;padding-top:12px;border-top:1px solid #E4E9F0;text-align:center;font-size:9px;color:#9AA5B8;}
   @page{size:A4;margin:0;}
-  @media print{body{padding:16mm 14mm;}}
+  @media print{body{padding:16mm 14mm 22mm;}tr{page-break-inside:avoid;}thead{display:table-header-group;}}
 </style></head><body>
 <div class="header">
   <div style="display:flex;align-items:center;gap:12px;">
