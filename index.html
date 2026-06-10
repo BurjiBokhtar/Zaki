@@ -4722,10 +4722,41 @@ async function saveRate(){
   COMPANY.usd_rate=v;showToast(`✓ 1 USD = ${v} TJS`);renderPage('settings');
 }
 async function addObj(){const n=document.getElementById(`inp-${t('objects')}`)?.value?.trim();if(!n)return;const{error}=await SB.from('objects').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
-async function editObj(id){const cur=OBJECTS.find(o=>o.id===id)?.name||'';showPrompt('Переименовать объект','Новое название',cur,async(n)=>{await SB.from('objects').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
+async function editObj(id){
+  const cur=OBJECTS.find(o=>o.id===id)?.name||'';
+  showPrompt('Переименовать объект','Новое название',cur,async(n)=>{
+    if(!n||n===cur){closeModal&&closeModal();return;}
+    // 1. Rename the object
+    const{error}=await SB.from('objects').update({name:n}).eq('id',id);
+    if(error){showToast(error.message,true);return;}
+    // 2. Cascade: update all operations + advances that used the old name
+    if(cur){
+      await Promise.all([
+        SB.from('operations').update({object_name:n}).eq('object_name',cur),
+        SB.from('advances').update({object_name:n}).eq('object_name',cur),
+      ]);
+    }
+    await loadBaseData();showToast(t('saved'));renderPage('settings');
+  });
+}
 async function delObj(id){showConfirm(t('del_q'),async()=>{await SB.from('objects').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
 async function addCat(type){const key=type==='income'?'inc_c':'exp_c';const n=document.getElementById(`inp-${t(key)}`)?.value?.trim();if(!n){showToast(t('enter_val'),true);return;}const{error}=await SB.from('categories').insert({name:n,type});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
-async function editCat(id){const cur=CATEGORIES.find(c=>c.id===id)?.name||'';showPrompt('Переименовать категорию','Новое название',cur,async(n)=>{await SB.from('categories').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
+async function editCat(id){
+  const cur=CATEGORIES.find(c=>c.id===id)?.name||'';
+  showPrompt('Переименовать категорию','Новое название',cur,async(n)=>{
+    if(!n||n===cur){closeModal&&closeModal();return;}
+    const{error}=await SB.from('categories').update({name:n}).eq('id',id);
+    if(error){showToast(error.message,true);return;}
+    // Cascade: operations use category_name, advances use task for category
+    if(cur){
+      await Promise.all([
+        SB.from('operations').update({category_name:n}).eq('category_name',cur),
+        SB.from('advances').update({task:n}).eq('task',cur),
+      ]);
+    }
+    await loadBaseData();showToast(t('saved'));renderPage('settings');
+  });
+}
 async function delCat(id){showConfirm(t('del_q'),async()=>{await SB.from('categories').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
 async function addUnit(){const n=document.getElementById(`inp-${t('units')}`)?.value?.trim();if(!n){showToast(t('enter_val'),true);return;}const{error}=await SB.from('units').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
 async function editUnit(id){const cur=UNITS.find(u=>u.id===id)?.name||'';showPrompt('Переименовать единицу','Новое название',cur,async(n)=>{await SB.from('units').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
