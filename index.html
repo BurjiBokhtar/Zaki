@@ -3495,9 +3495,21 @@ snab_detail:async()=>{
   });
   const dayGroups=[...dayMap.entries()].sort((a,b)=>b[0].localeCompare(a[0]));
 
+  // ── FIFO: distribute total spent across day-groups (oldest first) ──
+  // Fully-consumed older advances auto-collapse into compact rows.
+  let _remSpent=spent;
+  const groupCov=new Map();
+  [...dayGroups].reverse().forEach(([d,g])=>{
+    const gTotal=g.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+    const consumed=Math.min(gTotal,_remSpent);
+    _remSpent-=consumed;
+    groupCov.set(d,{consumed,total:gTotal,full:consumed>=gTotal-0.01,pct:gTotal>0?Math.min(consumed/gTotal*100,100):0});
+  });
+
   const accentClr=['var(--a)','var(--blue)','var(--pur)','var(--ora)'];
   const accentBg=['var(--al)','var(--bluel)','var(--purl)','var(--oral)'];
   const accentBd=['rgba(57,185,128,.25)','var(--blueb)','var(--purb)','var(--orab)'];
+  const months=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
 
   function dayCard(date,group,gi){
     const clr=accentClr[gi%4],bg=accentBg[gi%4],bd=accentBd[gi%4];
@@ -3505,38 +3517,40 @@ snab_detail:async()=>{
     const ids=group.map(a=>a.id).join(',');
     const safeObj=(group[0]?.object_name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const multi=group.length>1;
-    // Format date nicely
     const [y,m,d]=date.split('-');
-    const months=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
     const niceDt=d&&m?`${parseInt(d)} ${months[parseInt(m)-1]} ${y}`:date;
-    return `
-    <div style="animation:fadeUp .3s ease ${gi*.06}s both;border-radius:var(--r2);overflow:hidden;margin-bottom:10px;box-shadow:var(--sh);">
-      <!-- Colored header row -->
-      <div style="background:${bg};border:1px solid ${bd};border-bottom:none;border-radius:var(--r2) var(--r2) 0 0;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:4px;height:32px;background:${clr};border-radius:2px;flex-shrink:0;"></div>
-          <div>
-            <div style="font-size:13px;font-weight:800;color:var(--t);">${niceDt}</div>
-            <div style="font-size:10px;color:var(--t4);margin-top:1px;">${multi?group.length+' авансов':group[0].task||'Аванс'}${!multi&&group[0].object_name?' · '+group[0].object_name:''}</div>
-          </div>
+    const cov=groupCov.get(date)||{full:false,pct:0,consumed:0};
+
+    // Fully spent (by FIFO) → compact collapsed row
+    if(cov.full){
+      return `<div style="display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:6px;opacity:.7;animation:fadeUp .3s ease ${gi*.04}s both;">
+        <div style="width:3px;height:24px;background:var(--t4);border-radius:2px;flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <span style="font-size:12px;font-weight:600;color:var(--t3);">${niceDt}</span>
+          <span style="font-size:10px;color:var(--t4);margin-left:6px;">${multi?group.length+' авансов':group[0].task||'Аванс'} · израсходован</span>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:20px;font-weight:900;color:${clr};line-height:1;">+${fmtN(dayTotal)}</div>
-          <div style="font-size:10px;color:var(--t4);margin-top:1px;">TJS${multi?' (сумма)':group[0].currency==='USD'?' (≈'+fmtN(group[0].amount)+' $)':''}</div>
+        <span style="font-size:12px;font-weight:700;color:var(--t4);text-decoration:line-through;">${fmtN(dayTotal)} TJS</span>
+      </div>`;
+    }
+
+    // Active (partially/not spent) → compact card with progress + inline actions
+    const rest=dayTotal-cov.consumed;
+    return `<div style="animation:fadeUp .3s ease ${gi*.06}s both;background:var(--w);border:1px solid ${bd};border-left:3px solid ${clr};border-radius:var(--r2);margin-bottom:8px;padding:10px 13px;box-shadow:var(--sh);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="min-width:0;">
+          <div style="font-size:13px;font-weight:800;color:var(--t);">${niceDt}</div>
+          <div style="font-size:10px;color:var(--t4);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${multi?group.length+' авансов':group[0].task||'Аванс'}${!multi&&group[0].object_name?' · '+group[0].object_name:''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:17px;font-weight:900;color:${clr};line-height:1;">+${fmtN(dayTotal)}<span style="font-size:9px;opacity:.6;"> TJS</span></div>
+          ${cov.consumed>0?`<div style="font-size:9px;color:var(--t4);margin-top:1px;">ост. ${fmtN(rest)}</div>`:''}
         </div>
       </div>
-      <!-- Sub-items (if multiple advances that day) -->
-      ${multi?`<div style="background:var(--w);border-left:1px solid ${bd};border-right:1px solid ${bd};padding:4px 14px;">
-        ${group.map((a,j)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;${j<group.length-1?'border-bottom:1px solid var(--bg2);':''}">
-          <span style="font-size:11px;color:var(--t2);">${a.task||'Аванс'}${a.object_name?' · '+a.object_name:''}</span>
-          <span style="font-size:11px;font-weight:700;color:${clr};">+${fmtN(a.amount)} ${a.currency}</span>
-        </div>`).join('')}
+      ${cov.consumed>0?`<div style="height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;margin-top:7px;"><div style="height:100%;width:${cov.pct.toFixed(0)}%;background:${clr};border-radius:2px;"></div></div>`:''}
+      ${canWrite()?`<div style="display:flex;gap:6px;margin-top:8px;">
+        <button onclick="advAddExpense('${safeN}','${safeObj}')" style="flex:1;padding:7px 2px;border-radius:7px;background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">− ${t('expense')}</button>
+        <button onclick="advStageGroup('${ids}')" style="flex:1;padding:7px 2px;border-radius:7px;background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')} →</button>
       </div>`:''}
-      <!-- Action buttons -->
-      ${canWrite()?`<div style="background:var(--w);border:1px solid ${bd};border-top:1px solid var(--bg2);border-radius:0 0 var(--r2) var(--r2);padding:8px 10px;display:grid;grid-template-columns:1fr 1fr;gap:5px;">
-        <button onclick="advAddExpense('${safeN}','${safeObj}')" style="padding:9px 2px;border-radius:8px;background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">− ${t('expense')}</button>
-        <button onclick="advStageGroup('${ids}')" style="padding:9px 2px;border-radius:8px;background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')} →</button>
-      </div>`:`<div style="height:1px;background:var(--bg2);"></div>`}
     </div>`;
   }
 
@@ -3553,7 +3567,6 @@ snab_detail:async()=>{
     const total=group.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
     const ids=group.map(a=>a.id).join(',');
     const [y,m,d]=date.split('-');
-    const months=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
     const niceDt=d&&m?`${parseInt(d)} ${months[parseInt(m)-1]}`:date;
     return `<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--bg);border-radius:var(--r);margin-bottom:5px;opacity:.65;">
       <span class="badge bg" style="font-size:10px;padding:2px 7px;flex-shrink:0;">✓</span>
