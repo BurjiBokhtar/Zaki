@@ -197,6 +197,10 @@ html{height:100dvh;}
 .lang-row{display:flex;gap:5px;margin-top:8px;}
 .lb{flex:1;padding:5px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);text-align:center;color:rgba(255,255,255,.4);transition:all .15s;}
 .lb.on{background:var(--a);color:#fff;border-color:var(--a);}
+/* Light variant for settings (white background) */
+.lb-lt{flex:1;padding:9px;border-radius:10px;border:1.5px solid var(--bd);background:var(--bg);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--ff);text-align:center;color:var(--t3);transition:all .15s;}
+.lb-lt:hover{border-color:var(--a);background:var(--al);}
+.lb-lt.on{background:var(--a);color:#fff;border-color:var(--a);box-shadow:0 2px 10px rgba(57,185,128,.3);}
 
 /* MAIN */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
@@ -1232,6 +1236,8 @@ function showPrompt(title,label,defVal,onOk){
 
 /* ── HELPERS ── */
 function fmtN(n){return Number(n||0).toLocaleString('ru',{maximumFractionDigits:2});}
+/* Date YYYY-MM-DD → DD-MM-YYYY */
+function fmtD(d){if(!d)return '—';const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:d;}
 function today(){return new Date().toISOString().slice(0,10);}
 function isEditable(dateStr){
   if(isDir()) return false;      // директор — никогда
@@ -1311,7 +1317,7 @@ function txRow(o,canEdit){
     <div class="tx-ico" style="background:${ic.bg};">${ic.ico}</div>
     <div class="tx-bd">
       <div class="tx-n">${o.description||o.category_name||'—'}</div>
-      <div class="tx-m">${o.date} · ${o.category_name||''}${o.object_name?' · '+o.object_name:''}${o.worker_name&&o.worker_name!=='Бухгалтер'?' · '+o.worker_name:''}</div>
+      <div class="tx-m">${fmtD(o.date)} · ${o.category_name||''}${o.object_name?' · '+o.object_name:''}${o.worker_name&&o.worker_name!=='Бухгалтер'?' · '+o.worker_name:''}</div>
       ${qpLine}
     </div>
     <div class="tx-rt">
@@ -3822,11 +3828,12 @@ settings:async()=>{
     const rows=items.map((it,i)=>{
       const id=it.id||"'"+String(it).replace(/'/g,"\\'")+"'";
       const name=(it.name||it)+'';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:${i%2===0?'var(--bg)':'transparent'};border-radius:8px;">
+      return `<div style="display:flex;align-items:center;gap:9px;padding:8px 12px;${i>0?'border-top:1px solid var(--bd);':''}transition:background .12s;"
+        onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
         <div style="width:20px;height:20px;border-radius:6px;background:var(--al);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--adk);flex-shrink:0;">${i+1}</div>
         <span style="flex:1;font-size:13px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
-        <button onclick="${editFn}(${id})" style="width:28px;height:28px;background:var(--al);border:none;border-radius:8px;font-size:13px;cursor:pointer;color:var(--adk);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✏</button>
-        <button onclick="${delFn}(${id})" style="width:28px;height:28px;background:var(--redl);border:none;border-radius:8px;font-size:13px;cursor:pointer;color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+        <button onclick="${editFn}(${id})" title="${t('edit')}" style="width:28px;height:28px;background:var(--al);border:none;border-radius:8px;font-size:13px;cursor:pointer;color:var(--adk);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✏</button>
+        <button onclick="${delFn}(${id})" title="${t('delete')}" style="width:28px;height:28px;background:var(--redl);border:none;border-radius:8px;font-size:13px;cursor:pointer;color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
       </div>`;
     }).join('');
 
@@ -3872,9 +3879,9 @@ settings:async()=>{
   </div>
   <div class="card mb16" style="animation:fadeUp .3s ease .06s both;">
     <div class="sh"><div class="sh-t">Язык / Забон</div></div>
-    <div class="lang-row" style="max-width:180px;">
-      <div class="lb ${LANG==='ru'?'on':''}" onclick="setLang('ru')">🇷🇺 Русский</div>
-      <div class="lb ${LANG==='tj'?'on':''}" onclick="setLang('tj')">🇹🇯 Тоҷикӣ</div>
+    <div class="lang-row" style="max-width:240px;gap:8px;">
+      <div class="lb-lt ${LANG==='ru'?'on':''}" onclick="setLang('ru')">🇷🇺 Русский</div>
+      <div class="lb-lt ${LANG==='tj'?'on':''}" onclick="setLang('tj')">🇹🇯 Тоҷикӣ</div>
     </div>
   </div>
   ${canAdmin()?`
@@ -4702,13 +4709,13 @@ async function saveRate(){
   COMPANY.usd_rate=v;showToast(`✓ 1 USD = ${v} TJS`);renderPage('settings');
 }
 async function addObj(){const n=document.getElementById(`inp-${t('objects')}`)?.value?.trim();if(!n)return;const{error}=await SB.from('objects').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
-async function editObj(id){showPrompt('Переименовать объект','Новое название','',async(n)=>{await SB.from('objects').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
+async function editObj(id){const cur=OBJECTS.find(o=>o.id===id)?.name||'';showPrompt('Переименовать объект','Новое название',cur,async(n)=>{await SB.from('objects').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
 async function delObj(id){showConfirm(t('del_q'),async()=>{await SB.from('objects').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
 async function addCat(type){const key=type==='income'?'inc_c':'exp_c';const n=document.getElementById(`inp-${t(key)}`)?.value?.trim();if(!n){showToast(t('enter_val'),true);return;}const{error}=await SB.from('categories').insert({name:n,type});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
-async function editCat(id){showPrompt('Переименовать категорию','Новое название','',async(n)=>{await SB.from('categories').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
+async function editCat(id){const cur=CATEGORIES.find(c=>c.id===id)?.name||'';showPrompt('Переименовать категорию','Новое название',cur,async(n)=>{await SB.from('categories').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
 async function delCat(id){showConfirm(t('del_q'),async()=>{await SB.from('categories').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
 async function addUnit(){const n=document.getElementById(`inp-${t('units')}`)?.value?.trim();if(!n){showToast(t('enter_val'),true);return;}const{error}=await SB.from('units').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
-async function editUnit(id){showPrompt('Переименовать единицу','Новое название','',async(n)=>{await SB.from('units').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
+async function editUnit(id){const cur=UNITS.find(u=>u.id===id)?.name||'';showPrompt('Переименовать единицу','Новое название',cur,async(n)=>{await SB.from('units').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
 async function delUnit(id){showConfirm(t('del_q'),async()=>{await SB.from('units').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
 function openNewUser(){
   openModal('Добавить пользователя',`
