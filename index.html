@@ -4739,7 +4739,22 @@ async function editObj(id){
     await loadBaseData();showToast(t('saved'));renderPage('settings');
   });
 }
-async function delObj(id){showConfirm(t('del_q'),async()=>{await SB.from('objects').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
+async function delObj(id){
+  const nm=OBJECTS.find(o=>o.id===id)?.name||'';
+  // Count linked records — block delete if any exist
+  const[opR,advR]=await Promise.all([
+    SB.from('operations').select('id',{count:'exact',head:true}).eq('object_name',nm),
+    SB.from('advances').select('id',{count:'exact',head:true}).eq('object_name',nm),
+  ]);
+  const used=(opR.count||0)+(advR.count||0);
+  if(used>0){
+    showToast((LANG==='tj'
+      ?`Объект "${nm}" дар ${used} сабт истифода мешавад. Аввал онҳоро тағйир диҳед.`
+      :`Объект "${nm}" используется в ${used} записях. Сначала измените их.`),true);
+    return;
+  }
+  showConfirm(t('del_q'),async()=>{await SB.from('objects').delete().eq('id',id);await loadBaseData();renderPage('settings');});
+}
 async function addCat(type){const key=type==='income'?'inc_c':'exp_c';const n=document.getElementById(`inp-${t(key)}`)?.value?.trim();if(!n){showToast(t('enter_val'),true);return;}const{error}=await SB.from('categories').insert({name:n,type});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
 async function editCat(id){
   const cur=CATEGORIES.find(c=>c.id===id)?.name||'';
@@ -4757,7 +4772,21 @@ async function editCat(id){
     await loadBaseData();showToast(t('saved'));renderPage('settings');
   });
 }
-async function delCat(id){showConfirm(t('del_q'),async()=>{await SB.from('categories').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
+async function delCat(id){
+  const nm=CATEGORIES.find(c=>c.id===id)?.name||'';
+  const[opR,advR]=await Promise.all([
+    SB.from('operations').select('id',{count:'exact',head:true}).eq('category_name',nm),
+    SB.from('advances').select('id',{count:'exact',head:true}).eq('task',nm),
+  ]);
+  const used=(opR.count||0)+(advR.count||0);
+  if(used>0){
+    showToast((LANG==='tj'
+      ?`Категория "${nm}" дар ${used} сабт истифода мешавад. Аввал онҳоро тағйир диҳед.`
+      :`Категория "${nm}" используется в ${used} записях. Сначала измените их.`),true);
+    return;
+  }
+  showConfirm(t('del_q'),async()=>{await SB.from('categories').delete().eq('id',id);await loadBaseData();renderPage('settings');});
+}
 async function addUnit(){const n=document.getElementById(`inp-${t('units')}`)?.value?.trim();if(!n){showToast(t('enter_val'),true);return;}const{error}=await SB.from('units').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
 async function editUnit(id){const cur=UNITS.find(u=>u.id===id)?.name||'';showPrompt('Переименовать единицу','Новое название',cur,async(n)=>{await SB.from('units').update({name:n}).eq('id',id);await loadBaseData();showToast(t('saved'));renderPage('settings');});}
 async function delUnit(id){showConfirm(t('del_q'),async()=>{await SB.from('units').delete().eq('id',id);await loadBaseData();renderPage('settings');});}
