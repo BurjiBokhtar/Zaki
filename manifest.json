@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "ZAKI ERP — Бурҷи Бохтар",
-  "short_name": "ZAKI ERP",
+  "name": "Бурҷи Бохтар",
+  "short_name": "Бурҷи Бохтар",
   "description": "Управление финансами строительной компании",
   "start_url": "/",
   "scope": "/",
