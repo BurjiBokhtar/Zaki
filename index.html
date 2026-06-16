@@ -11,9 +11,9 @@
 <meta name="description" content="ZAKI ERP — управление финансами">
 <link rel="manifest" href="/manifest.json">
 <title>Бурҷи Бохтар — Ширкати Сохтмонй</title>
-<link rel="icon" type="image/png" href="/logo192.png">
-<link rel="icon" type="image/png" href="/logo.png">
-<link rel="apple-touch-icon" href="/logo.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/logo192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/logo512.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/logo192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -5035,11 +5035,10 @@ if('serviceWorker' in navigator){
       CUR_PAGE=USER.role==='supplier'?'my':'home';
       go(CUR_PAGE);
       setTimeout(updateNotifBadge, 800); // show today's count on bell
-      // Only require PIN if idle >3min (or no activity recorded yet)
+      // App cold-start (page load) → always require PIN if set.
+      // Background resume uses the 3-min idle rule (visibilitychange handler).
       if(localStorage.getItem(PIN_KEY)){
-        const idle=Date.now()-_lastAct();
-        if(idle>PIN_TIMEOUT||_lastAct()===0) showPinLock('lock');
-        else updateActivity(); // fresh session, reset timer
+        showPinLock('lock');
       } else {
         setTimeout(()=>showPinLock('setup1'),400);
       }

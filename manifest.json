@@ -1,21 +1,21 @@
 {
   "id": "/",
-  "name": "ZAKI ERP — Бурчи Бохтар",
+  "name": "ZAKI ERP — Бурҷи Бохтар",
   "short_name": "ZAKI ERP",
   "description": "Управление финансами строительной компании",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
-  "background_color": "#f0f2f7",
+  "background_color": "#0c1e2b",
   "theme_color": "#39B980",
   "lang": "ru",
   "prefer_related_applications": false,
   "icons": [
-    { "src": "/zaki.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/zaki.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/logo192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/logo512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/logo512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
-  "categories": ["finance", "business", "productivity"],
-  "screenshots": []
+  "categories": ["finance", "business", "productivity"]
 }
