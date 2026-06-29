@@ -965,7 +965,7 @@ const T={
     recv:'Нам должны',paybl:'Мы должны',
     cashflow:'Cash Flow',recent:'Последние операции',all_ops:'Все →',rates:'Курсы валют',
     new_op:'Новая операция',op_type:'Тип операции',
-    inc_op:'↑ Приход',exp_op:'↓ Расход',adv_op:'→ Аванс',
+    inc_op:'↓ Приход',exp_op:'↑ Расход',adv_op:'→ Аванс',
     obj:'① Объект',cat:'② Категория',det:'③ Детали',
     date:'Дата',currency:'Валюта',desc:'Описание',amount:'Сумма',
     qty:'Кол-во',unit:'Ед.',price:'Цена',total:'Итого',
@@ -1061,7 +1061,7 @@ const T={
     recv:'Аз мо қарздоранд',paybl:'Мо қарздорем',
     cashflow:'Cash Flow',recent:'Амалиётҳои охирин',all_ops:'Ҳама →',rates:'Курсҳои асъор',
     new_op:'Амалиёти нав',op_type:'Навъи амалиёт',
-    inc_op:'↑ Даромад',exp_op:'↓ Харҷ',adv_op:'→ Пешпардохт',
+    inc_op:'↓ Даромад',exp_op:'↑ Харҷ',adv_op:'→ Пешпардохт',
     obj:'① Объект',cat:'② Категория',det:'③ Тафсилот',
     date:'Сана',currency:'Асъор',desc:'Тавсиф',amount:'Маблағ',
     qty:'Миқдор',unit:'Воҳид',price:'Нарх',total:'Ҷамъ',
@@ -1173,6 +1173,8 @@ function qCached(key,fn,ttl=45000){
 function qCacheClear(prefix){Object.keys(_QC).forEach(k=>{if(!prefix||k.startsWith(prefix))delete _QC[k];});}
 /* Collapse inner double-spaces + trim, so "Бинои  14-В" and "Бинои 14-В" never split */
 function normName(s){return(s||'').replace(/\s+/g,' ').trim();}
+/* Escape user text before putting it into innerHTML — blocks stored XSS */
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 /* ── DEBOUNCE ── */
 function debounce(fn,ms=260){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
@@ -1316,13 +1318,13 @@ function txRow(o,canEdit){
   // qty × price · unit line (only if present)
   const hasQP=o.qty||o.price||o.unit;
   const qpLine=hasQP
-    ? `<div class="tx-qp" style="font-size:10px;color:var(--t3);margin-top:2px;">${o.qty?fmtN(o.qty):''}${o.unit?' '+o.unit:''}${o.qty&&o.price?' × ':''}${o.price?fmtN(o.price)+' '+o.currency:''}</div>`
+    ? `<div class="tx-qp" style="font-size:10px;color:var(--t3);margin-top:2px;">${o.qty?fmtN(o.qty):''}${o.unit?' '+esc(o.unit):''}${o.qty&&o.price?' × ':''}${o.price?fmtN(o.price)+' '+o.currency:''}</div>`
     : '';
   return `<div class="tx-row">
     <div class="tx-ico" style="background:${ic.bg};">${ic.ico}</div>
     <div class="tx-bd">
-      <div class="tx-n">${o.description||o.category_name||'—'}</div>
-      <div class="tx-m">${fmtD(o.date)}${o.object_name?' · '+o.object_name:''}${o.category_name?' · '+o.category_name:''}${o.worker_name&&o.worker_name!=='Бухгалтер'?' · '+o.worker_name:''}</div>
+      <div class="tx-n">${esc(o.description||o.category_name||'—')}</div>
+      <div class="tx-m">${fmtD(o.date)}${o.object_name?' · '+esc(o.object_name):''}${o.category_name?' · '+esc(o.category_name):''}${o.worker_name&&o.worker_name!=='Бухгалтер'?' · '+esc(o.worker_name):''}</div>
       ${qpLine}
     </div>
     <div class="tx-rt">
@@ -2371,9 +2373,9 @@ async function fSubmit(isSupplier){
     desc='Аванс → '+w;
     if(!amt||!w){showToast(t('specify_worker'),true);return;}
     // Also save to advances table
-    await SB.from('advances').insert({worker_name:w,object_name:SEL_OBJ,task:SEL_CAT,amount:amt,currency:SEL_CUR});
+    await dbInsertQueued('advances',{worker_name:w,object_name:SEL_OBJ,task:SEL_CAT,amount:amt,currency:SEL_CUR});
   }
-  const{error}=await SB.from('operations').insert({
+  const _r=await dbInsertQueued('operations',{
     type:OP_TYPE,date,object_name:SEL_OBJ,category_name:SEL_CAT||'Прочее',
     description:desc,amount:amt,currency:SEL_CUR,method,
     amount_tjs:SEL_CUR==='USD'?amt*rate:amt,
@@ -2386,7 +2388,7 @@ async function fSubmit(isSupplier){
     note:document.getElementById('f-note')?.value||'',
     created_by:USER?.id
   });
-  if(error){showToast(error.message,true);return;}
+  if(_r.error){showToast(_r.error.message,true);return;}
   qCacheClear('home_');
   // Auto-close active advances if supplier balance exhausted
   if(isSupplier||isSup()){
@@ -2394,7 +2396,8 @@ async function fSubmit(isSupplier){
     const remAfter=await getSupplierRemaining(wName);
     if(remAfter<=0) await SB.from('advances').update({status:'done'}).eq('worker_name',wName).eq('status','active');
   }
-  showToast(t('saved'));
+  showToast(_r.queued?'📴 Сохранено офлайн — отправится при интернете':t('saved'));
+  updateOfflineUI();
   setTimeout(()=>go(isSupplier?'myexp':'ops'),350);
 }
 
@@ -2561,15 +2564,15 @@ function openAddOpModal(type){
         if(needTJS2>bal2){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtN(bal2)} TJS, ${t('need')}: ${fmtN(needTJS2)} TJS`,true);return;}
         desc='Аванс → '+w;
         // Save to advances table
-        const{error:ae}=await SB.from('advances').insert({
+        const ar=await dbInsertQueued('advances',{
           worker_name:w,object_name:SEL_OBJ,task:task||'Аванс',
           amount:amt,currency:SEL_CUR,
           stage_names:JSON.stringify(['Старт','Закупка','Доставка','Сдача'])
         });
-        if(ae){showToast(t('err')+': '+ae.message,true);return;}
+        if(ar.error){showToast(t('err')+': '+ar.error.message,true);return;}
       }
 
-      const{error}=await SB.from('operations').insert({
+      const _r=await dbInsertQueued('operations',{
         type:OP_TYPE,date,
         object_name:SEL_OBJ||'',
         category_name:SEL_CAT||'Прочее',
@@ -2584,9 +2587,11 @@ function openAddOpModal(type){
         note:document.getElementById('mo-note')?.value||'',
         created_by:USER?.id
       });
-      if(error){showToast(t('err')+': '+error.message,true);return;}
+      if(_r.error){showToast(t('err')+': '+_r.error.message,true);return;}
       closeModal();
-      showToast('✓ '+typeLabel+' сохранён');
+      qCacheClear('home_');
+      showToast(_r.queued?'📴 Сохранено офлайн — отправится при интернете':('✓ '+typeLabel+' сохранён'));
+      updateOfflineUI();
       window._opsFilter={q:'',type:'all',date:'',currency:'all'};
       renderPage(CUR_PAGE);
     },
@@ -2681,8 +2686,8 @@ async function renderPulseBar(){
   const pct=incT>0?Math.min(expT/incT*100,100):0;
   bar.innerHTML=`<div style="display:flex;align-items:center;gap:12px;padding:6px 18px;background:var(--ap);border-bottom:1px solid var(--al);flex-wrap:wrap;">
     <span style="font-size:10px;font-weight:700;color:var(--a);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">📊 Сегодня</span>
-    <span style="font-size:12px;font-weight:600;color:var(--ad);">↑ +${fmtN(incT)} TJS</span>
-    <span style="font-size:12px;font-weight:600;color:var(--red);">↓ −${fmtN(expT)} TJS</span>
+    <span style="font-size:12px;font-weight:600;color:var(--ad);">↓ +${fmtN(incT)} TJS</span>
+    <span style="font-size:12px;font-weight:600;color:var(--red);">↑ −${fmtN(expT)} TJS</span>
     <div style="flex:1;min-width:60px;max-width:120px;height:4px;background:rgba(0,0,0,.08);border-radius:2px;overflow:hidden;">
       <div style="height:100%;width:${pct.toFixed(1)}%;background:${pct>80?'var(--red)':pct>50?'var(--yel)':'var(--a)'};border-radius:2px;"></div>
     </div>
@@ -3016,8 +3021,8 @@ home:async()=>{
         <div id="hero-ratio-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#39B980,${allRatioColor});border-radius:4px;transition:width 1.3s cubic-bezier(.4,0,.2,1);"></div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:5px;">
-        <span style="font-size:9px;color:rgba(255,255,255,.3);">↑ ${fmtN(allIncTJS)} TJS</span>
-        <span style="font-size:9px;color:rgba(255,255,255,.3);">↓ ${fmtN(allExpTJS+allAdvTJS)} TJS</span>
+        <span style="font-size:9px;color:rgba(255,255,255,.3);">↓ ${fmtN(allIncTJS)} TJS</span>
+        <span style="font-size:9px;color:rgba(255,255,255,.3);">↑ ${fmtN(allExpTJS+allAdvTJS)} TJS</span>
       </div>
     </div>
   </div>
@@ -3241,7 +3246,7 @@ ops:async()=>{
       onmouseover="this.style.transform='scale(1.02)';this.style.boxShadow='0 8px 28px rgba(39,174,96,.55)'"
       onmouseout="this.style.transform='';this.style.boxShadow='0 5px 20px rgba(39,174,96,.4)'">
       <div style="width:50px;height:50px;background:rgba(255,255,255,.22);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:ringPulse 2.2s ease-out infinite;">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
       </div>
       <div style="text-align:left;">
         <div style="font-size:10px;color:rgba(255,255,255,.65);font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">${t('income')}</div>
@@ -3253,7 +3258,7 @@ ops:async()=>{
       onmouseover="this.style.transform='scale(1.02)';this.style.boxShadow='0 8px 28px rgba(192,57,43,.55)'"
       onmouseout="this.style.transform='';this.style.boxShadow='0 5px 20px rgba(192,57,43,.4)'">
       <div style="width:50px;height:50px;background:rgba(255,255,255,.22);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:ringPulse 2.2s ease-out infinite .6s;">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
       </div>
       <div style="text-align:left;">
         <div style="font-size:10px;color:rgba(255,255,255,.65);font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">${t('expense')}</div>
@@ -3265,19 +3270,19 @@ ops:async()=>{
   <!-- SUMMARY TJS/USD отдельно -->
   <div class="g4 mob-2col" style="gap:10px;margin-bottom:18px;">
     <div class="sc g" style="padding:12px 14px;animation-delay:.02s;">
-      <div class="sc-lbl" style="font-size:9px;">↑ TJS</div>
+      <div class="sc-lbl" style="font-size:9px;">↓ TJS</div>
       <div style="font-size:18px;font-weight:800;color:var(--ad);">+${fmtN(incTJS)}</div>
     </div>
     <div class="sc r" style="padding:12px 14px;animation-delay:.04s;">
-      <div class="sc-lbl" style="font-size:9px;">↓ TJS</div>
+      <div class="sc-lbl" style="font-size:9px;">↑ TJS</div>
       <div style="font-size:18px;font-weight:800;color:var(--red);">-${fmtN(expTJS)}</div>
     </div>
     <div class="sc g" style="padding:12px 14px;animation-delay:.06s;border-top-color:var(--blue);">
-      <div class="sc-lbl" style="font-size:9px;">↑ USD</div>
+      <div class="sc-lbl" style="font-size:9px;">↓ USD</div>
       <div style="font-size:18px;font-weight:800;color:var(--blue);">+$${fmtN(incUSD)}</div>
     </div>
     <div class="sc r" style="padding:12px 14px;animation-delay:.08s;border-top-color:var(--ora);">
-      <div class="sc-lbl" style="font-size:9px;">↓ USD</div>
+      <div class="sc-lbl" style="font-size:9px;">↑ USD</div>
       <div style="font-size:18px;font-weight:800;color:var(--ora);">-$${fmtN(expUSD)}</div>
     </div>
   </div>
@@ -3664,7 +3669,7 @@ debts:async()=>{
     return `<div class="dc" style="animation-delay:${i*.06}s;">
       <div class="dc-hd">
         <div class="ava" style="width:40px;height:40px;background:${isCred?'var(--redl)':'var(--al)'};color:${isCred?'var(--red)':'var(--adk)'};">${(d.name||'?').slice(0,2)}</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">${d.name}</div><div style="font-size:11px;color:var(--t4);">${d.description||'—'} · ${d.due_date||'—'}</div></div>
+        <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">${esc(d.name)}</div><div style="font-size:11px;color:var(--t4);">${esc(d.description||'—')} · ${d.due_date||'—'}</div></div>
         <span class="badge ${isLate?'br':pct>50?'by':'bgr'}">${isLate?t('overdue'):Math.round(pct)+'%'}</span>
       </div>
       <div class="dc-amts">
@@ -3789,10 +3794,10 @@ stats:async()=>{
   <!-- KPI row -->
   <div class="g4 mb14">
     ${[
-      {lbl:'↑ TJS '+t('income'), val:'+'+fmtN(incTJS), sub:ops.filter(o=>o.type==='income'&&o.currency==='TJS').length+' '+t('ops_count'), c1:'#1a6645',c2:'rgba(57,185,128,.12)',b:'rgba(57,185,128,.25)'},
-      {lbl:'↓ TJS '+t('expense'),val:'-'+fmtN(expTJS), sub:ops.filter(o=>o.type==='expense'&&o.currency==='TJS').length+' '+t('ops_count'), c1:'#C53030',c2:'rgba(229,62,62,.1)',b:'rgba(229,62,62,.25)'},
-      {lbl:'↑ USD '+t('income'), val:'+$'+fmtN(incUSD), sub:ops.filter(o=>o.type==='income'&&o.currency==='USD').length+' '+t('ops_count'), c1:'#2C5282',c2:'rgba(49,130,206,.1)',b:'rgba(49,130,206,.25)'},
-      {lbl:'↓ USD '+t('expense'),val:'-$'+fmtN(expUSD), sub:ops.filter(o=>o.type==='expense'&&o.currency==='USD').length+' '+t('ops_count'), c1:'#C05621',c2:'rgba(221,107,32,.1)',b:'rgba(221,107,32,.25)'},
+      {lbl:'↓ TJS '+t('income'), val:'+'+fmtN(incTJS), sub:ops.filter(o=>o.type==='income'&&o.currency==='TJS').length+' '+t('ops_count'), c1:'#1a6645',c2:'rgba(57,185,128,.12)',b:'rgba(57,185,128,.25)'},
+      {lbl:'↑ TJS '+t('expense'),val:'-'+fmtN(expTJS), sub:ops.filter(o=>o.type==='expense'&&o.currency==='TJS').length+' '+t('ops_count'), c1:'#C53030',c2:'rgba(229,62,62,.1)',b:'rgba(229,62,62,.25)'},
+      {lbl:'↓ USD '+t('income'), val:'+$'+fmtN(incUSD), sub:ops.filter(o=>o.type==='income'&&o.currency==='USD').length+' '+t('ops_count'), c1:'#2C5282',c2:'rgba(49,130,206,.1)',b:'rgba(49,130,206,.25)'},
+      {lbl:'↑ USD '+t('expense'),val:'-$'+fmtN(expUSD), sub:ops.filter(o=>o.type==='expense'&&o.currency==='USD').length+' '+t('ops_count'), c1:'#C05621',c2:'rgba(221,107,32,.1)',b:'rgba(221,107,32,.25)'},
     ].map((k,i)=>`
     <div class="kpi-tile" style="background:${k.c2};border:1px solid ${k.b};animation-delay:${i*.06}s;">
       <div style="font-size:9px;font-weight:700;color:${k.c1};text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;opacity:.75;">${k.lbl}</div>
@@ -3849,7 +3854,7 @@ settings:async()=>{
       return `<div style="display:flex;align-items:center;gap:9px;padding:8px 12px;${i>0?'border-top:1px solid var(--bd);':''}transition:background .12s;"
         onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
         <div style="width:20px;height:20px;border-radius:6px;background:var(--al);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--adk);flex-shrink:0;">${i+1}</div>
-        <span style="flex:1;font-size:13px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
+        <span style="flex:1;font-size:13px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(name)}</span>
         <button onclick="${editFn}(${id})" title="${t('edit')}" style="width:28px;height:28px;background:var(--al);border:none;border-radius:8px;font-size:13px;cursor:pointer;color:var(--adk);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✏</button>
         <button onclick="${delFn}(${id})" title="${t('delete')}" style="width:28px;height:28px;background:var(--redl);border:none;border-radius:8px;font-size:13px;cursor:pointer;color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
       </div>`;
@@ -4045,7 +4050,7 @@ tasks:async()=>{
     const rem=a.amount-spent;const pct=a.amount>0?Math.min(spent/a.amount*100,100):0;
     const names=Array.isArray(a.stage_names)?a.stage_names:['Старт','Закупка','Доставка','Сдача'];
     return `<div class="pc" style="animation-delay:${i*.06}s;">
-      <div class="pc-top"><div class="pc-lft"><div class="ava" style="width:38px;height:38px;background:var(--al);color:var(--adk);">${(a.object_name||'?').slice(-2)}</div><div><div class="pc-name">${a.task||'—'}</div><div class="pc-sub">${a.object_name} · ${fmtN(a.amount)} TJS</div></div></div>
+      <div class="pc-top"><div class="pc-lft"><div class="ava" style="width:38px;height:38px;background:var(--al);color:var(--adk);">${esc((a.object_name||'?').slice(-2))}</div><div><div class="pc-name">${esc(a.task||'—')}</div><div class="pc-sub">${esc(a.object_name)} · ${fmtN(a.amount)} TJS</div></div></div>
       <span class="badge ${(a.stage||0)>=(a.stages||4)?'bg':'by'}">${(a.stage||0)>=(a.stages||4)?t('done_ok'):t('stage_lbl')+' '+(a.stage||0)+'/'+(a.stages||4)}</span></div>
       ${stageTrack(a.stage||0,a.stages||4,names)}
       <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${pct>80?'var(--red)':'var(--a)'};"></div></div>
@@ -4072,11 +4077,11 @@ _masters_unused:async()=>{
     const stLab={'active':t('s_act'),'partial':t('s_par'),'done':t('s_done'),'late':t('s_late')};
     return `<div class="mc" style="animation-delay:${i*.06}s;">
       <div class="mc-hd">
-        <div class="mc-ava" style="background:var(--al);color:var(--adk);">${(m.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+        <div class="mc-ava" style="background:var(--al);color:var(--adk);">${esc((m.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2))}</div>
         <div style="flex:1;min-width:0;">
-          <div class="mc-name">${m.name}</div>
-          <div class="mc-phone">${m.phone||'—'}</div>
-          <div class="mc-obj">${m.object_name||'—'} · ${m.specialty||'—'}</div>
+          <div class="mc-name">${esc(m.name)}</div>
+          <div class="mc-phone">${esc(m.phone||'—')}</div>
+          <div class="mc-obj">${esc(m.object_name||'—')} · ${esc(m.specialty||'—')}</div>
         </div>
         <span class="badge ${stMap[m.status]||'bgr'}">${stLab[m.status]||m.status||'—'}</span>
       </div>
@@ -5442,13 +5447,13 @@ async function loadActivityLog(){
         if(e._kind==='op'){
           const isInc=e.type==='income', isAdv=e.type==='advance';
           const clr=isInc?'var(--al)':isAdv?'var(--bluel)':'var(--redl)';
-          const ico=isInc?'↑':isAdv?'→':'↓';
+          const ico=isInc?'↓':isAdv?'→':'↑';
           const icoClr=isInc?'var(--adk)':isAdv?'var(--blue)':'var(--red)';
           const amtClr=isInc?'var(--adk)':isAdv?'var(--blue)':'var(--red)';
           const sign=isInc?'+':isAdv?'':'−';
-          const desc=e.description||e.category_name||'—';
-          const who=e.worker_name&&e.worker_name!=='Бухгалтер'?e.worker_name:'';
-          const where=e.object_name?` · ${e.object_name}`:'';
+          const desc=esc(e.description||e.category_name||'—');
+          const who=e.worker_name&&e.worker_name!=='Бухгалтер'?esc(e.worker_name):'';
+          const where=e.object_name?` · ${esc(e.object_name)}`:'';
           html+=`<div class="np-item">
             <div class="np-ico" style="background:${clr};color:${icoClr};font-weight:800;">${ico}</div>
             <div class="np-info">
@@ -5679,6 +5684,27 @@ function oqAdd(table, method, data, matchId){
   q.push({ id: Date.now()+'_'+Math.random().toString(36).slice(2), table, method, data, matchId, ts: Date.now() });
   oqSet(q);
   updateOfflineUI();
+}
+
+/* Insert that survives offline: writes to Supabase when online,
+   otherwise stores the record locally and syncs it when the network returns. */
+async function dbInsertQueued(table, data){
+  if(!navigator.onLine){
+    oqAdd(table, 'insert', data);
+    return { queued:true, error:null };
+  }
+  try{
+    const res = await SB.from(table).insert(data);
+    // Network-level failure (lost connection mid-request) → queue instead of losing it
+    if(res.error && /fetch|network|failed|timeout|connection/i.test(res.error.message||'')){
+      oqAdd(table, 'insert', data);
+      return { queued:true, error:null };
+    }
+    return res;
+  }catch(e){
+    oqAdd(table, 'insert', data);
+    return { queued:true, error:null };
+  }
 }
 
 async function syncOfflineQueue(){
