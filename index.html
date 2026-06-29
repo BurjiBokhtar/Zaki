@@ -101,6 +101,7 @@
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes barGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @keyframes toast{0%{opacity:0;transform:translateX(-50%) translateY(12px)}10%,85%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0}}
+@keyframes toastPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}14%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}28%,78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(.96)}}
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;height:-webkit-fill-available;font-family:var(--ff);background:var(--bg);color:var(--t);overflow:hidden;overscroll-behavior:none;-webkit-font-smoothing:antialiased;}
@@ -505,7 +506,10 @@ html{height:100dvh;}
 .modal-ft{display:flex;gap:7px;margin-top:16px;justify-content:flex-end;}
 
 /* TOAST */
-.toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--t);color:var(--w);padding:10px 18px;border-radius:16px;font-size:13px;font-weight:500;white-space:normal;max-width:calc(100vw - 32px);text-align:center;line-height:1.4;z-index:9998;pointer-events:none;display:none;box-shadow:var(--shl);font-family:var(--ff);}
+.toast{position:fixed;top:42%;left:50%;transform:translate(-50%,-50%);background:var(--t);color:#fff;padding:20px 30px;border-radius:20px;font-size:16px;font-weight:700;white-space:normal;max-width:calc(100vw - 48px);text-align:center;line-height:1.45;z-index:9998;pointer-events:none;display:none;box-shadow:0 16px 50px rgba(0,0,0,.4);font-family:var(--ff);}
+.toast.ok{background:linear-gradient(135deg,#2ecc71,#1ea558);}
+.toast.err{background:linear-gradient(135deg,#e74c3c,#c0392b);}
+.toast .toast-ic{display:block;font-size:34px;line-height:1;margin-bottom:8px;}
 
 /* LOADER */
 .loader{display:inline-flex;width:18px;height:18px;border:2.5px solid rgba(57,185,128,.25);border-top-color:var(--a);border-radius:50%;animation:spin .7s linear infinite;}
@@ -1167,6 +1171,8 @@ function qCached(key,fn,ttl=45000){
   return fn().then(v=>{_QC[key]={val:v,ts:now};return v;});
 }
 function qCacheClear(prefix){Object.keys(_QC).forEach(k=>{if(!prefix||k.startsWith(prefix))delete _QC[k];});}
+/* Collapse inner double-spaces + trim, so "Бинои  14-В" and "Бинои 14-В" never split */
+function normName(s){return(s||'').replace(/\s+/g,' ').trim();}
 
 /* ── DEBOUNCE ── */
 function debounce(fn,ms=260){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
@@ -1187,10 +1193,13 @@ async function qOne(table,fn){
 /* ── TOAST ── */
 function showToast(msg,isErr){
   const el=document.getElementById('toast');
-  el.innerHTML=msg.replace(/\n/g,'<br>');el.style.background=isErr?'var(--red)':'var(--t)';
+  // success shows briefly (1.5s); errors stay longer so the text can be read
+  const dur=isErr?4000:1500;
+  el.className='toast '+(isErr?'err':'ok');
+  el.innerHTML=`<span class="toast-ic">${isErr?'✕':'✓'}</span>${msg.replace(/\n/g,'<br>')}`;
   el.style.display='block';el.style.animation='none';
-  requestAnimationFrame(()=>{el.style.animation='toast 3s ease forwards';});
-  clearTimeout(window._tt);window._tt=setTimeout(()=>{el.style.display='none';},3200);
+  requestAnimationFrame(()=>{el.style.animation=`toastPop ${dur}ms ease forwards`;});
+  clearTimeout(window._tt);window._tt=setTimeout(()=>{el.style.display='none';},dur+200);
 }
 
 /* ── MODAL ── */
@@ -2976,22 +2985,24 @@ home:async()=>{
       <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.11);border-radius:16px;padding:13px 14px;animation:heroPill .45s ease .32s both;">
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
           <div style="width:18px;height:18px;background:rgba(57,185,128,.25);border-radius:6px;display:flex;align-items:center;justify-content:center;">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#39B980" stroke-width="2" stroke-linecap="round"><path d="M5 8V2M2 5l3-3 3 3"/></svg>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#39B980" stroke-width="2" stroke-linecap="round"><path d="M5 2v6M2 5l3 3 3-3"/></svg>
           </div>
           <span style="font-size:9px;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.08em;">${t('income')}</span>
         </div>
         <div id="hero-inc-num" style="font-size:18px;font-weight:900;color:#39B980;">${fmtN(incTJS)}<span style="font-size:10px;opacity:.5;margin-left:3px;">TJS</span></div>
-        <div style="font-size:10px;color:rgba(255,255,255,.28);margin-top:3px;">${inc.length} ${t('ops_count')}${incUSD>0?` · $${fmtN(incUSD)}`:''}</div>
+        ${incUSD>0?`<div style="font-size:15px;font-weight:800;color:#39B980;margin-top:2px;">$${fmtN(incUSD)}<span style="font-size:9px;opacity:.6;margin-left:3px;">USD</span></div>`:''}
+        <div style="font-size:10px;color:rgba(255,255,255,.28);margin-top:3px;">${inc.length} ${t('ops_count')}</div>
       </div>
       <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.11);border-radius:16px;padding:13px 14px;animation:heroPill .45s ease .42s both;">
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
           <div style="width:18px;height:18px;background:rgba(252,129,129,.2);border-radius:6px;display:flex;align-items:center;justify-content:center;">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fc8181" stroke-width="2" stroke-linecap="round"><path d="M5 2v6M2 5l3 3 3-3"/></svg>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fc8181" stroke-width="2" stroke-linecap="round"><path d="M5 8V2M2 5l3-3 3 3"/></svg>
           </div>
           <span style="font-size:9px;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.08em;">${t('expense')}</span>
         </div>
         <div id="hero-exp-num" style="font-size:18px;font-weight:900;color:#fc8181;">${fmtN(expTJS)}<span style="font-size:10px;opacity:.5;margin-left:3px;">TJS</span></div>
-        <div style="font-size:10px;color:rgba(255,255,255,.28);margin-top:3px;">${exp.length} ${t('ops_count')}${expUSD>0?` · $${fmtN(expUSD)}`:''}</div>
+        ${expUSD>0?`<div style="font-size:15px;font-weight:800;color:#fc8181;margin-top:2px;">$${fmtN(expUSD)}<span style="font-size:9px;opacity:.6;margin-left:3px;">USD</span></div>`:''}
+        <div style="font-size:10px;color:rgba(255,255,255,.28);margin-top:3px;">${exp.length} ${t('ops_count')}</div>
       </div>
     </div>
 
@@ -4707,21 +4718,33 @@ async function saveRate(){
   await SB.from('company').update({usd_rate:v}).eq('id',1);
   COMPANY.usd_rate=v;showToast(`✓ 1 USD = ${v} TJS`);renderPage('settings');
 }
-async function addObj(){const n=document.getElementById(`inp-${t('objects')}`)?.value?.trim();if(!n)return;const{error}=await SB.from('objects').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
+async function addObj(){const n=normName(document.getElementById(`inp-${t('objects')}`)?.value);if(!n)return;
+  // Guard against creating a visual duplicate (e.g. double-space variant)
+  if(OBJECTS.some(o=>normName(o.name).toLowerCase()===n.toLowerCase())){showToast('Такой объект уже есть',true);return;}
+  const{error}=await SB.from('objects').insert({name:n});if(error){showToast(error.message,true);return;}await loadBaseData();showToast(t('saved'));renderPage('settings');}
 async function editObj(id){
   const cur=OBJECTS.find(o=>o.id===id)?.name||'';
   showPrompt('Переименовать объект','Новое название',cur,async(n)=>{
+    n=normName(n);
     if(!n||n===cur){closeModal&&closeModal();return;}
     // 1. Rename the object
     const{error}=await SB.from('objects').update({name:n}).eq('id',id);
     if(error){showToast(error.message,true);return;}
     // 2. Cascade: update all operations + advances that used the old name
     if(cur){
-      await Promise.all([
+      const[opU,advU]=await Promise.all([
         SB.from('operations').update({object_name:n}).eq('object_name',cur),
         SB.from('advances').update({object_name:n}).eq('object_name',cur),
       ]);
+      // Surface RLS / permission failures instead of silently leaving orphaned rows
+      if(opU?.error||advU?.error){
+        showToast('Объект переименован, но операции обновить не удалось: '+((opU?.error||advU?.error).message),true);
+      }
     }
+    // If another object already had this name, merge: operations now share the same
+    // name, so drop the duplicate справочник rows and keep only this one.
+    await SB.from('objects').delete().eq('name',n).neq('id',id);
+    qCacheClear('home_');
     await loadBaseData();showToast(t('saved'));renderPage('settings');
   });
 }
