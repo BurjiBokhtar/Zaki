@@ -291,10 +291,17 @@ html{height:100dvh;}
 .mb8{margin-bottom:8px;}.mb10{margin-bottom:10px;}.mb12{margin-bottom:12px;}.mb14{margin-bottom:14px;}.mb16{margin-bottom:16px;}.mb20{margin-bottom:20px;}
 
 /* STAT CARD */
-.sc{background:var(--w);border:1px solid var(--bd);border-radius:var(--r2);padding:14px 16px;box-shadow:var(--sh);animation:fadeUp .3s ease both;position:relative;overflow:hidden;}
-.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r2) var(--r2) 0 0;}
-.sc.g::after{background:var(--a);}.sc.r::after{background:var(--red);}
-.sc.b::after{background:var(--blue);}.sc.o::after{background:var(--ora);}
+.sc{background:var(--w);border:1px solid var(--bd);border-radius:16px;padding:14px 16px;box-shadow:var(--sh);animation:fadeUp .3s ease both;position:relative;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease;}
+.sc:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(26,35,50,.10);}
+.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0;}
+.sc.g::after{background:linear-gradient(90deg,#39B980,#2176ae);}
+.sc.r::after{background:linear-gradient(90deg,#e74c3c,#f39c12);}
+.sc.b::after{background:linear-gradient(90deg,#3182CE,#39B980);}
+.sc.o::after{background:linear-gradient(90deg,#f39c12,#e74c3c);}
+.sc.g{background:linear-gradient(165deg,rgba(57,185,128,.08),var(--w) 58%);}
+.sc.r{background:linear-gradient(165deg,rgba(231,76,60,.07),var(--w) 58%);}
+.sc.b{background:linear-gradient(165deg,rgba(49,130,206,.07),var(--w) 58%);}
+.sc.o{background:linear-gradient(165deg,rgba(243,156,18,.07),var(--w) 58%);}
 .sc-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
 .sc-lbl{font-size:10px;color:var(--t3);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;}
 .sc-val{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1;animation:fadeUp .4s ease both;}
@@ -2831,10 +2838,6 @@ home:async()=>{
     }
 
     // Fire all counters with 600ms duration
-    animCounter('cnt-incTJS', incTJS, '', '', 700);
-    animCounter('cnt-incUSD', incUSD, '$', '', 700);
-    animCounter('cnt-expTJS', expTJS, '', '', 700);
-    animCounter('cnt-expUSD', expUSD, '$', '', 700);
     animCounter('cnt-balTJS', balTJS, '', '', 900);
     animCounter('cnt-balUSD', balUSD, '$', '', 900);
     animCounter('cnt-deb', deb, '', '', 600);
@@ -3057,48 +3060,6 @@ home:async()=>{
     ${window._homeObj?`<button onclick="window._homeObj='';destroyCharts();renderPage('home')" style="padding:7px 12px;background:var(--redl);border:1px solid rgba(229,62,62,.2);border-radius:8px;font-size:11px;font-weight:700;color:var(--red);cursor:pointer;font-family:var(--ff);white-space:nowrap;">✕ ${window._homeObj}</button>`:''}
   </div>
 
-  <!-- STAT CARDS: анимированные счётчики + sparklines -->
-  <!-- ANIMATED STAT CARDS WITH ICONS -->
-  <div class="g2 mb12">
-    <div class="sc g" style="animation-delay:.04s;overflow:hidden;position:relative;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div style="flex:1;">
-          <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 11V2M2 6.5l4.5-4.5 4.5 4.5"/></svg>
-            ${t('income')}
-          </div>
-          <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
-            <div><div style="font-size:10px;color:var(--t4);">TJS</div>
-              <div style="font-size:20px;font-weight:800;color:var(--ad);transition:all .3s;" id="cnt-incTJS">+${fmtN(incTJS)}</div></div>
-            <div style="width:1px;background:var(--bd);height:22px;align-self:center;"></div>
-            <div><div style="font-size:10px;color:var(--t4);">USD</div>
-              <div style="font-size:20px;font-weight:800;color:var(--blue);" id="cnt-incUSD">$${fmtN(incUSD)}</div></div>
-          </div>
-          <div class="sc-val2" style="margin-top:3px;">${inc.length} ${t('ops_count')}${window._homeObj?' · '+window._homeObj:''}</div>
-        </div>
-        <canvas id="spark-inc" width="56" height="32" style="flex-shrink:0;opacity:.75;margin-top:4px;"></canvas>
-      </div>
-    </div>
-    <div class="sc r" style="animation-delay:.07s;overflow:hidden;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div style="flex:1;">
-          <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v9M2 6.5l4.5 4.5 4.5-4.5"/></svg>
-            ${t('expense')}
-          </div>
-          <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
-            <div><div style="font-size:10px;color:var(--t4);">TJS</div>
-              <div style="font-size:20px;font-weight:800;color:var(--red);" id="cnt-expTJS">-${fmtN(expTJS)}</div></div>
-            <div style="width:1px;background:var(--bd);height:22px;align-self:center;"></div>
-            <div><div style="font-size:10px;color:var(--t4);">USD</div>
-              <div style="font-size:20px;font-weight:800;color:var(--ora);" id="cnt-expUSD">$${fmtN(expUSD)}</div></div>
-          </div>
-          <div class="sc-val2" style="margin-top:3px;">${exp.length} ${t('ops_count')}</div>
-        </div>
-        <canvas id="spark-exp" width="56" height="32" style="flex-shrink:0;opacity:.75;margin-top:4px;"></canvas>
-      </div>
-    </div>
-  </div>
   <div class="g2 mb20">
     <div class="sc g" style="animation-delay:.1s;">
       <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
