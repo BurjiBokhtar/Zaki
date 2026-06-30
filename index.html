@@ -802,7 +802,7 @@ canvas{max-width:100%!important;display:block;}
 <div class="app" id="app">
   <div class="sidebar" id="sidebar">
     <div class="sb-hd">
-      <div style="display:flex;align-items:center;gap:10px;">
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="location.reload()" title="Обновить страницу">
         <img src="logo.png" style="height:44px;width:44px;object-fit:contain;border-radius:10px;flex-shrink:0;" alt="Бурҷи Бохтар">
         <div>
           <div style="font-size:14px;font-weight:900;color:#fff;font-family:var(--ff);white-space:nowrap;">Бурҷи <span style="color:#E8A020;">Бохтар</span></div>
@@ -1278,6 +1278,21 @@ function mkChart(id,cfg){
   const el=document.getElementById(id);if(!el)return null;
   const ch=new Chart(el.getContext('2d'),cfg);CHARTS[id]=ch;return ch;
 }
+/* Draws a big total in the middle of a doughnut — modern dashboard look */
+const centerTextPlugin={
+  id:'centerText',
+  afterDraw(chart){
+    const o=chart.config.options&&chart.config.options.plugins&&chart.config.options.plugins.centerText;
+    if(!o||!o.text)return;
+    const a=chart.chartArea;if(!a)return;
+    const cx=(a.left+a.right)/2, cy=(a.top+a.bottom)/2, ctx=chart.ctx;
+    ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=o.color||'#1A2332';ctx.font='800 19px Inter, system-ui, sans-serif';
+    ctx.fillText(o.text,cx,cy-(o.sub?5:0));
+    if(o.sub){ctx.fillStyle=o.subColor||'#9AA5B8';ctx.font='700 10px Inter, system-ui, sans-serif';ctx.fillText(o.sub,cx,cy+13);}
+    ctx.restore();
+  }
+};
 /* Create vertical gradient fill for area charts */
 function chartGrad(id,r,g,b,a0=0.32,a1=0.0){
   const el=document.getElementById(id);
@@ -2899,12 +2914,14 @@ home:async()=>{
       plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:10,padding:10,usePointStyle:true,pointStyleWidth:8}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},
       scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
 
-    // Donut — categories
+    // Donut — categories (with total in the centre + % in tooltip)
     if(ck.length){
-      mkChartWhenVisible('ch-cat',{type:'doughnut',data:{labels:ck,datasets:[{data:ck.map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:2,borderColor:'#fff',borderRadius:5,spacing:3}]},
-        options:{responsive:true,maintainAspectRatio:false,cutout:'68%',animation:donutAnim,
-          plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8,usePointStyle:true}},
-            tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS`}}}}});
+      const catTotal=ck.reduce((a,k)=>a+byCat[k],0);
+      mkChartWhenVisible('ch-cat',{type:'doughnut',plugins:[centerTextPlugin],data:{labels:ck,datasets:[{data:ck.map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:2,borderColor:'#fff',borderRadius:5,spacing:3}]},
+        options:{responsive:true,maintainAspectRatio:false,cutout:'70%',animation:donutAnim,
+          plugins:{centerText:{text:fmtN(catTotal),sub:t('expense')},
+            legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8,usePointStyle:true}},
+            tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS · ${catTotal?Math.round(ctx.raw/catTotal*100):0}%`}}}}});
     }
 
     // Bar chart — by object
@@ -3770,11 +3787,14 @@ stats:async()=>{
     ]},options:{responsive:true,maintainAspectRatio:false,animation:sLineAnim,
       plugins:{legend:{display:false},tooltip:{...CT.tooltip}},
       scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
-    if(ck.length)mkChartWhenVisible('ch-donut',{type:'doughnut',data:{labels:ck.slice(0,7),datasets:[
+    if(ck.length){
+      const dTotal=ck.slice(0,7).reduce((a,k)=>a+byCat[k],0);
+      mkChartWhenVisible('ch-donut',{type:'doughnut',plugins:[centerTextPlugin],data:{labels:ck.slice(0,7),datasets:[
       {data:ck.slice(0,7).map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:2,borderColor:'#fff',borderRadius:5,spacing:3}
-    ]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',animation:sDoughAnim,
-      plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8,usePointStyle:true}},
-        tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS`}}}}});
+    ]},options:{responsive:true,maintainAspectRatio:false,cutout:'70%',animation:sDoughAnim,
+      plugins:{centerText:{text:fmtN(dTotal),sub:t('expense')},legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8,usePointStyle:true}},
+        tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS · ${dTotal?Math.round(ctx.raw/dTotal*100):0}%`}}}}});
+    }
     if(ok.length)mkChartWhenVisible('ch-obj',{type:'bar',data:{labels:ok,datasets:[
       {label:t('income'),data:ok.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.82)',borderRadius:6,borderSkipped:false},
       {label:t('expense'),data:ok.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.76)',borderRadius:6,borderSkipped:false}
