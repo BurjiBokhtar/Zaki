@@ -1,5 +1,5 @@
 /* ── ZAKI ERP Service Worker ── */
-const CACHE_VER = 'zaki-v24';
+const CACHE_VER = 'zaki-v25';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 /* ── Install: pre-cache app shell ── */

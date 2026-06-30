@@ -1182,6 +1182,21 @@ function qCacheClear(prefix){Object.keys(_QC).forEach(k=>{if(!prefix||k.startsWi
 function normName(s){return(s||'').replace(/\s+/g,' ').trim();}
 /* Escape user text before putting it into innerHTML — blocks stored XSS */
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+/* Fetch ALL rows past Supabase's 1000-row cap by paging with .range().
+   Without this, balances silently drop operations once the table exceeds 1000 rows. */
+async function sbFetchAll(table, columns, tweak){
+  const PAGE=1000; let from=0, all=[];
+  for(;;){
+    let q=SB.from(table).select(columns).range(from, from+PAGE-1);
+    if(tweak) q=tweak(q);
+    const {data,error}=await q;
+    if(error) throw error;
+    all=all.concat(data||[]);
+    if(!data || data.length<PAGE) break;
+    from+=PAGE;
+  }
+  return all;
+}
 
 /* ── DEBOUNCE ── */
 function debounce(fn,ms=260){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
@@ -2182,14 +2197,13 @@ function updatePeriodBtns(){
    OPERATIONS
 ══════════════════════════════════════════════ */
 async function getOps(extra={}){
-  let q=SB.from('operations').select('*');
-  q=periodFilter(q);
-  if(USER?.role==='supplier') q=q.eq('worker_name',USER.name);
-  if(extra.type) q=q.eq('type',extra.type);
-  if(extra.worker) q=q.eq('worker_name',extra.worker);
-  const{data,error}=await q.order('date',{ascending:false}).order('id',{ascending:false});
-  if(error)throw error;
-  return data||[];
+  return await sbFetchAll('operations','*',q=>{
+    q=periodFilter(q);
+    if(USER?.role==='supplier') q=q.eq('worker_name',USER.name);
+    if(extra.type) q=q.eq('type',extra.type);
+    if(extra.worker) q=q.eq('worker_name',extra.worker);
+    return q.order('date',{ascending:false}).order('id',{ascending:false});
+  });
 }
 async function delOp(id){
   showConfirm(t('del_q'),async()=>{
@@ -2728,8 +2742,8 @@ home:async()=>{
   // KEY FIX: balance must always use ALL-TIME ops, not period-filtered
   const periodKey='home_period_'+PERIOD+'_'+(window._homeObj||'');
   const[periodR, allTimeR, debtsR, advR, profR]=await Promise.all([
-    qCached(periodKey,()=>{let q=SB.from('operations').select('*');q=periodFilter(q);return q;}),
-    qCached('home_alltime',()=>SB.from('operations').select('type,amount,currency,amount_tjs,method,worker_name,date,object_name,category_name').order('date')),
+    qCached(periodKey,()=>sbFetchAll('operations','*',periodFilter)),
+    qCached('home_alltime',()=>sbFetchAll('operations','type,amount,currency,amount_tjs,method,worker_name,date,object_name,category_name',q=>q.order('date'))),
     qCached('home_debts',()=>SB.from('debts').select('*')),
     qCached('home_advances',()=>SB.from('advances').select('amount,currency')),
     qCached('home_profiles',()=>SB.from('profiles').select('name,role').eq('role','supplier')),
@@ -3708,8 +3722,8 @@ debts:async()=>{
 
 /* ── STATS ── */
 stats:async()=>{
-  const[{data:allOps}]=await Promise.all([
-    (()=>{let q=SB.from('operations').select('*');q=periodFilter(q);return q;})()
+  const[allOps]=await Promise.all([
+    sbFetchAll('operations','*',periodFilter)
   ]);
   const ops=allOps||[];window._ops=ops;
   const rate=COMPANY.usd_rate||10.92;
@@ -3718,7 +3732,7 @@ stats:async()=>{
   const expTJS=ops.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const incUSD=ops.filter(o=>o.type==='income'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
   const expUSD=ops.filter(o=>o.type==='expense'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
-  const {data:allOpsAll}=await SB.from('operations').select('date,type,amount_tjs').order('date');
+  const allOpsAll=await sbFetchAll('operations','date,type,amount_tjs',q=>q.order('date'));
   const months=[];for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);months.push(d.toISOString().slice(0,7));}
   const mInc=months.map(m=>(allOpsAll||[]).filter(o=>o.type==='income'&&o.date?.startsWith(m)).reduce((a,o)=>a+(o.amount_tjs||0),0));
   const mExp=months.map(m=>(allOpsAll||[]).filter(o=>o.type==='expense'&&o.date?.startsWith(m)).reduce((a,o)=>a+(o.amount_tjs||0),0));
@@ -4127,8 +4141,8 @@ async function exportMyPDF(title){
 /* Returns current cash balance in TJS (income − direct_expenses − advances) */
 async function getCashBalance(){
   const rate=COMPANY.usd_rate||10.92;
-  const[{data:ops},{data:supProfs}]=await Promise.all([
-    SB.from('operations').select('type,amount_tjs,amount,currency,method,worker_name'),
+  const[ops,{data:supProfs}]=await Promise.all([
+    sbFetchAll('operations','type,amount_tjs,amount,currency,method,worker_name'),
     SB.from('profiles').select('name').eq('role','supplier')
   ]);
   const supNames=new Set((supProfs||[]).map(p=>p.name));
