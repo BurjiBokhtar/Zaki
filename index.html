@@ -1197,6 +1197,23 @@ async function sbFetchAll(table, columns, tweak){
   }
   return all;
 }
+/* All-time operations for balance/charts. Prefers the server-side rollup RPC
+   (grouped sums — scales to any row count); falls back to paged full fetch if
+   the RPC isn't present. Rollup rows are reshaped into synthetic ops so every
+   downstream calculation keeps working unchanged. */
+async function fetchAllTimeOps(){
+  try{
+    const {data,error}=await SB.rpc('op_rollup_alltime');
+    if(error) throw error;
+    if(Array.isArray(data)) return data.map(r=>({
+      type:r.type, currency:r.currency, method:r.method||null,
+      worker_name:r.worker_name||'', object_name:r.object_name||'',
+      date:(r.ym||'1970-01')+'-01',
+      amount:Number(r.amount)||0, amount_tjs:Number(r.amount_tjs)||0
+    }));
+  }catch(e){ /* RPC missing/old → fall back to full paged fetch */ }
+  return sbFetchAll('operations','type,amount,currency,amount_tjs,method,worker_name,date,object_name,category_name',q=>q.order('date'));
+}
 
 /* ── DEBOUNCE ── */
 function debounce(fn,ms=260){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
@@ -2743,7 +2760,7 @@ home:async()=>{
   const periodKey='home_period_'+PERIOD+'_'+(window._homeObj||'');
   const[periodR, allTimeR, debtsR, advR, profR]=await Promise.all([
     qCached(periodKey,()=>sbFetchAll('operations','*',periodFilter)),
-    qCached('home_alltime',()=>sbFetchAll('operations','type,amount,currency,amount_tjs,method,worker_name,date,object_name,category_name',q=>q.order('date'))),
+    qCached('home_alltime',()=>fetchAllTimeOps()),
     qCached('home_debts',()=>SB.from('debts').select('*')),
     qCached('home_advances',()=>SB.from('advances').select('amount,currency')),
     qCached('home_profiles',()=>SB.from('profiles').select('name,role').eq('role','supplier')),
@@ -3732,7 +3749,7 @@ stats:async()=>{
   const expTJS=ops.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
   const incUSD=ops.filter(o=>o.type==='income'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
   const expUSD=ops.filter(o=>o.type==='expense'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
-  const allOpsAll=await sbFetchAll('operations','date,type,amount_tjs',q=>q.order('date'));
+  const allOpsAll=await fetchAllTimeOps();
   const months=[];for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);months.push(d.toISOString().slice(0,7));}
   const mInc=months.map(m=>(allOpsAll||[]).filter(o=>o.type==='income'&&o.date?.startsWith(m)).reduce((a,o)=>a+(o.amount_tjs||0),0));
   const mExp=months.map(m=>(allOpsAll||[]).filter(o=>o.type==='expense'&&o.date?.startsWith(m)).reduce((a,o)=>a+(o.amount_tjs||0),0));
@@ -4140,6 +4157,11 @@ async function exportMyPDF(title){
 
 /* Returns current cash balance in TJS (income − direct_expenses − advances) */
 async function getCashBalance(){
+  // Fast path: server computes the balance (scales to any row count)
+  try{
+    const {data,error}=await SB.rpc('cash_balance');
+    if(!error && data!=null) return Math.round(Number(data)*100)/100;
+  }catch(e){ /* RPC missing → fall back to client computation below */ }
   const rate=COMPANY.usd_rate||10.92;
   const[ops,{data:supProfs}]=await Promise.all([
     sbFetchAll('operations','type,amount_tjs,amount,currency,method,worker_name'),
