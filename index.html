@@ -1606,7 +1606,12 @@ ${opts.supplier ? `
   <div class="sum-item"><div class="sum-label">Расходы TJS</div><div class="sum-val red">-${nf(expTJS)}</div></div>
   <div class="sum-item"><div class="sum-label">Баланс TJS</div><div class="sum-val ${incTJS-expTJS>=0?'green':'red'}">${incTJS-expTJS>=0?'+':''}${nf(incTJS-expTJS)}</div></div>
   <div class="sum-item"><div class="sum-label">USD</div><div class="sum-val blue">$${Number(incUSD-expUSD).toFixed(2)}</div></div>
-</div>` : '')}
+</div>` : `
+<div class="summary" style="grid-template-columns:repeat(3,1fr);">
+  <div class="sum-item"><div class="sum-label">${_tj?'Даромад':'Приходы'} TJS</div><div class="sum-val green">+${nf(incTJS)}</div></div>
+  <div class="sum-item"><div class="sum-label">${_tj?'Даромад':'Приходы'} USD</div><div class="sum-val blue">$${nf(incUSD)}</div></div>
+  <div class="sum-item"><div class="sum-label">${_tj?'Амалиётҳо':'Операций'}</div><div class="sum-val blue">${ops.length}</div></div>
+</div>`)}
 
 </body></html>`;
   w.document.write(pdfSrc);w.document.close();setTimeout(()=>w.print(),500);
