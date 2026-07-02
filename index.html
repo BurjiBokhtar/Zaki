@@ -1510,15 +1510,19 @@ function exportPDF(title,ops,opts){
   const typeLabel=o=>o.type==='income'?(_tj?'Даромад':'Приход'):o.type==='advance'?(_tj?'Пешпардохт':'Аванс'):(_tj?'Харҷ':'Расход');
   const nf=n=>Number(n||0).toLocaleString('ru',{maximumFractionDigits:2});
   const fmtDate=d=>{if(!d)return '—';const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:d;};
-  const rows=ops.map(o=>`<tr>
+  // Chronological order (oldest → newest), e.g. 1 → 30 for a month
+  const sorted=[...ops].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||((a.id||0)-(b.id||0)));
+  // Материальные колонки (кол-во/ед./цена) и итог-баланс — только когда есть расходы/авансы
+  const hasExp=ops.some(o=>o.type!=='income');
+  const rows=sorted.map(o=>`<tr>
     <td style="white-space:nowrap;">${fmtDate(o.date)}</td>
     <td style="color:${o.type==='income'?'#2A9066':o.type==='advance'?'#3182CE':'#E53E3E'};font-weight:600;">${typeLabel(o)}</td>
     <td>${o.object_name||'—'}</td>
     <td>${o.category_name||'—'}</td>
     <td>${o.description||'—'}</td>
-    <td style="text-align:center;">${o.qty?nf(o.qty):''}</td>
+    ${hasExp?`<td style="text-align:center;">${o.qty?nf(o.qty):''}</td>
     <td style="text-align:center;">${o.unit||''}</td>
-    <td style="text-align:right;">${o.price?nf(o.price):''}</td>
+    <td style="text-align:right;">${o.price?nf(o.price):''}</td>`:''}
     <td style="text-align:right;font-weight:600;color:${o.type==='income'?'#2A9066':'#E53E3E'};white-space:nowrap;">
       ${o.type==='income'?'+':'−'}${nf(o.amount)} ${o.currency}
     </td>
@@ -1550,8 +1554,8 @@ function exportPDF(title,ops,opts){
   .sum-val.red{color:#E53E3E;}
   .sum-val.blue{color:#3182CE;}
   footer{margin-top:20px;padding-top:12px;border-top:1px solid #E4E9F0;text-align:center;font-size:9px;color:#9AA5B8;}
-  @page{size:A4;margin:0;}
-  @media print{body{padding:15mm 10mm;}tr{page-break-inside:avoid;}thead{display:table-header-group;}}
+  @page{size:A4;margin:14mm 10mm;}
+  @media print{body{padding:0;}tr{page-break-inside:avoid;}thead{display:table-header-group;}.header{padding-top:2mm;}}
 </style></head><body>
 <div class="header">
   <div style="display:flex;align-items:center;gap:12px;">
@@ -1580,9 +1584,9 @@ function exportPDF(title,ops,opts){
       <th>Объект</th>
       <th>Категория</th>
       <th>Описание</th>
-      <th style="text-align:center;">Кол-во</th>
+      ${hasExp?`<th style="text-align:center;">Кол-во</th>
       <th style="text-align:center;">Ед.</th>
-      <th style="text-align:right;">Цена</th>
+      <th style="text-align:right;">Цена</th>`:''}
       <th style="text-align:right;">Сумма</th>
       <th>Сотрудник</th>
     </tr>
@@ -1596,13 +1600,13 @@ ${opts.supplier ? `
   <div class="sum-item"><div class="sum-label">${_tj?'Харҷ шуд':'Потрачено'}</div><div class="sum-val red">-${nf(opts.spent||0)} TJS</div></div>
   <div class="sum-item"><div class="sum-label">${_tj?'Бақия':'Остаток'}</div><div class="sum-val ${(opts.remain||0)>=0?'green':'red'}">${(opts.remain||0)>=0?'':'-'}${nf(Math.abs(opts.remain||0))} TJS</div></div>
   <div class="sum-item"><div class="sum-label">${_tj?'Амалиётҳо':'Операций'}</div><div class="sum-val blue">${ops.length}</div></div>
-</div>` : `
+</div>` : (hasExp ? `
 <div class="summary">
   <div class="sum-item"><div class="sum-label">Приходы TJS</div><div class="sum-val green">+${nf(incTJS)}</div></div>
   <div class="sum-item"><div class="sum-label">Расходы TJS</div><div class="sum-val red">-${nf(expTJS)}</div></div>
   <div class="sum-item"><div class="sum-label">Баланс TJS</div><div class="sum-val ${incTJS-expTJS>=0?'green':'red'}">${incTJS-expTJS>=0?'+':''}${nf(incTJS-expTJS)}</div></div>
   <div class="sum-item"><div class="sum-label">USD</div><div class="sum-val blue">$${Number(incUSD-expUSD).toFixed(2)}</div></div>
-</div>`}
+</div>` : '')}
 
 </body></html>`;
   w.document.write(pdfSrc);w.document.close();setTimeout(()=>w.print(),500);
