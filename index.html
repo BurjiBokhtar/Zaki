@@ -1218,6 +1218,27 @@ async function fetchAllTimeOps(){
 /* ── DEBOUNCE ── */
 function debounce(fn,ms=260){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
 
+/* ── COLLAPSIBLE LIST ── render first N, hide the rest behind a toggle ── */
+function collapseList(htmlArr, firstN, id, label){
+  label=label||'Показать все';
+  if(!htmlArr||htmlArr.length<=firstN) return (htmlArr||[]).join('');
+  const rest=htmlArr.slice(firstN).join('');
+  const n=htmlArr.length;
+  return htmlArr.slice(0,firstN).join('')
+    +`<div id="${id}" style="display:none;">${rest}</div>`
+    +`<button type="button" data-label="${label} (${n})" onclick="toggleCollapse(this,'${id}')" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;margin:4px 0 12px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:var(--ff);">`
+    +`<span class="cl-t">${label} (${n})</span>`
+    +`<svg class="cl-i" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="transition:transform .2s;"><path d="M3 4.5l3 3 3-3"/></svg></button>`;
+}
+function toggleCollapse(btn,id){
+  const m=document.getElementById(id); if(!m) return;
+  const showing=getComputedStyle(m).display!=='none';
+  m.style.display=showing?'none':'block';
+  const t=btn.querySelector('.cl-t'), ic=btn.querySelector('.cl-i');
+  if(t) t.textContent = showing ? btn.dataset.label : 'Свернуть';
+  if(ic) ic.style.transform = showing ? '' : 'rotate(180deg)';
+}
+
 /* ── DB HELPERS ── */
 async function db(table){return SB.from(table);}
 async function q(table,fn){
@@ -3639,7 +3660,7 @@ snab_detail:async()=>{
 
   ${dayGroups.length?`
   <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">${t('active_adv')} (${dayGroups.length} дн.)</div>
-  ${dayGroups.map(([d,g],i)=>dayCard(d,g,i)).join('')}
+  ${collapseList(dayGroups.map(([d,g],i)=>dayCard(d,g,i)), 4, 'adv-active-more')}
   `:`<div class="empty" style="padding:28px 0;"><div class="empty-icon">💳</div>${t('no_active_adv')}</div>`}
 
   <div class="card mb10" style="animation:fadeUp .3s ease .2s both;">
@@ -3651,7 +3672,7 @@ snab_detail:async()=>{
 
   ${closedGroups.length?`
   <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;margin-top:14px;">${t('closed_adv')} (${closedGroups.length} дн.)</div>
-  ${closedGroups.map(([d,g],i)=>closedDayRow(d,g,i)).join('')}`:''}`;
+  ${collapseList(closedGroups.map(([d,g],i)=>closedDayRow(d,g,i)), 4, 'adv-closed-more')}`:''}`;
 },
 
 
