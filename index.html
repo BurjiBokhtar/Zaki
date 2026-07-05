@@ -2792,7 +2792,7 @@ home:async()=>{
     qCached(periodKey,()=>sbFetchAll('operations','*',periodFilter)),
     qCached('home_alltime',()=>fetchAllTimeOps()),
     qCached('home_debts',()=>SB.from('debts').select('*')),
-    qCached('home_advances',()=>SB.from('advances').select('amount,currency')),
+    qCached('home_advances',()=>sbFetchAll('advances','amount,currency')),
     qCached('home_profiles',()=>SB.from('profiles').select('name,role').eq('role','supplier')),
   ]);
 
@@ -3397,9 +3397,9 @@ ops:async()=>{
 /* ── SNABS ── */
 snabs:async()=>{
   const rate=COMPANY.usd_rate||10.92;
-  const[{data:advs},{data:allOps}]=await Promise.all([
-    SB.from('advances').select('*').order('created_at',{ascending:false}),
-    SB.from('operations').select('worker_name,amount_tjs,type').eq('type','expense')
+  const[advs,allOps]=await Promise.all([
+    sbFetchAll('advances','*',q=>q.order('created_at',{ascending:false})),
+    sbFetchAll('operations','worker_name,amount_tjs,type',q=>q.eq('type','expense'))
   ]);
   const clrs=['var(--a)','var(--blue)','var(--pur)','var(--ora)'];
   const bgs=['var(--al)','var(--bluel)','var(--purl)','var(--oral)'];
@@ -3516,10 +3516,10 @@ snab_detail:async()=>{
   if(!name){go('snabs');return '';}
   const rate=COMPANY.usd_rate||10.92;
   const d10=new Date(Date.now()-10*24*60*60*1000).toISOString().slice(0,10);
-  const[{data:advs},{data:ops},{data:allOpsBalance}]=await Promise.all([
-    SB.from('advances').select('*').eq('worker_name',name).order('created_at',{ascending:false}),
-    SB.from('operations').select('*').eq('type','expense').eq('worker_name',name).gte('date',d10).order('date',{ascending:false}),
-    SB.from('operations').select('amount_tjs').eq('type','expense').eq('worker_name',name)
+  const[advs,ops,allOpsBalance]=await Promise.all([
+    sbFetchAll('advances','*',q=>q.eq('worker_name',name).order('created_at',{ascending:false})),
+    sbFetchAll('operations','*',q=>q.eq('type','expense').eq('worker_name',name).gte('date',d10).order('date',{ascending:false})),
+    sbFetchAll('operations','amount_tjs',q=>q.eq('type','expense').eq('worker_name',name))
   ]);
   const allAdvs=advs||[];
   const active=allAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
@@ -3967,10 +3967,10 @@ settings:async()=>{
 my:async()=>{
   const d10=new Date(Date.now()-10*24*60*60*1000).toISOString().slice(0,10);
   const d30=new Date(Date.now()-30*24*60*60*1000).toISOString().slice(0,10);
-  const[{data:advs},{data:ops},{data:allOpsBalance}]=await Promise.all([
-    SB.from('advances').select('*').eq('worker_name',USER?.name).order('created_at',{ascending:false}),
-    SB.from('operations').select('*').eq('type','expense').eq('worker_name',USER?.name).gte('date',d10).order('date',{ascending:false}),
-    SB.from('operations').select('amount_tjs').eq('type','expense').eq('worker_name',USER?.name)
+  const[advs,ops,allOpsBalance]=await Promise.all([
+    sbFetchAll('advances','*',q=>q.eq('worker_name',USER?.name).order('created_at',{ascending:false})),
+    sbFetchAll('operations','*',q=>q.eq('type','expense').eq('worker_name',USER?.name).gte('date',d10).order('date',{ascending:false})),
+    sbFetchAll('operations','amount_tjs',q=>q.eq('type','expense').eq('worker_name',USER?.name))
   ]);
   const rate=COMPANY.usd_rate||10.92;
   const allAdvs=advs||[];
@@ -4071,7 +4071,7 @@ addexp:async()=>{
   return '<div></div>';
 },
 myexp:async()=>{
-  const{data:ops}=await SB.from('operations').select('*').eq('type','expense').eq('worker_name',USER?.name).order('date',{ascending:false});
+  const ops=await sbFetchAll('operations','*',q=>q.eq('type','expense').eq('worker_name',USER?.name).order('date',{ascending:false}));
   window._ops=ops||[];const rate=COMPANY.usd_rate||10.92;
   const total=(ops||[]).reduce((a,o)=>a+(o.amount_tjs||0),0);
   return `
@@ -4085,8 +4085,8 @@ myexp:async()=>{
   </div>`;
 },
 tasks:async()=>{
-  const{data:advs}=await SB.from('advances').select('*').eq('worker_name',USER?.name);
-  const{data:ops}=await SB.from('operations').select('amount_tjs,worker_name').eq('type','expense').eq('worker_name',USER?.name);
+  const advs=await sbFetchAll('advances','*',q=>q.eq('worker_name',USER?.name));
+  const ops=await sbFetchAll('operations','amount_tjs,worker_name',q=>q.eq('type','expense').eq('worker_name',USER?.name));
   const spent=(ops||[]).reduce((a,o)=>a+(o.amount_tjs||0),0);
   return `${(advs||[]).map((a,i)=>{
     const rem=a.amount-spent;const pct=a.amount>0?Math.min(spent/a.amount*100,100):0;
@@ -4159,9 +4159,9 @@ function canAdmin(){return USER?.role==='accountant'||USER?.role==='admin';}
    Uses all advances (active+closed) so that after a closed cycle, a new advance
    correctly adds to the cumulative balance instead of going negative. */
 async function getSupplierRemaining(workerName){
-  const[{data:advs},{data:spentOps}]=await Promise.all([
-    SB.from('advances').select('amount,currency').eq('worker_name',workerName),
-    SB.from('operations').select('amount_tjs').eq('type','expense').eq('worker_name',workerName)
+  const[advs,spentOps]=await Promise.all([
+    sbFetchAll('advances','amount,currency',q=>q.eq('worker_name',workerName)),
+    sbFetchAll('operations','amount_tjs',q=>q.eq('type','expense').eq('worker_name',workerName))
   ]);
   const rate=COMPANY.usd_rate||10.92;
   const totalAdv=(advs||[]).reduce((s,a)=>{
@@ -4174,9 +4174,9 @@ async function getSupplierRemaining(workerName){
 /* Supplier PDF export with balance summary (given / spent / remaining) */
 async function exportMyPDF(title){
   const wName=USER?.name||'';
-  const[{data:advs},{data:spentOps}]=await Promise.all([
-    SB.from('advances').select('amount,currency').eq('worker_name',wName),
-    SB.from('operations').select('amount_tjs').eq('type','expense').eq('worker_name',wName)
+  const[advs,spentOps]=await Promise.all([
+    sbFetchAll('advances','amount,currency',q=>q.eq('worker_name',wName)),
+    sbFetchAll('operations','amount_tjs',q=>q.eq('type','expense').eq('worker_name',wName))
   ]);
   const rate=COMPANY.usd_rate||10.92;
   const given=(advs||[]).reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
@@ -4344,7 +4344,7 @@ function openWorkerDetail(name){window._viewWorker=name;go('snab_detail');}
 function openNewAdvFor(name){window._pendingAdvWorker=name;openNewAdv();}
 
 async function showWorkerOps(name){
-  const{data:ops}=await SB.from('operations').select('*').eq('worker_name',name).order('date',{ascending:false});
+  const ops=await sbFetchAll('operations','*',q=>q.eq('worker_name',name).order('date',{ascending:false}));
   openModal('Расходы: '+name,`<div style="max-height:380px;overflow-y:auto;">${(ops||[]).map(o=>txRow(o,false)).join('')||`<div class="empty">${t('no_data')}</div>`}</div>`,()=>closeModal(),'Закрыть');
   document.getElementById('m-ft').innerHTML=`<button class="btn btn-p btn-sm" onclick="closeModal()">Закрыть</button>`;
 }
