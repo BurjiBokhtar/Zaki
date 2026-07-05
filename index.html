@@ -3826,9 +3826,9 @@ stats:async()=>{
     const sLineAnim={duration:1200,easing:'easeOutQuart'};
     const sDoughAnim={duration:1000,easing:'easeOutElastic',animateRotate:true,animateScale:true};
     mkChartWhenVisible('ch-bars',{type:'bar',data:{labels:months.map(m=>m.slice(5)),datasets:[
-      {label:t('income')+' TJS',data:mInc,backgroundColor:'rgba(57,185,128,.85)',borderRadius:8,borderSkipped:false},
-      {label:t('expense')+' TJS',data:mExp,backgroundColor:'rgba(229,62,62,.78)',borderRadius:8,borderSkipped:false}
-    ]},options:{responsive:true,maintainAspectRatio:false,animation:sBarAnim,interaction:{mode:'index',intersect:false},
+      {label:t('income')+' TJS',data:mInc,backgroundColor:'rgba(57,185,128,.85)',hoverBackgroundColor:'#39B980',borderRadius:8,borderSkipped:false},
+      {label:t('expense')+' TJS',data:mExp,backgroundColor:'rgba(229,62,62,.78)',hoverBackgroundColor:'#E53E3E',borderRadius:8,borderSkipped:false}
+    ]},options:{responsive:true,maintainAspectRatio:false,animation:sBarAnim,interaction:{mode:'index',intersect:false},onHover:(e,el)=>{e.native.target.style.cursor=el.length?'pointer':'default';},
       plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:10,padding:10,usePointStyle:true}},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw)} TJS`}}},
       scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
     mkChartWhenVisible('ch-cf',{type:'line',data:{labels:months.map(m=>m.slice(5)),datasets:[
@@ -3836,28 +3836,29 @@ stats:async()=>{
        backgroundColor:chartGrad('ch-cf',57,185,128,.3),fill:true,tension:.45,borderWidth:2.5,
        pointRadius:4,pointHoverRadius:7,pointBackgroundColor:'#fff',pointBorderWidth:2.5,
        pointBorderColor:ctx=>ctx.raw>=0?'#39B980':'#E53E3E'}
-    ]},options:{responsive:true,maintainAspectRatio:false,animation:sLineAnim,
+    ]},options:{responsive:true,maintainAspectRatio:false,animation:sLineAnim,interaction:{mode:'index',intersect:false},onHover:(e,el)=>{e.native.target.style.cursor=el.length?'pointer':'default';},
       plugins:{legend:{display:false},tooltip:{...CT.tooltip}},
       scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}}}}});
     if(ck.length){
       const dTotal=ck.slice(0,7).reduce((a,k)=>a+byCat[k],0);
       mkChartWhenVisible('ch-donut',{type:'doughnut',plugins:[centerTextPlugin],data:{labels:ck.slice(0,7),datasets:[
-      {data:ck.slice(0,7).map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:2,borderColor:'#fff',borderRadius:5,spacing:3}
-    ]},options:{responsive:true,maintainAspectRatio:false,cutout:'70%',animation:sDoughAnim,
+      {data:ck.slice(0,7).map(k=>byCat[k]),backgroundColor:CT.colors,borderWidth:2,borderColor:'#fff',borderRadius:5,spacing:3,hoverOffset:16,hoverBorderColor:'#fff',hoverBorderWidth:3}
+    ]},options:{responsive:true,maintainAspectRatio:false,cutout:'70%',animation:sDoughAnim,onHover:(e,el)=>{e.native.target.style.cursor=el.length?'pointer':'default';},
       plugins:{centerText:{text:fmtN(dTotal),sub:t('expense')},legend:{position:'right',labels:{font:{family:'Inter',size:10},boxWidth:9,padding:8,usePointStyle:true}},
         tooltip:{...CT.tooltip,callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)} TJS · ${dTotal?Math.round(ctx.raw/dTotal*100):0}%`}}}}});
     }
     if(ok.length)mkChartWhenVisible('ch-obj',{type:'bar',data:{labels:ok,datasets:[
-      {label:t('income'),data:ok.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.82)',borderRadius:6,borderSkipped:false},
-      {label:t('expense'),data:ok.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.76)',borderRadius:6,borderSkipped:false}
-    ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:sBarAnim,interaction:{mode:'index',intersect:false},
+      {label:t('income'),data:ok.map(k=>byObj[k].inc),backgroundColor:'rgba(57,185,128,.82)',hoverBackgroundColor:'#39B980',borderRadius:6,borderSkipped:false},
+      {label:t('expense'),data:ok.map(k=>byObj[k].exp),backgroundColor:'rgba(229,62,62,.76)',hoverBackgroundColor:'#E53E3E',borderRadius:6,borderSkipped:false}
+    ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:sBarAnim,interaction:{mode:'index',intersect:false},onHover:(e,el)=>{e.native.target.style.cursor=el.length?'pointer':'default';},
       plugins:{legend:{position:'top',labels:{font:{family:'Inter',size:11},boxWidth:9,padding:8,usePointStyle:true}},tooltip:{...CT.tooltip}},
       scales:{x:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>fmtN(v)},border:{display:false}},y:{grid:{display:false},ticks:CT.ticks}}}});
     mkChartWhenVisible('ch-usd',{type:'bar',data:{labels:[t('income'),t('expense'),t('balance')],datasets:[
       {data:[incUSD,expUSD,incUSD-expUSD],
        backgroundColor:['rgba(57,185,128,.85)','rgba(229,62,62,.82)',incUSD-expUSD>=0?'rgba(49,130,206,.85)':'rgba(229,62,62,.82)'],
+       hoverBackgroundColor:['#39B980','#E53E3E',incUSD-expUSD>=0?'#3182CE':'#E53E3E'],
        borderRadius:10,borderSkipped:false}
-    ]},options:{responsive:true,maintainAspectRatio:false,animation:{...sBarAnim,delay:ctx=>ctx.dataIndex*120},
+    ]},options:{responsive:true,maintainAspectRatio:false,animation:{...sBarAnim,delay:ctx=>ctx.dataIndex*120},onHover:(e,el)=>{e.native.target.style.cursor=el.length?'pointer':'default';},
       plugins:{legend:{display:false},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`$${fmtN(ctx.raw)}`}}},
       scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>'$'+fmtN(v)},border:{display:false}}}}});
     initReveal();
