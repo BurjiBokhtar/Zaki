@@ -479,6 +479,10 @@ html{height:100dvh;}
 .mm.r{background:linear-gradient(165deg,rgba(231,76,60,.08),var(--w) 60%);}
 .mm-ico{width:42px;height:42px;border-radius:12px;margin:0 auto 9px;display:flex;align-items:center;justify-content:center;transition:transform .2s ease;}
 .mm:hover .mm-ico{transform:scale(1.1) rotate(-3deg);}
+.reveal{opacity:0;transform:translateY(30px) scale(.98);transition:opacity .6s cubic-bezier(.22,.61,.36,1),transform .6s cubic-bezier(.22,.61,.36,1);}
+.reveal.in{opacity:1;transform:none;}
+.reveal-h{font-size:12px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin:22px 2px 12px;display:flex;align-items:center;gap:9px;}
+.reveal-h::before{content:'';width:4px;height:15px;border-radius:3px;background:linear-gradient(180deg,#39B980,#2176ae);}
 .mm-l{font-size:9px;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
 .mm-v{font-size:16px;font-weight:800;letter-spacing:-.3px;}
 .mm-v2{font-size:10px;color:var(--t4);margin-top:2px;font-weight:600;}
@@ -1388,6 +1392,19 @@ function mkChartWhenVisible(id,cfg){
   obs.observe(el);
 }
 function destroyCharts(){Object.values(CHARTS).forEach(c=>{try{c.destroy();}catch(e){}});CHARTS={};}
+/* Scroll-reveal: fade/slide sections in as they enter the viewport */
+let _revealObs=null;
+function initReveal(){
+  const els=document.querySelectorAll('.reveal:not(.in)');
+  if(!('IntersectionObserver' in window)){els.forEach(e=>e.classList.add('in'));return;}
+  if(_revealObs)_revealObs.disconnect();
+  _revealObs=new IntersectionObserver((ents)=>{
+    ents.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');_revealObs.unobserve(e.target);}});
+  },{threshold:0.08,rootMargin:'0px 0px -6% 0px'});
+  els.forEach(el=>_revealObs.observe(el));
+  // Safety: nothing should stay invisible if the observer never fires
+  setTimeout(()=>document.querySelectorAll('.reveal:not(.in)').forEach(e=>{const r=e.getBoundingClientRect();if(r.top<innerHeight)e.classList.add('in');}),400);
+}
 
 /* ── TX ROW ── */
 function txRow(o,canEdit){
@@ -3843,10 +3860,12 @@ stats:async()=>{
     ]},options:{responsive:true,maintainAspectRatio:false,animation:{...sBarAnim,delay:ctx=>ctx.dataIndex*120},
       plugins:{legend:{display:false},tooltip:{...CT.tooltip,callbacks:{label:ctx=>`$${fmtN(ctx.raw)}`}}},
       scales:{x:{grid:{display:false},ticks:CT.ticks},y:{grid:{color:CT.grid},ticks:{...CT.ticks,callback:v=>'$'+fmtN(v)},border:{display:false}}}}});
+    initReveal();
   },80);
 
   return `
-  <!-- KPI row -->
+  <div class="reveal-h">${LANG==='tj'?'Ҷамъбаст':'Итоги'}</div>
+  <div class="reveal">
   <div class="g4 mb14">
     ${[
       {lbl:'↓ TJS '+t('income'), val:'+'+fmtN(incTJS), sub:ops.filter(o=>o.type==='income'&&o.currency==='TJS').length+' '+t('ops_count'), c1:'#1a6645',c2:'rgba(57,185,128,.12)',b:'rgba(57,185,128,.25)'},
@@ -3860,7 +3879,9 @@ stats:async()=>{
       <div style="font-size:10px;color:${k.c1};opacity:.5;margin-top:4px;">${k.sub}</div>
     </div>`).join('')}
   </div>
-  <!-- Net P&L -->
+  </div>
+  <div class="reveal-h">${LANG==='tj'?'Фоидаи холис':'Чистая прибыль'}</div>
+  <div class="reveal">
   <div class="g2 mb16">
     <div style="padding:14px 16px;background:${incTJS-expTJS>=0?'linear-gradient(135deg,rgba(57,185,128,.12),rgba(57,185,128,.05))':'linear-gradient(135deg,rgba(229,62,62,.1),rgba(229,62,62,.04))'};border-radius:16px;border:1px solid ${incTJS-expTJS>=0?'rgba(57,185,128,.25)':'rgba(229,62,62,.2)'};animation:fadeUp .3s ease .24s both;">
       <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">${t('net_p')} TJS</div>
@@ -3873,17 +3894,25 @@ stats:async()=>{
       <div style="font-size:11px;color:var(--t4);margin-top:3px;">≈ ${fmtN((incUSD-expUSD)*rate)} TJS</div>
     </div>
   </div>
-  <!-- Charts grid -->
+  </div>
+  <div class="reveal-h">${LANG==='tj'?'Динамика':'Динамика'}</div>
+  <div class="reveal">
   <div class="g2 mb16">
     <div class="ch-card" style="animation-delay:.05s;--ch-top:linear-gradient(90deg,#39B980,#2176ae);"><div class="sh"><div class="sh-t">${t('income')} vs ${t('expense')}</div></div><div class="ch-wrap ch240"><canvas id="ch-bars"></canvas></div></div>
     <div class="ch-card" style="animation-delay:.08s;--ch-top:linear-gradient(90deg,#3182CE,#8e44ad);"><div class="sh"><div class="sh-t">Net Cash Flow TJS</div></div><div class="ch-wrap ch240"><canvas id="ch-cf"></canvas></div></div>
   </div>
+  </div>
+  <div class="reveal-h">${LANG==='tj'?'Сохтор':'Структура'}</div>
+  <div class="reveal">
   <div class="g2 mb16">
     <div class="ch-card" style="animation-delay:.11s;--ch-top:linear-gradient(90deg,#f39c12,#e74c3c);"><div class="sh"><div class="sh-t">${t('by_cat')}</div></div><div class="ch-wrap ch200"><canvas id="ch-donut"></canvas></div></div>
     <div class="ch-card" style="animation-delay:.14s;--ch-top:linear-gradient(90deg,#2176ae,#39B980);"><div class="sh"><div class="sh-t">${t('income')} / ${t('expense')} USD</div></div><div class="ch-wrap ch200"><canvas id="ch-usd"></canvas></div></div>
   </div>
-  ${ok.length?`<div class="ch-card mb16" style="animation-delay:.17s;--ch-top:linear-gradient(90deg,#8e44ad,#f39c12);"><div class="sh"><div class="sh-t">${t('by_obj')}</div></div><div class="ch-wrap ch200"><canvas id="ch-obj"></canvas></div></div>`:''}
-  <div class="card" style="animation:fadeUp .3s ease .15s both;">
+  </div>
+  ${ok.length?`<div class="reveal-h">${LANG==='tj'?'Аз рӯи объектҳо':'По объектам'}</div><div class="reveal"><div class="ch-card mb16" style="--ch-top:linear-gradient(90deg,#8e44ad,#f39c12);"><div class="sh"><div class="sh-t">${t('by_obj')}</div></div><div class="ch-wrap ch200"><canvas id="ch-obj"></canvas></div></div></div>`:''}
+  <div class="reveal-h">${LANG==='tj'?'Содирот':'Экспорт'}</div>
+  <div class="reveal">
+  <div class="card">
     <div class="sh"><div class="sh-t">${t('xl')} / ${t('pdf')}</div></div>
     <div class="exp-row">
       <button class="eb eb-xl" onclick="exportXL(window._ops||[],'BurjiBokhtar_full')">${t('full')} Excel</button>
@@ -3892,6 +3921,7 @@ stats:async()=>{
       <button class="eb eb-pdf" onclick="exportPDF(t('full'),window._ops||[])">${t('full')} PDF</button>
       <button class="eb eb-pdf" onclick="exportPDF(t('expense'),(window._ops||[]).filter(o=>o.type==='expense'))">${t('expense')} PDF</button>
     </div>
+  </div>
   </div>`;
 },
 
