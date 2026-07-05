@@ -2221,7 +2221,9 @@ function setLang(l){
     lltj.style.borderColor=l==='tj'?'#39B980':'rgba(255,255,255,.2)';
   }
   updateLoginTexts();updatePeriodBtns();
-  if(USER){buildNav();renderPage(CUR_PAGE);}
+  // Re-render clears old charts first — otherwise the stale CHARTS registry
+  // makes mkChartWhenVisible skip drawing on the fresh canvases (empty charts).
+  if(USER){buildNav();destroyCharts();renderPage(CUR_PAGE);}
 }
 function updateLoginTexts(){
   const m={
