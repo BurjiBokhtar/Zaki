@@ -466,8 +466,19 @@ html{height:100dvh;}
 
 /* MONEY MAP */
 .money-map{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px;}
-.mm{background:var(--w);border:1px solid var(--bd);border-radius:var(--r2);padding:13px 11px;text-align:center;box-shadow:var(--sh);animation:fadeUp .3s ease both;}
-.mm-ico{width:42px;height:42px;border-radius:12px;margin:0 auto 9px;display:flex;align-items:center;justify-content:center;}
+.mm{background:var(--w);border:1px solid var(--bd);border-radius:16px;padding:14px 11px;text-align:center;box-shadow:var(--sh);animation:fadeUp .3s ease both;position:relative;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease;}
+.mm:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(26,35,50,.12);}
+.mm::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.mm.g::after{background:linear-gradient(90deg,#39B980,#2176ae);}
+.mm.y::after{background:linear-gradient(90deg,#f6c90e,#f39c12);}
+.mm.b::after{background:linear-gradient(90deg,#3182CE,#39B980);}
+.mm.r::after{background:linear-gradient(90deg,#e74c3c,#f39c12);}
+.mm.g{background:linear-gradient(165deg,rgba(57,185,128,.08),var(--w) 60%);}
+.mm.y{background:linear-gradient(165deg,rgba(246,201,14,.10),var(--w) 60%);}
+.mm.b{background:linear-gradient(165deg,rgba(49,130,206,.08),var(--w) 60%);}
+.mm.r{background:linear-gradient(165deg,rgba(231,76,60,.08),var(--w) 60%);}
+.mm-ico{width:42px;height:42px;border-radius:12px;margin:0 auto 9px;display:flex;align-items:center;justify-content:center;transition:transform .2s ease;}
+.mm:hover .mm-ico{transform:scale(1.1) rotate(-3deg);}
 .mm-l{font-size:9px;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
 .mm-v{font-size:16px;font-weight:800;letter-spacing:-.3px;}
 .mm-v2{font-size:10px;color:var(--t4);margin-top:2px;font-weight:600;}
@@ -1382,8 +1393,8 @@ function destroyCharts(){Object.values(CHARTS).forEach(c=>{try{c.destroy();}catc
 function txRow(o,canEdit){
   const rate=COMPANY.usd_rate||10.92;
   const icoMap={
-    income:{bg:'var(--al)',ico:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--adk)" stroke-width="1.6"><path d="M7 12V2M2 7l5-5 5 5" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
-    expense:{bg:'var(--redl)',ico:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--red)" stroke-width="1.6"><path d="M7 2v10M2 7l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
+    income:{bg:'var(--al)',ico:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--adk)" stroke-width="1.6"><path d="M7 2v10M2 7l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
+    expense:{bg:'var(--redl)',ico:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--red)" stroke-width="1.6"><path d="M7 12V2M2 7l5-5 5 5" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
     advance:{bg:'var(--bluel)',ico:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--blue)" stroke-width="1.6"><path d="M2 7h10M7 2l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
   };
   const ic=icoMap[o.type]||icoMap.expense;
@@ -3157,10 +3168,10 @@ home:async()=>{
 <!-- MONEY MAP -->
   <div class="sh"><div class="sh-t">${t('where')}</div></div>
   <div class="money-map mb20">
-    <div class="mm" style="animation-delay:.04s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div><div class="mm-l">${t('in_cash')} TJS</div><div class="mm-v" style="color:var(--adk);">${fmtN(balTJS)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(balUSD)} USD</div></div>
-    <div class="mm" style="animation-delay:.07s;"><div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div><div class="mm-l">${t('at_snabs')}</div><div class="mm-v" style="color:var(--yel);">${fmtN(Math.max(0,advTot_given-advTot_spent))}</div><div class="mm-v2" style="color:var(--t4);">${t('issued')}: ${fmtN(advTot_given)}</div></div>
-    <div class="mm" style="animation-delay:.1s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('recv')}</div><div class="mm-v" style="color:var(--ad);">${fmtN(debTJS)}<span style="font-size:10px;opacity:.6;"> TJS</span></div><div class="mm-v2" style="color:var(--t4);">${debUSD>0?'$'+fmtN(debUSD)+' USD':t('deb_tjs')}</div></div>
-    <div class="mm" style="animation-delay:.13s;"><div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('paybl')}</div><div class="mm-v" style="color:var(--red);">${fmtN(credTJS)}<span style="font-size:10px;opacity:.6;"> TJS</span></div><div class="mm-v2" style="color:var(--t4);">${credUSD>0?'$'+fmtN(credUSD)+' USD':t('cred_tjs')}</div></div>
+    <div class="mm g" style="animation-delay:.04s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div><div class="mm-l">${t('in_cash')} TJS</div><div class="mm-v" style="color:var(--adk);">${fmtN(balTJS)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(balUSD)} USD</div></div>
+    <div class="mm y" style="animation-delay:.07s;"><div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div><div class="mm-l">${t('at_snabs')}</div><div class="mm-v" style="color:var(--yel);">${fmtN(Math.max(0,advTot_given-advTot_spent))}</div><div class="mm-v2" style="color:var(--t4);">${t('issued')}: ${fmtN(advTot_given)}</div></div>
+    <div class="mm b" style="animation-delay:.1s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('recv')}</div><div class="mm-v" style="color:var(--ad);">${fmtN(debTJS)}<span style="font-size:10px;opacity:.6;"> TJS</span></div><div class="mm-v2" style="color:var(--t4);">${debUSD>0?'$'+fmtN(debUSD)+' USD':t('deb_tjs')}</div></div>
+    <div class="mm r" style="animation-delay:.13s;"><div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('paybl')}</div><div class="mm-v" style="color:var(--red);">${fmtN(credTJS)}<span style="font-size:10px;opacity:.6;"> TJS</span></div><div class="mm-v2" style="color:var(--t4);">${credUSD>0?'$'+fmtN(credUSD)+' USD':t('cred_tjs')}</div></div>
   </div>
 
   <!-- CHARTS -->
@@ -4039,7 +4050,7 @@ my:async()=>{
     <div class="sh" style="margin-bottom:12px;">
       <div class="sh-t" style="font-size:13px;font-weight:700;">📥 История выдач <span style="font-weight:400;color:var(--t4);font-size:11px;">(30 ${t('days_sfx')})</span></div>
     </div>
-    ${recentAdvs.length?recentAdvs.map((a,i)=>{
+    ${recentAdvs.length?collapseList(recentAdvs.map((a,i)=>{
       const amtTjs=a.currency==='USD'?a.amount*rate:a.amount;
       const isDone=a.status==='done'||a.status==='closed';
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i<recentAdvs.length-1?'border-bottom:1px solid var(--bd);':''}">
@@ -4053,7 +4064,7 @@ my:async()=>{
           ${a.currency==='USD'?`<div style="font-size:10px;color:var(--t4);">≈ ${fmtN(amtTjs)} TJS</div>`:''}
         </div>
       </div>`;
-    }).join(''):`<div class="empty"><div class="empty-icon">📥</div>Нет выдач за последние 30 дней</div>`}
+    }),4,'my-adv-more'):`<div class="empty"><div class="empty-icon">📥</div>Нет выдач за последние 30 дней</div>`}
   </div>
 
   <!-- RECENT EXPENSES (last 10 days) -->
@@ -4062,7 +4073,7 @@ my:async()=>{
       <div class="sh-t" style="font-size:13px;font-weight:700;">📋 ${t('recent_exp')} <span style="font-weight:400;color:var(--t4);font-size:11px;">(10 ${t('days_sfx')})</span></div>
       <div class="sh-a" onclick="go('myexp')">${t('all_ops')}</div>
     </div>
-    <div>${(ops||[]).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
+    <div>${(ops||[]).length?collapseList((ops||[]).map(o=>txRow(o,true)),4,'my-exp-more'):`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
   </div>`;
 },
 addexp:async()=>{
