@@ -2526,35 +2526,122 @@ async function exportOpsFiltered(kind){
   }
 }
 
-/* Итоги периода по типу и валюте — одним запросом вместо перебора строк.
-   Карточки приход/расход зависят только от периода, а не от фильтров списка,
-   поэтому фильтры сюда и не передаются. */
-async function fetchOpsTotals(){
-  const empty={incTJS:0,incUSD:0,expTJS:0,expUSD:0};
+/* Границы текущего периода в том же виде, в каком их понимает periodFilter().
+   Нужны серверным сводкам: [начало, конец], null — без ограничения. */
+function periodBounds(){
   const n=new Date();
-  const bounds={
+  return {
     today:[today(),today()],
     month:[n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-01',null],
     year:[n.getFullYear()+'-01-01',null],
     all:[null,null]
   }[PERIOD]||[null,null];
+}
+/* Первое число месяца, начавшегося back месяцев назад. */
+function monthStartBack(back){
+  const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-back);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
+}
+
+/* Выгрузка со «Статистики». Страница держит только суммы, поэтому строки для
+   файла читаются здесь — по клику, а не при каждом её открытии. */
+async function exportStatsPeriod(kind,type){
+  showToast(`Готовим ${kind==='xl'?'Excel':'PDF'}…`);
   try{
-    const{data,error}=await SB.rpc('op_totals',{p_from:bounds[0],p_to:bounds[1]});
+    const rows=await sbFetchAll('operations',OPS_COLS,q=>{
+      q=periodFilter(q);
+      if(type!=='all') q=q.eq('type',type);
+      return q.order('date',{ascending:false});
+    });
+    if(!rows.length){showToast(t('no_exp_data'),true);return;}
+    const name=type==='income'?'income':type==='expense'?'expense':'BurjiBokhtar_full';
+    const title=type==='expense'?t('expense'):type==='income'?t('income'):t('full');
+    if(kind==='xl') await exportXL(rows,name);
+    else exportPDF(title,rows);
+  }catch(e){
+    showToast(e.message||'Не удалось выгрузить',true);
+  }
+}
+
+/* Итоги периода по типу и валюте — одним запросом вместо перебора строк.
+   Карточки приход/расход зависят только от периода, а не от фильтров списка,
+   поэтому фильтры сюда и не передаются. */
+async function fetchOpsTotals(){
+  const[from,to]=periodBounds();
+  const empty={incTJS:0,incUSD:0,expTJS:0,expUSD:0,cntIncTJS:0,cntIncUSD:0,cntExpTJS:0,cntExpUSD:0};
+  try{
+    const{data,error}=await SB.rpc('op_totals',{p_from:from,p_to:to});
     if(error) throw error;
     const r={...empty};
     (data||[]).forEach(x=>{
       const k=(x.type==='income'?'inc':x.type==='expense'?'exp':null);
       if(!k)return;
-      if(x.currency==='TJS')r[k+'TJS']+=Number(x.amount)||0;
-      if(x.currency==='USD')r[k+'USD']+=Number(x.amount)||0;
+      const cur=x.currency==='USD'?'USD':x.currency==='TJS'?'TJS':null;
+      if(!cur)return;
+      r[k+cur]+=Number(x.amount)||0;
+      r['cnt'+k.charAt(0).toUpperCase()+k.slice(1)+cur]+=Number(x.cnt)||0;
     });
     return r;
   }catch(e){ /* RPC нет — считаем как раньше, перебором строк периода */ }
   const rows=await sbFetchAll('operations','type,amount,currency',periodFilter);
-  const sum=(ty,cur)=>(rows||[]).filter(o=>o.type===ty&&o.currency===cur)
-    .reduce((a,o)=>a+(o.amount||0),0);
-  return {incTJS:sum('income','TJS'),incUSD:sum('income','USD'),
-          expTJS:sum('expense','TJS'),expUSD:sum('expense','USD')};
+  const pick=(ty,cur)=>(rows||[]).filter(o=>o.type===ty&&o.currency===cur);
+  const sum=a=>a.reduce((s,o)=>s+(o.amount||0),0);
+  const iT=pick('income','TJS'),iU=pick('income','USD');
+  const eT=pick('expense','TJS'),eU=pick('expense','USD');
+  return {incTJS:sum(iT),incUSD:sum(iU),expTJS:sum(eT),expUSD:sum(eU),
+          cntIncTJS:iT.length,cntIncUSD:iU.length,cntExpTJS:eT.length,cntExpUSD:eU.length};
+}
+
+/* ── СВОДКИ ДЛЯ «СТАТИСТИКИ» ──
+   Страница показывает четыре суммы, разбивку по категориям, разбивку по
+   объектам и помесячный ряд за полгода. Раньше ради всего этого выгружались
+   все строки периода плюс свод за всю историю. Теперь каждая сводка приходит
+   готовой; если функций в базе нет, один раз читаем строки и считаем как
+   прежде — цифры при этом не меняются. */
+async function fetchStatsAggregates(){
+  const[from,to]=periodBounds();
+  const monthsFrom=monthStartBack(5);
+  try{
+    const[cat,obj,mon]=await Promise.all([
+      SB.rpc('op_by_category',{p_from:from,p_to:to}),
+      SB.rpc('op_by_object',{p_from:from,p_to:to}),
+      SB.rpc('op_by_month',{p_from:monthsFrom,p_to:null})
+    ]);
+    if(cat.error) throw cat.error;
+    if(obj.error) throw obj.error;
+    if(mon.error) throw mon.error;
+    const byCat={};
+    (cat.data||[]).forEach(r=>{byCat[r.category_name]=Number(r.amount_tjs)||0;});
+    const byObj={};
+    (obj.data||[]).forEach(r=>{byObj[r.object_name]={inc:Number(r.inc_tjs)||0,exp:Number(r.exp_tjs)||0};});
+    const byMonth={};
+    (mon.data||[]).forEach(r=>{byMonth[r.ym]={inc:Number(r.inc_tjs)||0,exp:Number(r.exp_tjs)||0};});
+    return {byCat,byObj,byMonth};
+  }catch(e){ /* RPC нет — прежний путь */ }
+  const[rows,allTime]=await Promise.all([
+    sbFetchAll('operations','type,amount_tjs,category_name,object_name',periodFilter),
+    fetchAllTimeOps()
+  ]);
+  const byCat={};
+  (rows||[]).filter(o=>o.type==='expense').forEach(o=>{
+    if(o.category_name)byCat[o.category_name]=(byCat[o.category_name]||0)+(o.amount_tjs||0);
+  });
+  const byObj={};
+  (rows||[]).forEach(o=>{
+    if(!o.object_name)return;
+    if(!byObj[o.object_name])byObj[o.object_name]={inc:0,exp:0};
+    if(o.type==='income')byObj[o.object_name].inc+=(o.amount_tjs||0);
+    else if(o.type==='expense')byObj[o.object_name].exp+=(o.amount_tjs||0);
+  });
+  const byMonth={};
+  (allTime||[]).forEach(o=>{
+    const ym=(o.date||'').slice(0,7);
+    if(!ym)return;
+    if(!byMonth[ym])byMonth[ym]={inc:0,exp:0};
+    if(o.type==='income')byMonth[ym].inc+=(o.amount_tjs||0);
+    else if(o.type==='expense')byMonth[ym].exp+=(o.amount_tjs||0);
+  });
+  return {byCat,byObj,byMonth};
 }
 async function delOp(id){
   showConfirm(t('del_q'),async()=>{
@@ -4098,26 +4185,24 @@ debts:async()=>{
 
 /* ── STATS ── */
 stats:async()=>{
-  const[allOps]=await Promise.all([
-    sbFetchAll('operations',OPS_COLS,periodFilter)
+  // Ни одной строки операций сюда больше не приезжает: страница состоит из
+  // сумм и разбивок, а их считает Postgres. Выгрузка тянет строки по клику.
+  const[totals,agg]=await Promise.all([
+    fetchOpsTotals(),
+    fetchStatsAggregates()
   ]);
-  const ops=allOps||[];window._ops=ops;
   const rate=COMPANY.usd_rate||10.92;
   // TJS и USD строго отдельно
-  const incTJS=ops.filter(o=>o.type==='income'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
-  const expTJS=ops.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
-  const incUSD=ops.filter(o=>o.type==='income'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
-  const expUSD=ops.filter(o=>o.type==='expense'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
-  const allOpsAll=await fetchAllTimeOps();
+  const{incTJS,expTJS,incUSD,expUSD}=totals;
+  const cnt={incTJS:totals.cntIncTJS,incUSD:totals.cntIncUSD,
+             expTJS:totals.cntExpTJS,expUSD:totals.cntExpUSD};
   const months=[];for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);months.push(d.toISOString().slice(0,7));}
-  const mInc=months.map(m=>(allOpsAll||[]).filter(o=>o.type==='income'&&o.date?.startsWith(m)).reduce((a,o)=>a+(o.amount_tjs||0),0));
-  const mExp=months.map(m=>(allOpsAll||[]).filter(o=>o.type==='expense'&&o.date?.startsWith(m)).reduce((a,o)=>a+(o.amount_tjs||0),0));
+  const mInc=months.map(m=>agg.byMonth[m]?.inc||0);
+  const mExp=months.map(m=>agg.byMonth[m]?.exp||0);
   const mNet=mInc.map((v,i)=>v-mExp[i]);
-  const byCat={};
-  ops.filter(o=>o.type==='expense').forEach(o=>{if(o.category_name)byCat[o.category_name]=(byCat[o.category_name]||0)+(o.amount_tjs||0);});
+  const byCat=agg.byCat;
   const ck=Object.keys(byCat).sort((a,b)=>byCat[b]-byCat[a]);
-  const byObj={};
-  ops.forEach(o=>{if(o.object_name){if(!byObj[o.object_name])byObj[o.object_name]={inc:0,exp:0};if(o.type==='income')byObj[o.object_name].inc+=(o.amount_tjs||0);else byObj[o.object_name].exp+=(o.amount_tjs||0);}});
+  const byObj=agg.byObj;
   const ok=Object.keys(byObj);
 
   setTimeout(()=>{
@@ -4168,10 +4253,10 @@ stats:async()=>{
   <div class="reveal">
   <div class="g4 mb14">
     ${[
-      {lbl:'↓ TJS '+t('income'), val:'+'+fmtN(incTJS), sub:ops.filter(o=>o.type==='income'&&o.currency==='TJS').length+' '+t('ops_count'), c1:'#1a6645',c2:'rgba(57,185,128,.12)',b:'rgba(57,185,128,.25)'},
-      {lbl:'↑ TJS '+t('expense'),val:'-'+fmtN(expTJS), sub:ops.filter(o=>o.type==='expense'&&o.currency==='TJS').length+' '+t('ops_count'), c1:'#C53030',c2:'rgba(229,62,62,.1)',b:'rgba(229,62,62,.25)'},
-      {lbl:'↓ USD '+t('income'), val:'+$'+fmtN(incUSD), sub:ops.filter(o=>o.type==='income'&&o.currency==='USD').length+' '+t('ops_count'), c1:'#2C5282',c2:'rgba(49,130,206,.1)',b:'rgba(49,130,206,.25)'},
-      {lbl:'↑ USD '+t('expense'),val:'-$'+fmtN(expUSD), sub:ops.filter(o=>o.type==='expense'&&o.currency==='USD').length+' '+t('ops_count'), c1:'#C05621',c2:'rgba(221,107,32,.1)',b:'rgba(221,107,32,.25)'},
+      {lbl:'↓ TJS '+t('income'), val:'+'+fmtN(incTJS), sub:cnt.incTJS+' '+t('ops_count'), c1:'#1a6645',c2:'rgba(57,185,128,.12)',b:'rgba(57,185,128,.25)'},
+      {lbl:'↑ TJS '+t('expense'),val:'-'+fmtN(expTJS), sub:cnt.expTJS+' '+t('ops_count'), c1:'#C53030',c2:'rgba(229,62,62,.1)',b:'rgba(229,62,62,.25)'},
+      {lbl:'↓ USD '+t('income'), val:'+$'+fmtN(incUSD), sub:cnt.incUSD+' '+t('ops_count'), c1:'#2C5282',c2:'rgba(49,130,206,.1)',b:'rgba(49,130,206,.25)'},
+      {lbl:'↑ USD '+t('expense'),val:'-$'+fmtN(expUSD), sub:cnt.expUSD+' '+t('ops_count'), c1:'#C05621',c2:'rgba(221,107,32,.1)',b:'rgba(221,107,32,.25)'},
     ].map((k,i)=>`
     <div class="kpi-tile" style="background:${k.c2};border:1px solid ${k.b};animation-delay:${i*.06}s;">
       <div style="font-size:9px;font-weight:700;color:${k.c1};text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;opacity:.75;">${k.lbl}</div>
@@ -4215,11 +4300,11 @@ stats:async()=>{
   <div class="card">
     <div class="sh"><div class="sh-t">${t('xl')} / ${t('pdf')}</div></div>
     <div class="exp-row">
-      <button class="eb eb-xl" onclick="exportXL(window._ops||[],'BurjiBokhtar_full')">${t('full')} Excel</button>
-      <button class="eb eb-xl" onclick="exportXL((window._ops||[]).filter(o=>o.type==='income'),'income')">${t('income')} Excel</button>
-      <button class="eb eb-xl" onclick="exportXL((window._ops||[]).filter(o=>o.type==='expense'),'expense')">${t('expense')} Excel</button>
-      <button class="eb eb-pdf" onclick="exportPDF(t('full'),window._ops||[])">${t('full')} PDF</button>
-      <button class="eb eb-pdf" onclick="exportPDF(t('expense'),(window._ops||[]).filter(o=>o.type==='expense'))">${t('expense')} PDF</button>
+      <button class="eb eb-xl" onclick="exportStatsPeriod('xl','all')">${t('full')} Excel</button>
+      <button class="eb eb-xl" onclick="exportStatsPeriod('xl','income')">${t('income')} Excel</button>
+      <button class="eb eb-xl" onclick="exportStatsPeriod('xl','expense')">${t('expense')} Excel</button>
+      <button class="eb eb-pdf" onclick="exportStatsPeriod('pdf','all')">${t('full')} PDF</button>
+      <button class="eb eb-pdf" onclick="exportStatsPeriod('pdf','expense')">${t('expense')} PDF</button>
     </div>
   </div>
   </div>`;
