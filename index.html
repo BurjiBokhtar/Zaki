@@ -2284,7 +2284,7 @@ async function getOps(extra={}){
 }
 async function delOp(id){
   showConfirm(t('del_q'),async()=>{
-    const{data:op}=await SB.from('operations').select('date,worker_name').eq('id',id).single();
+    const{data:op}=await SB.from('operations').select('date,worker_name,type,amount,currency,object_name').eq('id',id).single();
     if(op&&!isEditable(op.date)){showToast(USER?.role==='supplier'?t('ed_today'):t('ed_2d'),true);return;}
     const{error}=await SB.from('operations').delete().eq('id',id);
     if(error){showToast(error.message,true);return;}
@@ -2526,11 +2526,27 @@ function canWrite(){return !isDir();}
 function isSup(){return USER?.role==='supplier';}
 
 /* ══ ADD OP MODAL ══ */
+    // Аванс дублируется в таблицу advances (её читает снабженец: баланс, «Мой аванс»).
+    // Прямой связи между строками нет — удаляем зеркальную строку по совпадению,
+    // иначе после удаления операции аванс остаётся у снабженца (рассинхрон).
+    if(op&&op.type==='advance') await delMirroredAdvance(op);
 function openAddOpModal(type){
   OP_TYPE=type; SEL_OBJ=''; SEL_CUR='TJS';
   const incCats=CATEGORIES.filter(c=>c.type==='income');
   const expCats=CATEGORIES.filter(c=>c.type==='expense');
   const cats=type==='income'?incCats:expCats;
+/* Удаляет одну зеркальную строку в advances, соответствующую операции-авансу.
+   Матч: worker_name + amount + currency; из совпадений берём с тем же объектом,
+   иначе — самую свежую. Так дубликат-аванс убирается и у снабженца тоже. */
+async function delMirroredAdvance(op){
+  const{data:rows}=await SB.from('advances').select('id,object_name')
+    .eq('worker_name',op.worker_name).eq('amount',op.amount).eq('currency',op.currency)
+    .order('created_at',{ascending:false});
+  if(!rows||!rows.length)return;
+  const target=rows.find(r=>(r.object_name||'')===(op.object_name||''))||rows[0];
+  const{error}=await SB.from('advances').delete().eq('id',target.id);
+  if(error)showToast(error.message,true);
+}
   SEL_CAT=cats[0]?.name||'';
   const typeLabel=type==='income'?t('new_inc'):type==='advance'?t('adv_give'):t('new_exp');
   const typeColor=type==='income'?'var(--a)':type==='advance'?'var(--blue)':'var(--red)';
