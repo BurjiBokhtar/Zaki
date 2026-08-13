@@ -1030,6 +1030,7 @@ const T={
     reset_filter:'✕ Сброс фильтра',
     all_ops_title:'Все операции',search_ph:'Поиск по описанию, категории, объекту...',
     all_types:'Все типы',reset:'Сброс',no_ops:'Нет операций за выбранный период',all_cats:'Все категории',date_from:'С',date_to:'По',from_of:'из',
+    show_more:'Показать ещё',shown_of:'показано',
     role_acc_edit:'Бухгалтер: редактирование доступно всегда',
     role_sup_edit:'Снабженец: редактирование только сегодня',
     new_debt:'+ Новый долг',money:'Деньги',history:'История',
@@ -1126,6 +1127,7 @@ const T={
     reset_filter:'✕ Тоза кардан',
     all_ops_title:'Ҳама амалиётҳо',search_ph:'Ҷустуҷӯ аз рӯи тавсиф, категория, объект...',
     all_types:'Ҳама навъҳо',reset:'Тоза',no_ops:'Амалиёт барои давраи интихобшуда нест',all_cats:'Ҳама категорияҳо',date_from:'Аз',date_to:'То',from_of:'аз',
+    show_more:'Боз нишон додан',shown_of:'нишон дода шуд',
     role_acc_edit:'Ҳисобдор: таҳрир ҳамеша дастрас аст',
     role_sup_edit:'Таъминотчӣ: таҳрир танҳо имрӯз',
     new_debt:'+ Қарзи нав',money:'Пул',history:'Таърих',
@@ -1198,19 +1200,41 @@ function normName(s){return(s||'').replace(/\s+/g,' ').trim();}
 /* Escape user text before putting it into innerHTML — blocks stored XSS */
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 /* Fetch ALL rows past Supabase's 1000-row cap by paging with .range().
-   Without this, balances silently drop operations once the table exceeds 1000 rows. */
+   Without this, balances silently drop operations once the table exceeds 1000 rows.
+
+   Две вещи, без которых это ломается на больших таблицах:
+
+   1) Страницы берутся ПАРАЛЛЕЛЬНО. Первый запрос заодно просит точный count,
+      по нему сразу известны все смещения. Раньше страницы шли цепочкой, и
+      10 000 операций стоили 11 круговых задержек подряд.
+
+   2) Добавляется сортировка по id. offset/limit без ORDER BY не даёт Postgres
+      никаких гарантий порядка между запросами, поэтому соседние страницы могли
+      пересечься или пропустить строки — то есть баланс мог молча посчитаться
+      неверно. Если tweak уже задал сортировку, id идёт последним ключом и
+      ни на что не влияет. */
 async function sbFetchAll(table, columns, tweak){
-  const PAGE=1000; let from=0, all=[];
-  for(;;){
-    let q=SB.from(table).select(columns).range(from, from+PAGE-1);
+  const PAGE=1000;
+  const build=(from,withCount)=>{
+    let q=SB.from(table).select(columns, withCount?{count:'exact'}:undefined);
     if(tweak) q=tweak(q);
-    const {data,error}=await q;
-    if(error) throw error;
-    all=all.concat(data||[]);
-    if(!data || data.length<PAGE) break;
-    from+=PAGE;
-  }
-  return all;
+    return q.order('id',{ascending:true}).range(from, from+PAGE-1);
+  };
+  const first=await build(0,true);
+  if(first.error) throw first.error;
+  const head=first.data||[];
+  const total=first.count;
+  // Одна страница — больше ничего не нужно.
+  if(head.length<PAGE || total==null || total<=PAGE) return head;
+
+  const offsets=[];
+  for(let from=PAGE; from<total; from+=PAGE) offsets.push(from);
+  const rest=await Promise.all(offsets.map(async from=>{
+    const r=await build(from,false);
+    if(r.error) throw r.error;
+    return r.data||[];
+  }));
+  return head.concat(...rest);
 }
 /* All-time operations for balance/charts. Prefers the server-side rollup RPC
    (grouped sums — scales to any row count); falls back to paged full fetch if
@@ -1228,6 +1252,44 @@ async function fetchAllTimeOps(){
     }));
   }catch(e){ /* RPC missing/old → fall back to full paged fetch */ }
   return sbFetchAll('operations','type,amount,currency,amount_tjs,method,worker_name,date,object_name,category_name',q=>q.order('date'));
+}
+
+/* Всё, что реально читают txRow() и exportXL(). Вместо select('*'):
+   usd_rate и created_by не использует никто, а на десятках тысяч строк
+   лишние колонки — это лишние мегабайты по сети. */
+const OPS_COLS='id,type,date,object_name,category_name,description,qty,unit,price,amount,amount_tjs,currency,method,worker_name,note,created_at';
+
+/* ── ПОТРАЧЕНО ПО СНАБЖЕНЦАМ ──
+   Нужна ровно одна цифра на человека, а считалась она перебором всех его
+   расходов за всю историю — и на странице «Снабженцы», и в карточке, и при
+   каждом сохранении расхода. Сервер отдаёт готовые суммы (RPC worker_spend);
+   если функция ещё не установлена, остаётся прежний путь и цифры не меняются.
+   Карта worker_name → потрачено в TJS. */
+async function fetchWorkerSpend(worker){
+  try{
+    const{data,error}=await SB.rpc('worker_spend',{p_worker:worker??null});
+    if(error) throw error;
+    if(Array.isArray(data)){
+      const m=new Map();
+      data.forEach(r=>m.set(r.worker_name||'',Number(r.spent_tjs)||0));
+      return m;
+    }
+  }catch(e){ /* RPC нет — падаем на клиентский расчёт ниже */ }
+  const rows=await sbFetchAll('operations','worker_name,amount_tjs',q=>{
+    q=q.eq('type','expense');
+    return worker==null?q:q.eq('worker_name',worker);
+  });
+  const m=new Map();
+  (rows||[]).forEach(o=>{
+    const k=o.worker_name||'';
+    m.set(k,(m.get(k)||0)+(o.amount_tjs||0));
+  });
+  return m;
+}
+/* Одна цифра по конкретному работнику. */
+async function fetchOneWorkerSpend(worker){
+  const m=await fetchWorkerSpend(worker);
+  return m.get(worker||'')||0;
 }
 
 /* ── DEBOUNCE ── */
@@ -1386,12 +1448,23 @@ function mkChartWhenVisible(id,cfg){
   const obs=new IntersectionObserver((entries,o)=>{
     if(entries[0].isIntersecting){
       o.disconnect();
+      _CHART_OBS.delete(obs);
       if(!CHARTS[id]) mkChart(id,cfg);
     }
   },{threshold:0.15});
+  _CHART_OBS.add(obs);
   obs.observe(el);
 }
-function destroyCharts(){Object.values(CHARTS).forEach(c=>{try{c.destroy();}catch(e){}});CHARTS={};}
+/* Наблюдатели за канвасами, которые ещё не попали в экран. Если уйти со
+   страницы раньше, чем до них доскроллили, disconnect() не случится никогда —
+   поэтому снимаем их вместе с графиками. */
+const _CHART_OBS=new Set();
+function destroyCharts(){
+  Object.values(CHARTS).forEach(c=>{try{c.destroy();}catch(e){}});
+  CHARTS={};
+  _CHART_OBS.forEach(o=>{try{o.disconnect();}catch(e){}});
+  _CHART_OBS.clear();
+}
 /* Scroll-reveal: fade/slide sections in as they enter the viewport */
 let _revealObs=null;
 function initReveal(){
@@ -1404,6 +1477,77 @@ function initReveal(){
   els.forEach(el=>_revealObs.observe(el));
   // Safety: nothing should stay invisible if the observer never fires
   setTimeout(()=>document.querySelectorAll('.reveal:not(.in)').forEach(e=>{const r=e.getBoundingClientRect();if(r.top<innerHeight)e.classList.add('in');}),400);
+}
+
+/* ── СПИСОК ОПЕРАЦИЙ ПОРЦИЯМИ ──
+   Один txRow разворачивается в 16 узлов (три из них SVG). Замер на 5 000
+   операций: 80 000 узлов и 333 мс только на сборку разметки — без учёта
+   раскладки и отрисовки, и это на десктопе. Держим в DOM только то, что
+   реально просмотрено; догрузка дописывает строки, не перерисовывая готовые. */
+const OPS_CHUNK=100;
+/* Состояние (источник строк и сколько уже показано) живёт на самом контейнере,
+   поэтому один код обслуживает все списки операций.
+   Источником может быть:
+     • массив — все строки уже на руках (модалка, «Мои расходы»);
+     • функция (offset,limit) => Promise<{rows,total}> — порции тянутся
+       с сервера, и в браузер никогда не приезжает вся таблица. */
+function mountOpsList(listId,source,canEdit,total){
+  const ol=document.getElementById(listId);
+  if(!ol)return Promise.resolve();
+  ol._src=source;ol._shown=0;ol._canEdit=!!canEdit;ol._busy=false;
+  ol._total=Array.isArray(source)?source.length:(total||0);
+  ol.innerHTML='';
+  return growOpsList(listId);
+}
+async function growOpsList(listId){
+  const ol=document.getElementById(listId);
+  if(!ol||ol._busy)return;
+  const from=ol._shown||0;
+  let slice=[];
+  if(Array.isArray(ol._src)){
+    slice=ol._src.slice(from,from+OPS_CHUNK);
+  } else if(typeof ol._src==='function'){
+    ol._busy=true;_setMoreBusy(listId,true);
+    try{
+      const r=await ol._src(from,OPS_CHUNK);
+      slice=r.rows||[];
+      if(r.total!=null) ol._total=r.total;
+    }catch(e){
+      showToast(e.message||'Не удалось загрузить операции',true);
+    }finally{
+      ol._busy=false;_setMoreBusy(listId,false);
+    }
+  }
+  if(slice.length) ol.insertAdjacentHTML('beforeend',slice.map(o=>txRow(o,ol._canEdit)).join(''));
+  ol._shown=from+slice.length;
+  if(!ol._shown) ol.innerHTML=`<div class="empty"><div class="empty-icon">🔍</div>${t('no_data')}</div>`;
+  _updateMoreBtn(listId);
+}
+function _setMoreBusy(listId,busy){
+  const b=document.querySelector('#'+listId+'-more .more-lbl');
+  if(!b)return;
+  b.disabled=busy;b.style.opacity=busy?'.55':'';
+  if(busy)b.textContent='…';
+}
+function _updateMoreBtn(listId){
+  const ol=document.getElementById(listId);
+  const wrap=document.getElementById(listId+'-more');
+  if(!ol||!wrap)return;
+  const total=ol._total||0,shown=ol._shown||0,left=total-shown;
+  wrap.style.display=left>0?'block':'none';
+  const lbl=wrap.querySelector('.more-lbl');
+  if(lbl)lbl.textContent=`${t('show_more')} — ${left}`;
+  const cnt=wrap.querySelector('.more-cnt');
+  if(cnt)cnt.textContent=total?`${shown} ${t('from_of')} ${total} ${t('shown_of')}`:'';
+}
+/* Кнопка догрузки. total нужен только чтобы подпись была верной на первом
+   кадре — дальше её ведёт _updateMoreBtn(). */
+function opsMoreBtn(listId,total){
+  const left=Math.max(0,(total||0)-OPS_CHUNK);
+  return `<div id="${listId}-more" style="display:${left>0?'block':'none'};margin-top:14px;text-align:center;">
+    <button class="more-lbl" onclick="growOpsList('${listId}')" style="padding:10px 22px;background:var(--w);border:1.5px solid var(--bd2);border-radius:12px;font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--ff);">${t('show_more')} — ${left}</button>
+    <div class="more-cnt" style="font-size:10px;color:var(--t4);margin-top:7px;">${Math.min(OPS_CHUNK,total||0)} ${t('from_of')} ${total||0} ${t('shown_of')}</div>
+  </div>`;
 }
 
 /* ── TX ROW ── */
@@ -1744,6 +1888,11 @@ let _renderToken=0;
 function renderPage(id){
   const c=document.getElementById('content');
   const token=++_renderToken;
+  // Раньше destroyCharts() стоял только перед шестью из двух с лишним десятков
+  // вызовов renderPage. Остальные оставляли живые объекты Chart.js с их
+  // канвасами и слушателями, а из-за непочищенного реестра CHARTS
+  // mkChartWhenVisible молча пропускал отрисовку — графики выходили пустыми.
+  destroyCharts();
   c.style.opacity='0';
   setTimeout(async()=>{
     if(token!==_renderToken)return;
@@ -2031,8 +2180,14 @@ function startParticleCanvas(mode){
   if(!c)return;
   // Stop previous loop
   c._rain=false;
-  const prevMode=c._mode;
   c._mode=mode;
+  // Прошлая проверка петли смотрела на режим, поэтому повторный запуск с тем
+  // же режимом (смена языка, обновление погоды) поднимал вторую петлю поверх
+  // старой — и обе рисовали до конца сессии. Поколение растёт всегда.
+  const gen=(c._gen||0)+1;
+  c._gen=gen;
+  // Слушатель resize от предыдущего запуска висел навсегда.
+  if(c._onResize) window.removeEventListener('resize',c._onResize);
   const ctx=c.getContext('2d');
   const drops=[];
 
@@ -2043,6 +2198,7 @@ function startParticleCanvas(mode){
     if(w>0){c.width=w;c.height=Math.max(h,300);}
   }
   setTimeout(()=>{
+    if(c._gen!==gen)return; // за эти 60 мс успел стартовать более свежий запуск
     resize();
     c.style.opacity='1';
     c._rain=true;
@@ -2059,7 +2215,7 @@ function startParticleCanvas(mode){
     }
 
     function draw(){
-      if(!c._rain||c._mode!==mode)return;
+      if(!c._rain||c._gen!==gen)return;
       ctx.clearRect(0,0,c.width,c.height);
       drops.forEach(d=>{
         if(isSnow){
@@ -2078,6 +2234,7 @@ function startParticleCanvas(mode){
     }
     draw();
   },60);
+  c._onResize=resize;
   window.addEventListener('resize',resize);
 }
 async function fetchWeatherLP(){
@@ -2161,7 +2318,10 @@ async function doLogin(){
     initPin();
     // Start pulse bar
     updatePulse();
-    setInterval(updatePulse,60000); // refresh every minute
+    // Выход и повторный вход без перезагрузки страницы заводил ещё один
+    // таймер поверх старого — за смену их набиралось несколько.
+    clearInterval(window._pulseTimer);
+    window._pulseTimer=setInterval(updatePulse,60000); // refresh every minute
   }catch(e){
     err.textContent=e.message||'Неверный email или пароль';
     err.style.display='block';
@@ -2174,6 +2334,8 @@ async function logOut(){
   if(USER){try{await SB.from('user_logs').insert({user_name:USER.name,user_role:USER.role,action:'logout'});}catch(e){}}
   await SB.auth.signOut();
   USER=null;
+  clearInterval(window._pulseTimer);window._pulseTimer=null;
+  destroyCharts();
   // Clear PIN activity timestamp on logout (force re-PIN-setup for next login)
   localStorage.removeItem(PIN_ACT_KEY);
   const ov=document.getElementById('pin-overlay');
@@ -2273,23 +2435,117 @@ function updatePeriodBtns(){
 /* ══════════════════════════════════════════════
    OPERATIONS
 ══════════════════════════════════════════════ */
-async function getOps(extra={}){
-  return await sbFetchAll('operations','*',q=>{
-    q=periodFilter(q);
-    if(USER?.role==='supplier') q=q.eq('worker_name',USER.name);
-    if(extra.type) q=q.eq('type',extra.type);
-    if(extra.worker) q=q.eq('worker_name',extra.worker);
-    return q.order('date',{ascending:false}).order('id',{ascending:false});
-  });
+/* Здесь был getOps() — он выгружал все операции периода целиком. Его место
+   заняли fetchOpsPage() и fetchOpsTotals(); сам он удалён намеренно, чтобы
+   готовый «выгрузи всю таблицу» помощник не вернулся в код по привычке. */
+
+/* ── ФИЛЬТРЫ СТРАНИЦЫ ОПЕРАЦИЙ НА СТОРОНЕ СЕРВЕРА ──
+   Фильтры применялись в браузере поверх всей выгруженной таблицы: чтобы найти
+   одну строку, нужно было сначала скачать десять тысяч. Теперь отбор делает
+   Postgres, а приезжает только показанная страница. */
+function opsFilteredQuery(q,f){
+  // Вызывается и с полным состоянием фильтров, и с частичным — приводим к
+  // одному виду, иначе undefined уехал бы в .eq() как значение.
+  f=Object.assign({q:'',type:'all',currency:'all',object:'all',
+                   category:'all',date_from:'',date_to:''},f||{});
+  q=periodFilter(q);
+  if(USER?.role==='supplier') q=q.eq('worker_name',USER.name);
+  if(f.type!=='all')     q=q.eq('type',f.type);
+  if(f.currency!=='all') q=q.eq('currency',f.currency);
+  if(f.object!=='all')   q=q.eq('object_name',f.object);
+  if(f.category!=='all') q=q.eq('category_name',f.category);
+  if(f.date_from)        q=q.gte('date',f.date_from);
+  if(f.date_to)          q=q.lte('date',f.date_to);
+  if(f.q){
+    // Запятая и скобки — разделители в синтаксисе or(), звёздочка — шаблон
+    // ilike. Всё это убираем, иначе поисковая строка сломает сам запрос.
+    const s=f.q.replace(/[(),]/g,' ').replace(/[*%]/g,'').trim();
+    if(s) q=q.or(['description','category_name','worker_name','object_name']
+      .map(c=>`${c}.ilike.*${s}*`).join(','));
+  }
+  return q;
+}
+/* Одна страница списка + общее число подходящих строк. */
+async function fetchOpsPage(f,offset,limit){
+  const{data,count,error}=await opsFilteredQuery(
+    SB.from('operations').select(OPS_COLS,{count:'exact'}),f
+  ).order('date',{ascending:false}).order('id',{ascending:false})
+   .range(offset,offset+limit-1);
+  if(error) throw error;
+  return {rows:data||[],total:count??0};
+}
+/* Выгрузка страницы операций. Список теперь листается порциями, поэтому в
+   памяти лежат только показанные строки — а выгрузить надо всё, что подходит
+   под фильтр. Это единственное место, где полная выборка уместна: её запросил
+   человек и он же ждёт файл. */
+async function exportOpsFiltered(kind){
+  const btnLabel=kind==='xl'?'Excel':'PDF';
+  showToast(`Готовим ${btnLabel}…`);
+  try{
+    const rows=await sbFetchAll('operations',OPS_COLS,
+      q=>opsFilteredQuery(q,window._opsFilter||{}).order('date',{ascending:false}));
+    if(!rows.length){showToast(t('no_exp_data'),true);return;}
+    if(kind==='xl') exportXL(rows,'BurjiBokhtar_ops');
+    else exportPDF(t('all_ops_title'),rows);
+  }catch(e){
+    showToast(e.message||'Не удалось выгрузить',true);
+  }
+}
+
+/* Итоги периода по типу и валюте — одним запросом вместо перебора строк.
+   Карточки приход/расход зависят только от периода, а не от фильтров списка,
+   поэтому фильтры сюда и не передаются. */
+async function fetchOpsTotals(){
+  const empty={incTJS:0,incUSD:0,expTJS:0,expUSD:0};
+  const n=new Date();
+  const bounds={
+    today:[today(),today()],
+    month:[n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-01',null],
+    year:[n.getFullYear()+'-01-01',null],
+    all:[null,null]
+  }[PERIOD]||[null,null];
+  try{
+    const{data,error}=await SB.rpc('op_totals',{p_from:bounds[0],p_to:bounds[1]});
+    if(error) throw error;
+    const r={...empty};
+    (data||[]).forEach(x=>{
+      const k=(x.type==='income'?'inc':x.type==='expense'?'exp':null);
+      if(!k)return;
+      if(x.currency==='TJS')r[k+'TJS']+=Number(x.amount)||0;
+      if(x.currency==='USD')r[k+'USD']+=Number(x.amount)||0;
+    });
+    return r;
+  }catch(e){ /* RPC нет — считаем как раньше, перебором строк периода */ }
+  const rows=await sbFetchAll('operations','type,amount,currency',periodFilter);
+  const sum=(ty,cur)=>(rows||[]).filter(o=>o.type===ty&&o.currency===cur)
+    .reduce((a,o)=>a+(o.amount||0),0);
+  return {incTJS:sum('income','TJS'),incUSD:sum('income','USD'),
+          expTJS:sum('expense','TJS'),expUSD:sum('expense','USD')};
 }
 async function delOp(id){
   showConfirm(t('del_q'),async()=>{
     const{data:op}=await SB.from('operations').select('date,worker_name,type,amount,currency,object_name').eq('id',id).single();
     if(op&&!isEditable(op.date)){showToast(USER?.role==='supplier'?t('ed_today'):t('ed_2d'),true);return;}
+    // Аванс дублируется в таблицу advances (её читает снабженец: баланс, «Мой аванс»).
+    // Прямой связи между строками нет — удаляем зеркальную строку по совпадению,
+    // иначе после удаления операции аванс остаётся у снабженца (рассинхрон).
+    if(op&&op.type==='advance') await delMirroredAdvance(op);
     const{error}=await SB.from('operations').delete().eq('id',id);
     if(error){showToast(error.message,true);return;}
     qCacheClear('home_');showToast(t('deleted'));renderPage(CUR_PAGE);
   });
+}
+/* Удаляет одну зеркальную строку в advances, соответствующую операции-авансу.
+   Матч: worker_name + amount + currency; из совпадений берём с тем же объектом,
+   иначе — самую свежую. Так дубликат-аванс убирается и у снабженца тоже. */
+async function delMirroredAdvance(op){
+  const{data:rows}=await SB.from('advances').select('id,object_name')
+    .eq('worker_name',op.worker_name).eq('amount',op.amount).eq('currency',op.currency)
+    .order('created_at',{ascending:false});
+  if(!rows||!rows.length)return;
+  const target=rows.find(r=>(r.object_name||'')===(op.object_name||''))||rows[0];
+  const{error}=await SB.from('advances').delete().eq('id',target.id);
+  if(error)showToast(error.message,true);
 }
 async function editOp(id){
   const{data:op}=await SB.from('operations').select('*').eq('id',id).single();
@@ -2526,27 +2782,11 @@ function canWrite(){return !isDir();}
 function isSup(){return USER?.role==='supplier';}
 
 /* ══ ADD OP MODAL ══ */
-    // Аванс дублируется в таблицу advances (её читает снабженец: баланс, «Мой аванс»).
-    // Прямой связи между строками нет — удаляем зеркальную строку по совпадению,
-    // иначе после удаления операции аванс остаётся у снабженца (рассинхрон).
-    if(op&&op.type==='advance') await delMirroredAdvance(op);
 function openAddOpModal(type){
   OP_TYPE=type; SEL_OBJ=''; SEL_CUR='TJS';
   const incCats=CATEGORIES.filter(c=>c.type==='income');
   const expCats=CATEGORIES.filter(c=>c.type==='expense');
   const cats=type==='income'?incCats:expCats;
-/* Удаляет одну зеркальную строку в advances, соответствующую операции-авансу.
-   Матч: worker_name + amount + currency; из совпадений берём с тем же объектом,
-   иначе — самую свежую. Так дубликат-аванс убирается и у снабженца тоже. */
-async function delMirroredAdvance(op){
-  const{data:rows}=await SB.from('advances').select('id,object_name')
-    .eq('worker_name',op.worker_name).eq('amount',op.amount).eq('currency',op.currency)
-    .order('created_at',{ascending:false});
-  if(!rows||!rows.length)return;
-  const target=rows.find(r=>(r.object_name||'')===(op.object_name||''))||rows[0];
-  const{error}=await SB.from('advances').delete().eq('id',target.id);
-  if(error)showToast(error.message,true);
-}
   SEL_CAT=cats[0]?.name||'';
   const typeLabel=type==='income'?t('new_inc'):type==='advance'?t('adv_give'):t('new_exp');
   const typeColor=type==='income'?'var(--a)':type==='advance'?'var(--blue)':'var(--red)';
@@ -2835,7 +3075,7 @@ home:async()=>{
   // KEY FIX: balance must always use ALL-TIME ops, not period-filtered
   const periodKey='home_period_'+PERIOD+'_'+(window._homeObj||'');
   const[periodR, allTimeR, debtsR, advR, profR]=await Promise.all([
-    qCached(periodKey,()=>sbFetchAll('operations','*',periodFilter)),
+    qCached(periodKey,()=>sbFetchAll('operations',OPS_COLS,periodFilter)),
     qCached('home_alltime',()=>fetchAllTimeOps()),
     qCached('home_debts',()=>SB.from('debts').select('*')),
     qCached('home_advances',()=>sbFetchAll('advances','amount,currency')),
@@ -3241,59 +3481,65 @@ home:async()=>{
 
 
 ops:async()=>{
-  const allOps=await getOps();
-  window._ops=allOps;
-  window._opsFilter=window._opsFilter||{q:'',type:'all',date:'',currency:'all'};
-  const rate=COMPANY.usd_rate||10.92;
-  // Separate TJS and USD
-  const incTJS=allOps.filter(o=>o.type==='income'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
-  const incUSD=allOps.filter(o=>o.type==='income'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
-  const expTJS=allOps.filter(o=>o.type==='expense'&&o.currency==='TJS').reduce((a,o)=>a+o.amount,0);
-  const expUSD=allOps.filter(o=>o.type==='expense'&&o.currency==='USD').reduce((a,o)=>a+o.amount,0);
-
-  // Unique categories and objects from allOps
-  const opsCats=[...new Set(allOps.map(o=>o.category_name).filter(Boolean))].sort();
-  const opsObjs=[...new Set(allOps.map(o=>o.object_name).filter(Boolean))].sort();
-
   // Ensure filter state has all fields
   window._opsFilter=Object.assign(
     {q:'',type:'all',currency:'all',object:'all',category:'all',date_from:'',date_to:''},
     window._opsFilter||{}
   );
 
-  const applyFilter=()=>{
-    const f=window._opsFilter;
-    let list=window._ops||[];
-    if(f.q){
-      const q=f.q.toLowerCase();
-      list=list.filter(o=>
-        (o.description||'').toLowerCase().includes(q)||
-        (o.category_name||'').toLowerCase().includes(q)||
-        (o.worker_name||'').toLowerCase().includes(q)||
-        (o.object_name||'').toLowerCase().includes(q)
-      );
-    }
-    if(f.type!=='all')     list=list.filter(o=>o.type===f.type);
-    if(f.currency!=='all') list=list.filter(o=>o.currency===f.currency);
-    if(f.object!=='all')   list=list.filter(o=>(o.object_name||'')===(f.object));
-    if(f.category!=='all') list=list.filter(o=>(o.category_name||'')===(f.category));
-    if(f.date_from)        list=list.filter(o=>o.date&&o.date>=f.date_from);
-    if(f.date_to)          list=list.filter(o=>o.date&&o.date<=f.date_to);
+  // Итоги считает сервер, первая страница списка приходит отдельно. Раньше
+  // здесь выгружались все операции периода — ради четырёх чисел и ста строк.
+  const[totals,firstPage,periodCount]=await Promise.all([
+    fetchOpsTotals(),
+    fetchOpsPage(window._opsFilter,0,OPS_CHUNK),
+    // Сколько всего операций в периоде без фильтров — для подписи «X из Y».
+    opsFilteredQuery(SB.from('operations').select('id',{count:'exact',head:true}),{})
+      .then(r=>r.count??0)
+  ]);
+  const{incTJS,incUSD,expTJS,expUSD}=totals;
+  const allOps=firstPage.rows;
+  const totalCount=firstPage.total;
+  window._ops=allOps; // то, что сейчас на руках (для «Мои расходы» и старых мест)
+  const rate=COMPANY.usd_rate||10.92;
+
+  // Списки для выпадашек берём из справочников, а не из выгруженных операций:
+  // справочники уже загружены при входе, и лишний запрос не нужен.
+  const opsObjs=OBJECTS.map(o=>o.name).filter(Boolean).sort();
+  const opsCats=[...new Set(CATEGORIES.map(c=>c.name).filter(Boolean))].sort();
+
+  // Источник строк для списка: каждая порция — отдельный запрос с теми же
+  // фильтрами. Фильтры теперь применяет Postgres, поэтому поиск находит строку
+  // в любом месте истории, а не только среди заранее скачанных.
+  const pageSource=(offset,limit)=>fetchOpsPage(window._opsFilter,offset,limit);
+
+  const updateResetBtn=()=>{
+    const f=window._opsFilter,rb=document.getElementById('ops-reset-btn');
+    if(!rb)return;
+    const active=f.q||f.type!=='all'||f.currency!=='all'||f.object!=='all'||f.category!=='all'||f.date_from||f.date_to;
+    rb.style.display=active?'inline-flex':'none';
+  };
+
+  const applyFilter=async()=>{
+    updateResetBtn();
+    await mountOpsList('ops-list',pageSource,true,0);
     const ol=document.getElementById('ops-list');
     const oc=document.getElementById('ops-count');
-    window._filteredOps=list; // save for export
-    if(ol) ol.innerHTML=list.length
-      ? list.map(o=>txRow(o,true)).join('')
-      : `<div class="empty"><div class="empty-icon">🔍</div>${t('no_data')}</div>`;
-    if(oc) oc.textContent=list.length+' '+t('from_of')+' '+(window._ops||[]).length;
-    // Show/hide reset button
-    const rb=document.getElementById('ops-reset-btn');
-    if(rb){
-      const active=f.q||f.type!=='all'||f.currency!=='all'||f.object!=='all'||f.category!=='all'||f.date_from||f.date_to;
-      rb.style.display=active?'inline-flex':'none';
-    }
+    if(oc&&ol) oc.textContent=(ol._total||0)+' '+t('from_of')+' '+periodCount;
   };
   window._applyOpsFilter=applyFilter;
+
+  // Первая страница уже отрисована в разметке ниже — здесь только заводим
+  // состояние контейнера, чтобы не делать тот же запрос повторно.
+  const seedOpsList=()=>{
+    const ol=document.getElementById('ops-list');
+    if(!ol)return;
+    ol._src=pageSource;ol._shown=allOps.length;ol._canEdit=true;
+    ol._busy=false;ol._total=totalCount;
+    _updateMoreBtn('ops-list');
+    updateResetBtn(); // на страницу могли вернуться с уже включённым фильтром
+    const oc=document.getElementById('ops-count');
+    if(oc) oc.textContent=totalCount+' '+t('from_of')+' '+periodCount;
+  };
 
   function resetOpsFilter(){
     window._opsFilter={q:'',type:'all',currency:'all',object:'all',category:'all',date_from:'',date_to:''};
@@ -3319,7 +3565,7 @@ ops:async()=>{
     bind('ops-cat','category');
     bind('ops-from','date_from');
     bind('ops-to','date_to');
-    applyFilter(); // apply saved state on load
+    seedOpsList(); // первая страница уже пришла — повторный запрос не нужен
   },100);
 
   const canEdit=canWrite();
@@ -3376,8 +3622,8 @@ ops:async()=>{
     <div class="sh">
       <div class="sh-t">${t('all_ops_title')}</div>
       <div class="exp-row">
-        <button class="eb eb-xl" onclick="exportXL(window._filteredOps||window._ops||[],'BurjiBokhtar_ops')">Excel</button>
-        <button class="eb eb-pdf" onclick="exportPDF(t('all_ops_title'),window._filteredOps||window._ops||[])">PDF</button>
+        <button class="eb eb-xl" onclick="exportOpsFiltered('xl')">Excel</button>
+        <button class="eb eb-pdf" onclick="exportOpsFiltered('pdf')">PDF</button>
       </div>
     </div>
 
@@ -3429,13 +3675,14 @@ ops:async()=>{
 
     <div style="font-size:11px;color:var(--t4);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;">
       <span>${USER?.role==='supplier'?t('role_sup_edit'):t('role_acc_edit')}</span>
-      <span id="ops-count" style="font-weight:600;color:var(--t2);">${allOps.length} из ${allOps.length}</span>
+      <span id="ops-count" style="font-weight:600;color:var(--t2);">${totalCount} ${t('from_of')} ${periodCount}</span>
     </div>
     <div id="ops-list">
       ${allOps.length
         ? allOps.map(o=>txRow(o,true)).join('')
         : `<div class="empty"><div class="empty-icon">📋</div>${t('no_ops')}</div>`}
     </div>
+    ${opsMoreBtn('ops-list',totalCount)}
   </div>
   `;
 },
@@ -3443,9 +3690,11 @@ ops:async()=>{
 /* ── SNABS ── */
 snabs:async()=>{
   const rate=COMPANY.usd_rate||10.92;
-  const[advs,allOps]=await Promise.all([
+  // Раньше здесь выкачивалась вся история расходов ради суммы по каждому
+  // работнику; теперь сервер отдаёт по строке на человека.
+  const[advs,spentByWorker]=await Promise.all([
     sbFetchAll('advances','*',q=>q.order('created_at',{ascending:false})),
-    sbFetchAll('operations','worker_name,amount_tjs,type',q=>q.eq('type','expense'))
+    fetchWorkerSpend(null)
   ]);
   const clrs=['var(--a)','var(--blue)','var(--pur)','var(--ora)'];
   const bgs=['var(--al)','var(--bluel)','var(--purl)','var(--oral)'];
@@ -3462,7 +3711,7 @@ snabs:async()=>{
     const done=wAdvs.filter(a=>a.status==='done'||a.status==='closed');
     // Use ALL advances (active+closed) so balance=0 when advance auto-closes after full spend
     const totalGiven=wAdvs.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
-    const spent=(allOps||[]).filter(o=>o.worker_name===name).reduce((s,o)=>s+(o.amount_tjs||0),0);
+    const spent=spentByWorker.get(name)||0;
     const rem=Math.max(0,totalGiven-spent);
     const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
     return{name,active,done,totalGiven,spent,rem,pct};
@@ -3562,18 +3811,17 @@ snab_detail:async()=>{
   if(!name){go('snabs');return '';}
   const rate=COMPANY.usd_rate||10.92;
   const d10=new Date(Date.now()-10*24*60*60*1000).toISOString().slice(0,10);
-  const[advs,ops,allOpsBalance]=await Promise.all([
+  const[advs,ops,spent]=await Promise.all([
     sbFetchAll('advances','*',q=>q.eq('worker_name',name).order('created_at',{ascending:false})),
-    sbFetchAll('operations','*',q=>q.eq('type','expense').eq('worker_name',name).gte('date',d10).order('date',{ascending:false})),
-    sbFetchAll('operations','amount_tjs',q=>q.eq('type','expense').eq('worker_name',name))
+    sbFetchAll('operations',OPS_COLS,q=>q.eq('type','expense').eq('worker_name',name).gte('date',d10).order('date',{ascending:false})),
+    // Баланс считается по всей истории, но нужна из неё одна сумма — её и берём.
+    fetchOneWorkerSpend(name)
   ]);
   const allAdvs=advs||[];
   const active=allAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
   const closedAdvs=allAdvs.filter(a=>a.status==='done'||a.status==='closed');
   // Use ALL advances (active+closed) for total — so rem=0 when auto-closed after full spend
   const totalGiven=allAdvs.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
-  // Use ALL expenses (not just 10-day) for accurate balance
-  const spent=(allOpsBalance||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
   const rem=Math.max(0,totalGiven-spent);
   const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
   const pctColor=pct>90?'var(--red)':pct>70?'var(--yel)':'var(--a)';
@@ -3816,7 +4064,7 @@ debts:async()=>{
 /* ── STATS ── */
 stats:async()=>{
   const[allOps]=await Promise.all([
-    sbFetchAll('operations','*',periodFilter)
+    sbFetchAll('operations',OPS_COLS,periodFilter)
   ]);
   const ops=allOps||[];window._ops=ops;
   const rate=COMPANY.usd_rate||10.92;
@@ -4027,10 +4275,11 @@ settings:async()=>{
 my:async()=>{
   const d10=new Date(Date.now()-10*24*60*60*1000).toISOString().slice(0,10);
   const d30=new Date(Date.now()-30*24*60*60*1000).toISOString().slice(0,10);
-  const[advs,ops,allOpsBalance]=await Promise.all([
+  const[advs,ops,spent]=await Promise.all([
     sbFetchAll('advances','*',q=>q.eq('worker_name',USER?.name).order('created_at',{ascending:false})),
-    sbFetchAll('operations','*',q=>q.eq('type','expense').eq('worker_name',USER?.name).gte('date',d10).order('date',{ascending:false})),
-    sbFetchAll('operations','amount_tjs',q=>q.eq('type','expense').eq('worker_name',USER?.name))
+    sbFetchAll('operations',OPS_COLS,q=>q.eq('type','expense').eq('worker_name',USER?.name).gte('date',d10).order('date',{ascending:false})),
+    // Баланс — по всей истории, но из неё нужна одна сумма.
+    fetchOneWorkerSpend(USER?.name)
   ]);
   const rate=COMPANY.usd_rate||10.92;
   const allAdvs=advs||[];
@@ -4042,7 +4291,6 @@ my:async()=>{
   const totalGiven=allAdvs.reduce((s,a)=>{
     const tjs=a.currency==='USD'?a.amount*rate:a.amount;return s+tjs;
   },0);
-  const spent=(allOpsBalance||[]).reduce((a,o)=>a+(o.amount_tjs||0),0);
   const rem=Math.max(0,totalGiven-spent);
   const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
   const pctColor=pct>90?'var(--red)':pct>70?'var(--yel)':'var(--a)';
@@ -4131,9 +4379,12 @@ addexp:async()=>{
   return '<div></div>';
 },
 myexp:async()=>{
-  const ops=await sbFetchAll('operations','*',q=>q.eq('type','expense').eq('worker_name',USER?.name).order('date',{ascending:false}));
+  const ops=await sbFetchAll('operations',OPS_COLS,q=>q.eq('type','expense').eq('worker_name',USER?.name).order('date',{ascending:false}));
   window._ops=ops||[];const rate=COMPANY.usd_rate||10.92;
   const total=(ops||[]).reduce((a,o)=>a+(o.amount_tjs||0),0);
+  // Разметка ниже уже показывает первую порцию, здесь только заводим состояние
+  // контейнера, чтобы заработала кнопка догрузки.
+  setTimeout(()=>mountOpsList('myexp-list',ops||[],true),0);
   return `
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:9px;">
     <div><div class="sc-lbl">${t('myexp')}</div><div style="font-size:20px;font-weight:800;color:var(--red);">−${fmtN(total)} TJS</div><div style="font-size:11px;color:var(--t4);">≈ $${fmtN(total/rate)}</div></div>
@@ -4141,13 +4392,15 @@ myexp:async()=>{
   </div>
   <div class="card">
     <div style="font-size:11px;color:var(--t4);margin-bottom:9px;">${t('ed_today')}</div>
-    <div>${(ops||[]).length?(ops||[]).map(o=>txRow(o,true)).join(''):`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
+    <div id="myexp-list">${(ops||[]).length?(ops||[]).slice(0,OPS_CHUNK).map(o=>txRow(o,true)).join(''):`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
+    ${opsMoreBtn('myexp-list',(ops||[]).length)}
   </div>`;
 },
 tasks:async()=>{
-  const advs=await sbFetchAll('advances','*',q=>q.eq('worker_name',USER?.name));
-  const ops=await sbFetchAll('operations','amount_tjs,worker_name',q=>q.eq('type','expense').eq('worker_name',USER?.name));
-  const spent=(ops||[]).reduce((a,o)=>a+(o.amount_tjs||0),0);
+  const[advs,spent]=await Promise.all([
+    sbFetchAll('advances','*',q=>q.eq('worker_name',USER?.name)),
+    fetchOneWorkerSpend(USER?.name)
+  ]);
   return `${(advs||[]).map((a,i)=>{
     const rem=a.amount-spent;const pct=a.amount>0?Math.min(spent/a.amount*100,100):0;
     const names=Array.isArray(a.stage_names)?a.stage_names:['Старт','Закупка','Доставка','Сдача'];
@@ -4219,28 +4472,26 @@ function canAdmin(){return USER?.role==='accountant'||USER?.role==='admin';}
    Uses all advances (active+closed) so that after a closed cycle, a new advance
    correctly adds to the cumulative balance instead of going negative. */
 async function getSupplierRemaining(workerName){
-  const[advs,spentOps]=await Promise.all([
+  const[advs,totalSpent]=await Promise.all([
     sbFetchAll('advances','amount,currency',q=>q.eq('worker_name',workerName)),
-    sbFetchAll('operations','amount_tjs',q=>q.eq('type','expense').eq('worker_name',workerName))
+    fetchOneWorkerSpend(workerName)
   ]);
   const rate=COMPANY.usd_rate||10.92;
   const totalAdv=(advs||[]).reduce((s,a)=>{
     const tjs=a.currency==='USD'?a.amount*rate:a.amount;return s+tjs;
   },0);
-  const totalSpent=(spentOps||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
   return Math.max(0,Math.round((totalAdv-totalSpent)*100)/100);
 }
 
 /* Supplier PDF export with balance summary (given / spent / remaining) */
 async function exportMyPDF(title){
   const wName=USER?.name||'';
-  const[advs,spentOps]=await Promise.all([
+  const[advs,spent]=await Promise.all([
     sbFetchAll('advances','amount,currency',q=>q.eq('worker_name',wName)),
-    sbFetchAll('operations','amount_tjs',q=>q.eq('type','expense').eq('worker_name',wName))
+    fetchOneWorkerSpend(wName)
   ]);
   const rate=COMPANY.usd_rate||10.92;
   const given=(advs||[]).reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
-  const spent=(spentOps||[]).reduce((s,o)=>s+(o.amount_tjs||0),0);
   const remain=Math.round((given-spent)*100)/100;
   exportPDF(title,window._ops||[],{supplier:true,given,spent,remain});
 }
@@ -4404,8 +4655,11 @@ function openWorkerDetail(name){window._viewWorker=name;go('snab_detail');}
 function openNewAdvFor(name){window._pendingAdvWorker=name;openNewAdv();}
 
 async function showWorkerOps(name){
-  const ops=await sbFetchAll('operations','*',q=>q.eq('worker_name',name).order('date',{ascending:false}));
-  openModal('Расходы: '+name,`<div style="max-height:380px;overflow-y:auto;">${(ops||[]).map(o=>txRow(o,false)).join('')||`<div class="empty">${t('no_data')}</div>`}</div>`,()=>closeModal(),'Закрыть');
+  const ops=await sbFetchAll('operations',OPS_COLS,q=>q.eq('worker_name',name).order('date',{ascending:false}));
+  openModal('Расходы: '+name,
+    `<div style="max-height:380px;overflow-y:auto;"><div id="wops-list"></div>${opsMoreBtn('wops-list',(ops||[]).length)}</div>`,
+    ()=>closeModal(),'Закрыть');
+  mountOpsList('wops-list',ops||[],false);
   document.getElementById('m-ft').innerHTML=`<button class="btn btn-p btn-sm" onclick="closeModal()">Закрыть</button>`;
 }
 async function openNewAdv(){

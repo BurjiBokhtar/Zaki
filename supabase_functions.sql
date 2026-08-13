@@ -59,12 +59,55 @@ as $$
            coalesce(o.object_name,''), to_char(o.date::date,'YYYY-MM');
 $$;
 
--- 3. Доступ для ролей приложения
+-- 3. Потрачено по снабженцам — одна строка на работника вместо всех его
+--    расходов построчно. Закрывает страницу «Снабженцы», карточку снабженца
+--    и проверку остатка аванса при каждом сохранении расхода: раньше каждое
+--    из этих мест выкачивало всю историю расходов.
+--    Сумма считается ровно так же, как считал клиент: coalesce(amount_tjs, 0),
+--    без досчёта из amount/currency — иначе цифры разошлись бы с текущими.
+create or replace function worker_spend(p_worker text default null)
+returns table(worker_name text, spent_tjs numeric)
+language sql
+stable
+security invoker
+as $$
+  select coalesce(o.worker_name, '')            as worker_name,
+         sum(coalesce(o.amount_tjs, 0))         as spent_tjs
+  from operations o
+  where o.type = 'expense'
+    and (p_worker is null or o.worker_name = p_worker)
+  group by coalesce(o.worker_name, '');
+$$;
+
+-- 4. Итоги за период по типу и валюте: не больше нескольких строк на любой
+--    объём базы. Границы включительные; null — без ограничения.
+create or replace function op_totals(p_from date default null, p_to date default null)
+returns table(type text, currency text, amount numeric, amount_tjs numeric)
+language sql
+stable
+security invoker
+as $$
+  select o.type,
+         o.currency,
+         sum(coalesce(o.amount, 0))     as amount,
+         sum(coalesce(o.amount_tjs, 0)) as amount_tjs
+  from operations o
+  where (p_from is null or o.date::date >= p_from)
+    and (p_to   is null or o.date::date <= p_to)
+  group by o.type, o.currency;
+$$;
+
+-- 5. Доступ для ролей приложения
 grant execute on function cash_balance()      to anon, authenticated;
 grant execute on function op_rollup_alltime() to anon, authenticated;
+grant execute on function worker_spend(text)  to anon, authenticated;
+grant execute on function op_totals(date, date) to anon, authenticated;
 
--- 4. Индексы для скорости выборок (история по периодам и т.д.)
+-- 6. Индексы для скорости выборок (история по периодам и т.д.)
 create index if not exists idx_operations_date     on operations(date);
 create index if not exists idx_operations_type      on operations(type);
 create index if not exists idx_operations_object    on operations(object_name);
 create index if not exists idx_operations_worker    on operations(worker_name);
+-- Составной индекс под worker_spend() и под выборки расходов конкретного
+-- снабженца: по одному столбцу Postgres пришлось бы фильтровать вторым шагом.
+create index if not exists idx_operations_type_worker on operations(type, worker_name);
