@@ -15,10 +15,12 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/logo512.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/logo192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Chart.js (196 КБ) и SheetJS (861 КБ) грузятся по требованию — см. loadLib().
+     В <head> они блокировали запуск приложения своим весом при каждом открытии,
+     хотя графики нужны не на всех страницах, а выгрузка — только по клику. -->
 <style>
 /* ══════════════════════════════════
    ALIF DESIGN SYSTEM
@@ -1292,6 +1294,31 @@ async function fetchOneWorkerSpend(worker){
   return m.get(worker||'')||0;
 }
 
+/* ── ВНЕШНИЕ БИБЛИОТЕКИ ПО ТРЕБОВАНИЮ ──
+   Раньше Chart.js и SheetJS висели в <head> блокирующими тегами: их вес
+   платился при каждом открытии приложения, включая те открытия, где никто не
+   смотрит графики и ничего не выгружает. Теперь скрипт подставляется в момент,
+   когда до него дошло дело, а повторные вызовы переиспользуют тот же промис. */
+const _libs={};
+function loadLib(name,src,ready){
+  if(ready()) return Promise.resolve();
+  if(_libs[name]) return _libs[name];
+  _libs[name]=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src=src;s.async=true;
+    s.onload=()=>ready()?resolve():reject(new Error(name+' загрузился, но не инициализировался'));
+    s.onerror=()=>{_libs[name]=null;reject(new Error('Не удалось загрузить '+name));};
+    document.head.appendChild(s);
+  });
+  return _libs[name];
+}
+const loadChartJS=()=>loadLib('Chart.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
+  ()=>typeof Chart!=='undefined');
+const loadXLSX=()=>loadLib('модуль выгрузки',
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  ()=>typeof XLSX!=='undefined');
+
 /* ── DEBOUNCE ── */
 function debounce(fn,ms=260){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
 
@@ -1445,11 +1472,15 @@ function chartGrad(id,r,g,b,a0=0.32,a1=0.0){
 function mkChartWhenVisible(id,cfg){
   const el=document.getElementById(id);if(!el)return;
   if(CHARTS[id])return; // already rendered
-  const obs=new IntersectionObserver((entries,o)=>{
+  const obs=new IntersectionObserver(async(entries,o)=>{
     if(entries[0].isIntersecting){
       o.disconnect();
       _CHART_OBS.delete(obs);
-      if(!CHARTS[id]) mkChart(id,cfg);
+      if(CHARTS[id])return;
+      try{ await loadChartJS(); }catch(e){ console.warn(e.message); return; }
+      // Пока грузилась библиотека, страница могла смениться — тогда канваса
+      // с этим id уже нет, и рисовать нечего.
+      if(!CHARTS[id]&&document.getElementById(id)) mkChart(id,cfg);
     }
   },{threshold:0.15});
   _CHART_OBS.add(obs);
@@ -1593,8 +1624,11 @@ function stageTrack(stage,stages,names){
 }
 
 /* ── EXPORT ── */
-function exportXL(ops,filename){
+async function exportXL(ops,filename){
   if(!ops||!ops.length){showToast(t('no_exp_data'),true);return;}
+  // Библиотека приезжает здесь, а не при запуске приложения.
+  try{ await loadXLSX(); }
+  catch(e){ showToast(e.message,true); return; }
   const rate=COMPANY.usd_rate||10.92;
   const rows=ops.map(o=>({
     'Дата': o.date||'',
@@ -2485,7 +2519,7 @@ async function exportOpsFiltered(kind){
     const rows=await sbFetchAll('operations',OPS_COLS,
       q=>opsFilteredQuery(q,window._opsFilter||{}).order('date',{ascending:false}));
     if(!rows.length){showToast(t('no_exp_data'),true);return;}
-    if(kind==='xl') exportXL(rows,'BurjiBokhtar_ops');
+    if(kind==='xl') await exportXL(rows,'BurjiBokhtar_ops');
     else exportPDF(t('all_ops_title'),rows);
   }catch(e){
     showToast(e.message||'Не удалось выгрузить',true);
@@ -3077,7 +3111,8 @@ home:async()=>{
   const[periodR, allTimeR, debtsR, advR, profR]=await Promise.all([
     qCached(periodKey,()=>sbFetchAll('operations',OPS_COLS,periodFilter)),
     qCached('home_alltime',()=>fetchAllTimeOps()),
-    qCached('home_debts',()=>SB.from('debts').select('*')),
+    // Главной от долгов нужны только эти четыре поля для двух сумм.
+    qCached('home_debts',()=>SB.from('debts').select('type,currency,total_amount,paid_amount')),
     qCached('home_advances',()=>sbFetchAll('advances','amount,currency')),
     qCached('home_profiles',()=>SB.from('profiles').select('name,role').eq('role','supplier')),
   ]);

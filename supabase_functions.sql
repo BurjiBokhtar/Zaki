@@ -111,3 +111,13 @@ create index if not exists idx_operations_worker    on operations(worker_name);
 -- Составной индекс под worker_spend() и под выборки расходов конкретного
 -- снабженца: по одному столбцу Postgres пришлось бы фильтровать вторым шагом.
 create index if not exists idx_operations_type_worker on operations(type, worker_name);
+-- Список операций всегда сортируется по date desc, id desc — под этот порядок
+-- индекс позволяет читать страницу подряд, без сортировки всей выборки.
+create index if not exists idx_operations_date_id on operations(date desc, id desc);
+
+-- У advances не было ни одного индекса, хотя её фильтруют по работнику и
+-- статусу на каждой странице снабженца и при каждой выдаче аванса.
+create index if not exists idx_advances_worker on advances(worker_name);
+create index if not exists idx_advances_status on advances(status);
+create index if not exists idx_advances_worker_status on advances(worker_name, status);
+create index if not exists idx_advances_object on advances(object_name);
