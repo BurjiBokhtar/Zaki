@@ -2543,6 +2543,36 @@ function monthStartBack(back){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
 }
 
+/* Страницы операций одного работника. Списки по снабженцу росли без предела:
+   вся его история приезжала целиком, хотя на экране видно сто строк. */
+function workerOpsSource(name,type){
+  return async(offset,limit)=>{
+    let q=SB.from('operations').select(OPS_COLS,{count:'exact'}).eq('worker_name',name);
+    if(type) q=q.eq('type',type);
+    const{data,count,error}=await q
+      .order('date',{ascending:false}).order('id',{ascending:false})
+      .range(offset,offset+limit-1);
+    if(error) throw error;
+    return {rows:data||[],total:count??0};
+  };
+}
+/* Полная история работника — только для файла, по клику. */
+function fetchWorkerOpsAll(name,type){
+  return sbFetchAll('operations',OPS_COLS,q=>{
+    q=q.eq('worker_name',name);
+    if(type) q=q.eq('type',type);
+    return q.order('date',{ascending:false});
+  });
+}
+async function exportMyExpenses(kind){
+  showToast('Готовим Excel…');
+  try{
+    const rows=await fetchWorkerOpsAll(USER?.name,'expense');
+    if(!rows.length){showToast(t('no_exp_data'),true);return;}
+    await exportXL(rows,'Мои_расходы');
+  }catch(e){ showToast(e.message||'Не удалось выгрузить',true); }
+}
+
 /* Выгрузка со «Статистики». Страница держит только суммы, поэтому строки для
    файла читаются здесь — по клику, а не при каждом её открытии. */
 async function exportStatsPeriod(kind,type){
@@ -3711,7 +3741,6 @@ ops:async()=>{
   const{incTJS,incUSD,expTJS,expUSD}=totals;
   const allOps=firstPage.rows;
   const totalCount=firstPage.total;
-  window._ops=allOps; // то, что сейчас на руках (для «Мои расходы» и старых мест)
   const rate=COMPANY.usd_rate||10.92;
 
   // Списки для выпадашек берём из справочников, а не из выгруженных операций:
@@ -4589,21 +4618,28 @@ addexp:async()=>{
   return '<div></div>';
 },
 myexp:async()=>{
-  const ops=await sbFetchAll('operations',OPS_COLS,q=>q.eq('type','expense').eq('worker_name',USER?.name).order('date',{ascending:false}));
-  window._ops=ops||[];const rate=COMPANY.usd_rate||10.92;
-  const total=(ops||[]).reduce((a,o)=>a+(o.amount_tjs||0),0);
-  // Разметка ниже уже показывает первую порцию, здесь только заводим состояние
-  // контейнера, чтобы заработала кнопка догрузки.
-  setTimeout(()=>mountOpsList('myexp-list',ops||[],true),0);
+  const name=USER?.name;
+  // Сумма приходит одним числом из RPC, список — страницами. Раньше и то и
+  // другое получалось выгрузкой всей истории расходов снабженца.
+  const src=workerOpsSource(name,'expense');
+  const[first,total]=await Promise.all([src(0,OPS_CHUNK),fetchOneWorkerSpend(name)]);
+  const rate=COMPANY.usd_rate||10.92;
+  setTimeout(()=>{
+    const ol=document.getElementById('myexp-list');
+    if(!ol)return;
+    // Первая страница уже в разметке — заводим состояние без повторного запроса.
+    ol._src=src;ol._shown=first.rows.length;ol._canEdit=true;ol._busy=false;ol._total=first.total;
+    _updateMoreBtn('myexp-list');
+  },0);
   return `
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:9px;">
     <div><div class="sc-lbl">${t('myexp')}</div><div style="font-size:20px;font-weight:800;color:var(--red);">−${fmtN(total)} TJS</div><div style="font-size:11px;color:var(--t4);">≈ $${fmtN(total/rate)}</div></div>
-    <div class="exp-row"><button class="eb eb-xl" onclick="exportXL(window._ops||[],'Мои_расходы')">${t('xl')}</button><button class="eb eb-pdf" onclick="exportMyPDF('${t('myexp')}')">${t('pdf')}</button></div>
+    <div class="exp-row"><button class="eb eb-xl" onclick="exportMyExpenses('xl')">${t('xl')}</button><button class="eb eb-pdf" onclick="exportMyPDF('${t('myexp')}')">${t('pdf')}</button></div>
   </div>
   <div class="card">
     <div style="font-size:11px;color:var(--t4);margin-bottom:9px;">${t('ed_today')}</div>
-    <div id="myexp-list">${(ops||[]).length?(ops||[]).slice(0,OPS_CHUNK).map(o=>txRow(o,true)).join(''):`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
-    ${opsMoreBtn('myexp-list',(ops||[]).length)}
+    <div id="myexp-list">${first.rows.length?first.rows.map(o=>txRow(o,true)).join(''):`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
+    ${opsMoreBtn('myexp-list',first.total)}
   </div>`;
 },
 tasks:async()=>{
@@ -4696,14 +4732,17 @@ async function getSupplierRemaining(workerName){
 /* Supplier PDF export with balance summary (given / spent / remaining) */
 async function exportMyPDF(title){
   const wName=USER?.name||'';
-  const[advs,spent]=await Promise.all([
+  showToast('Готовим PDF…');
+  // Строки берём здесь: страница «Мои расходы» держит только показанную часть.
+  const[advs,spent,rows]=await Promise.all([
     sbFetchAll('advances','amount,currency',q=>q.eq('worker_name',wName)),
-    fetchOneWorkerSpend(wName)
+    fetchOneWorkerSpend(wName),
+    fetchWorkerOpsAll(wName,'expense')
   ]);
   const rate=COMPANY.usd_rate||10.92;
   const given=(advs||[]).reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
   const remain=Math.round((given-spent)*100)/100;
-  exportPDF(title,window._ops||[],{supplier:true,given,spent,remain});
+  exportPDF(title,rows||[],{supplier:true,given,spent,remain});
 }
 
 /* Returns current cash balance in TJS (income − direct_expenses − advances) */
@@ -4865,11 +4904,17 @@ function openWorkerDetail(name){window._viewWorker=name;go('snab_detail');}
 function openNewAdvFor(name){window._pendingAdvWorker=name;openNewAdv();}
 
 async function showWorkerOps(name){
-  const ops=await sbFetchAll('operations',OPS_COLS,q=>q.eq('worker_name',name).order('date',{ascending:false}));
+  const src=workerOpsSource(name,null);
+  const first=await src(0,OPS_CHUNK);
   openModal('Расходы: '+name,
-    `<div style="max-height:380px;overflow-y:auto;"><div id="wops-list"></div>${opsMoreBtn('wops-list',(ops||[]).length)}</div>`,
+    `<div style="max-height:380px;overflow-y:auto;"><div id="wops-list"></div>${opsMoreBtn('wops-list',first.total)}</div>`,
     ()=>closeModal(),'Закрыть');
-  mountOpsList('wops-list',ops||[],false);
+  const ol=document.getElementById('wops-list');
+  if(ol){
+    ol.innerHTML=first.rows.length?first.rows.map(o=>txRow(o,false)).join(''):`<div class="empty">${t('no_data')}</div>`;
+    ol._src=src;ol._shown=first.rows.length;ol._canEdit=false;ol._busy=false;ol._total=first.total;
+    _updateMoreBtn('wops-list');
+  }
   document.getElementById('m-ft').innerHTML=`<button class="btn btn-p btn-sm" onclick="closeModal()">Закрыть</button>`;
 }
 async function openNewAdv(){
