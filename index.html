@@ -5655,9 +5655,8 @@ function setDailyQuote(){
 updateLoginClock();
 setInterval(updateLoginClock,30000);
 
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js').catch(()=>{});
-}
+/* Регистрация service worker живёт в одном месте — в конце файла.
+   Здесь она была второй по счёту: тот же скрипт, та же область. */
 
 (async()=>{
   /* ── SUPABASE: ключи зашиты напрямую ── */
@@ -5826,8 +5825,19 @@ let _pinFirst  = '';   // first entry during setup
 /* simple obfuscation — enough for a local lock screen */
 function _ph(p){ return btoa('zaki2025:'+p); }
 
-/* ── activity tracking ── */
-function updateActivity(){ localStorage.setItem(PIN_ACT_KEY, Date.now()); }
+/* ── activity tracking ──
+   localStorage.setItem — синхронная запись на диск, она останавливает главный
+   поток. Вызывалась она на каждое событие scroll, то есть десятки раз в
+   секунду при обычной прокрутке списка: отсюда и подтормаживание.
+   Отметка нужна лишь для правила «заблокировать после 3 минут простоя»,
+   поэтому чаще раза в 10 секунд писать незачем. */
+let _lastActWrite=0;
+function updateActivity(force){
+  const now=Date.now();
+  if(!force && now-_lastActWrite<10000) return;
+  _lastActWrite=now;
+  localStorage.setItem(PIN_ACT_KEY, now);
+}
 function _lastAct(){ return parseInt(localStorage.getItem(PIN_ACT_KEY)||'0'); }
 
 function checkPinTimeout(){
@@ -5975,6 +5985,9 @@ let _pinWasHidden = false;
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='hidden'){
     _pinWasHidden = true;
+    // Уход в фон — единственный момент, когда отметку активности нужно
+    // записать точно: по ней считается простой при возврате.
+    if(USER) updateActivity(true);
   } else if(_pinWasHidden){
     _pinWasHidden = false;
     // Only lock if idle longer than timeout
@@ -6401,8 +6414,17 @@ if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(reg => {
-        // Check for updates every 60s when app is active
-        setInterval(() => reg.update(), 60000);
+        /* Проверка обновления раз в минуту — это запрос к сети каждую минуту
+           всё время, пока открыто приложение, а установленное приложение
+           открыто сутками. Браузер и так не кэширует сам sw.js дольше суток,
+           так что частота ничего не давала.
+           Раз в час — и дополнительно в момент, когда пользователь вернулся
+           в приложение: именно тогда обновление и нужно заметить. */
+        const check=()=>{ try{ reg.update(); }catch(e){} };
+        setInterval(check, 3600000);
+        document.addEventListener('visibilitychange',()=>{
+          if(document.visibilityState==='visible') check();
+        });
       })
       .catch(err => console.warn('SW registration failed:', err));
   });

@@ -1,6 +1,12 @@
 /* ── ZAKI ERP Service Worker ── */
-const CACHE_VER = 'zaki-v35';
+const CACHE_VER = 'zaki-v36';
 const SHELL = ['/', '/index.html', '/manifest.json'];
+
+/* Библиотеки с CDN лежат отдельно от оболочки. Раньше они попадали в кэш
+   версии, а тот при каждом обновлении приложения удаляется целиком — и
+   supabase-js со всем остальным приходилось качать заново. Их содержимое
+   привязано к версии в URL, поэтому устареть оно не может. */
+const STATIC_CACHE = 'zaki-static-v1';
 
 /* Данные Supabase держим отдельно от оболочки: у них своя политика вытеснения,
    и чистить их нужно, не трогая закэшированный index.html.
@@ -58,7 +64,8 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE_VER && k !== DATA_CACHE).map(k => caches.delete(k))
+        keys.filter(k => k !== CACHE_VER && k !== DATA_CACHE && k !== STATIC_CACHE)
+            .map(k => caches.delete(k))
       ))
       // Удаление zaki-v34 выше заодно выносит весь накопленный там JSON
       // Supabase — в прежней схеме он лежал в кэше оболочки и не вытеснялся.
@@ -72,16 +79,28 @@ self.addEventListener('fetch', e => {
   const { request } = e;
   const url = new URL(request.url);
 
-  /* 1. Navigate → network-first (always fresh HTML), cache fallback offline */
+  /* 1. Navigate → отдаём из кэша сразу, обновляем в фоне.
+        Было «сначала сеть»: каждый запуск установленного приложения ждал
+        загрузки index.html (386 КБ) прежде чем показать хоть что-то, а на
+        плохой связи — ждал до самого таймаута, потому что откат на кэш
+        случался только после отказа. Вкладка в браузере так не тормозит,
+        потому что берёт документ из обычного HTTP-кэша.
+        Теперь оболочка появляется мгновенно, а свежая версия скачивается
+        параллельно и применяется при следующем запуске. */
   if (request.mode === 'navigate') {
     e.respondWith(
-      fetch(request).then(res => {
-        caches.open(CACHE_VER).then(cache => cache.put('/index.html', res.clone()));
-        return res;
-      }).catch(() =>
-        caches.open(CACHE_VER).then(cache =>
-          cache.match('/index.html').then(c => c || new Response('Offline', { status: 503 }))
-        )
+      caches.open(CACHE_VER).then(cache =>
+        cache.match('/index.html').then(cached => {
+          const fromNetwork = fetch(request)
+            .then(res => {
+              if (res && res.ok) cache.put('/index.html', res.clone());
+              return res;
+            })
+            .catch(() => cached || new Response('Offline', { status: 503 }));
+          // Есть копия — показываем её немедленно, сеть догоняет в фоне.
+          if (cached) { e.waitUntil(fromNetwork.catch(() => {})); return cached; }
+          return fromNetwork;
+        })
       )
     );
     return;
@@ -117,16 +136,19 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  /* 3. Static assets (fonts, CDN scripts) → cache-first */
+  /* 3. Static assets (fonts, CDN scripts) → cache-first, в своём кэше,
+        который переживает обновления приложения. */
   if (
     url.hostname !== self.location.hostname &&
     (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.hostname.includes('fonts'))
   ) {
     e.respondWith(
-      caches.match(request).then(cached => cached || fetch(request).then(res => {
-        caches.open(CACHE_VER).then(c => c.put(request, res.clone()));
-        return res;
-      }))
+      caches.open(STATIC_CACHE).then(cache =>
+        cache.match(request).then(cached => cached || fetch(request).then(res => {
+          if (res && res.ok) cache.put(request, res.clone());
+          return res;
+        }))
+      )
     );
     return;
   }
