@@ -368,6 +368,37 @@ html{height:100dvh;}
 .a-btn{flex:1;padding:7px 9px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s;font-family:var(--ff);text-align:center;}
 .a-btn:active{transform:scale(.97);}
 
+/* DEBTS — сгруппированы по человеку.
+   Одна строка на должника с его общим остатком; долги внутри, подробности и
+   кнопки раскрываются по клику. Раньше каждый долг занимал карточку с шестью
+   плитками, и долги одного человека ничем не были связаны между собой. */
+.dg{background:var(--w);border:1px solid var(--bd);border-radius:var(--r2);margin-bottom:8px;box-shadow:var(--sh);overflow:hidden;animation:fadeUp .3s ease both;}
+.dg-hd{display:flex;align-items:center;gap:11px;padding:12px 14px;cursor:pointer;user-select:none;transition:background .13s;}
+.dg-hd:hover{background:var(--ap);}
+.dg-nm{font-size:14px;font-weight:700;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dg-sub{font-size:11px;color:var(--t4);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.dg-amt{margin-left:auto;text-align:right;flex-shrink:0;}
+.dg-a{font-size:15px;font-weight:800;line-height:1.3;white-space:nowrap;}
+.dg-chev{flex-shrink:0;color:var(--t4);transition:transform .2s;}
+.dg.open .dg-chev{transform:rotate(90deg);}
+.dg-body{display:none;border-top:1px solid var(--bd);background:var(--ap);}
+.dg.open .dg-body{display:block;}
+
+.di{border-top:1px solid var(--bd);}
+.di:first-child{border-top:none;}
+.di-hd{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background .13s;}
+.di-hd:hover{background:var(--w);}
+.di-d{flex:1;min-width:0;}
+.di-t{font-size:12.5px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.di-m{font-size:10.5px;color:var(--t4);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.di-a{font-size:13.5px;font-weight:700;flex-shrink:0;text-align:right;white-space:nowrap;}
+.di-det{display:none;padding:0 14px 12px;}
+.di.open .di-det{display:block;}
+.di-hist{margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);}
+.di-hr{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:3px 0;}
+/* маленький значок «просрочено» вместо крупной плашки */
+.dot-late{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--red);flex-shrink:0;}
+
 /* MASTER CARD */
 .mc{background:var(--w);border:1px solid var(--bd);border-radius:var(--r2);padding:15px;margin-bottom:9px;box-shadow:var(--sh);animation:fadeUp .3s ease both;}
 .mc-hd{display:flex;align-items:center;gap:11px;margin-bottom:11px;}
@@ -1321,6 +1352,18 @@ const loadXLSX=()=>loadLib('модуль выгрузки',
 
 /* ── DEBOUNCE ── */
 function debounce(fn,ms=260){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
+
+/* ── РАЗДЕЛ ДОЛГОВ ── */
+function toggleDebtGroup(el){ el.closest('.dg')?.classList.toggle('open'); }
+function toggleDebtItem(el){ el.closest('.di')?.classList.toggle('open'); }
+/* «1 долг / 2 долга / 5 долгов» — иначе подпись выглядит неряшливо. */
+function plDebts(n){
+  if(LANG==='tj') return n+' қарз';
+  const d=n%10, h=n%100;
+  if(d===1&&h!==11) return n+' долг';
+  if(d>=2&&d<=4&&(h<10||h>=20)) return n+' долга';
+  return n+' долгов';
+}
 
 /* ── COLLAPSIBLE LIST ── render first N, hide the rest behind a toggle ── */
 function collapseList(htmlArr, firstN, id, label){
@@ -4233,37 +4276,106 @@ debts:async()=>{
   // Combined TJS-equivalent for netto only
   const sumC=sumC_TJS+sumC_USD*rate;
   const sumD=sumD_TJS+sumD_USD*rate;
-  function dc(d,i){
-    const rest=d.total_amount-d.paid_amount;
+  const fmtCur=(v,c)=>c==='USD'?'$'+fmtN(v):fmtN(v)+' TJS';
+  const isLateD=d=>!!(d.due_date&&d.due_date<today()&&d.paid_amount<d.total_amount);
+
+  /* Одна строка на долг. Подробности и кнопки — под ней, по клику: в списке
+     они только мешали, а нулевые плитки «деньги/бартером/итого» показывались
+     даже когда ничего не возвращали. */
+  function debtItem(d){
+    const rest=(d.total_amount||0)-(d.paid_amount||0);
     const pct=d.total_amount>0?Math.min(d.paid_amount/d.total_amount*100,100):0;
-    const isLate=d.due_date&&d.due_date<today()&&d.paid_amount<d.total_amount;
+    const late=isLateD(d);
     const isCred=d.type==='creditor';
-    const mP=(d.debt_returns||[]).filter(r=>r.type==='money').reduce((a,r)=>a+r.amount,0);
-    const bP=(d.debt_returns||[]).filter(r=>r.type==='barter').reduce((a,r)=>a+r.amount,0);
-    return `<div class="dc" style="animation-delay:${i*.06}s;">
-      <div class="dc-hd">
-        <div class="ava" style="width:40px;height:40px;background:${isCred?'var(--redl)':'var(--al)'};color:${isCred?'var(--red)':'var(--adk)'};">${(d.name||'?').slice(0,2)}</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">${esc(d.name)}</div><div style="font-size:11px;color:var(--t4);">${esc(d.description||'—')} · ${d.due_date||'—'}</div></div>
-        <span class="badge ${isLate?'br':pct>50?'by':'bgr'}">${isLate?t('overdue'):Math.round(pct)+'%'}</span>
+    const rets=d.debt_returns||[];
+    const mP=rets.filter(r=>r.type==='money').reduce((a,r)=>a+r.amount,0);
+    const bP=rets.filter(r=>r.type==='barter').reduce((a,r)=>a+r.amount,0);
+    return `<div class="di">
+      <div class="di-hd" onclick="toggleDebtItem(this)">
+        <div class="di-d">
+          <div class="di-t">${esc(d.description||'—')}</div>
+          <div class="di-m">
+            <span>${d.due_date||'—'}</span>
+            ${late?`<span class="dot-late"></span><span style="color:var(--red);font-weight:600;">${t('overdue')}</span>`
+                 :d.paid_amount>0?`<span>· ${Math.round(pct)}% ${t('d_paid').toLowerCase()}</span>`:''}
+          </div>
+        </div>
+        <div class="di-a" style="color:${late?'var(--red)':'var(--ora)'};">${fmtCur(rest,d.currency)}</div>
       </div>
-      <div class="dc-amts">
-        <div class="da"><div class="da-l">${t('d_debt')}</div><div class="da-v" style="color:var(--red);">${fmtN(d.total_amount)}</div></div>
-        <div class="da"><div class="da-l">${t('d_paid')}</div><div class="da-v" style="color:var(--ad);">${fmtN(d.paid_amount)}</div></div>
-        <div class="da"><div class="da-l">${t('d_rest')}</div><div class="da-v" style="color:var(--ora);">${fmtN(rest)}</div></div>
+      <div class="di-det">
+        <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${isCred?'var(--a)':'linear-gradient(90deg,var(--a) 55%,var(--pur))'};"></div></div>
+        <div style="font-size:11px;color:var(--t3);">
+          ${t('d_debt')}: <b>${fmtCur(d.total_amount,d.currency)}</b> ·
+          ${t('d_paid')}: <b style="color:var(--ad);">${fmtCur(d.paid_amount,d.currency)}</b> ·
+          ${t('d_rest')}: <b style="color:var(--ora);">${fmtCur(rest,d.currency)}</b>
+        </div>
+        ${!isCred&&(mP||bP)?`<div style="font-size:11px;color:var(--t3);margin-top:4px;">
+          ${t('money')}: <b style="color:var(--ad);">${fmtCur(mP,d.currency)}</b> ·
+          ${t('barter')}: <b style="color:var(--pur);">${fmtCur(bP,d.currency)}</b></div>`:''}
+        ${rets.length?`<div class="di-hist">
+          <div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:4px;">${t('history')}</div>
+          ${rets.map(r=>`<div class="di-hr">
+            <span style="color:var(--t3);">${r.date} · ${r.type==='money'?t('money'):t('barter')+(r.description?' ('+esc(r.description)+')':'')}</span>
+            <span style="font-weight:700;color:${r.type==='money'?'var(--ad)':'var(--pur)'};">+${fmtN(r.amount)}</span>
+          </div>`).join('')}</div>`:''}
+        ${USER?.role!=='director'?`<div class="a-btns">
+          <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="debtReturn(${d.id},'money')">${isCred?t('pay_m'):t('got_m')}</button>
+          <button class="a-btn" style="background:var(--purl);border-color:var(--purb);color:var(--pur);" onclick="debtReturn(${d.id},'barter')">${t('barter')}</button>
+          <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="delDebt(${d.id})">${t('delete')}</button>
+        </div>`:''}
       </div>
-      ${!isCred?`<div class="dc-amts" style="margin-top:6px;"><div class="da"><div class="da-l">${t('money')}</div><div class="da-v" style="color:var(--ad);">${fmtN(mP)}</div></div><div class="da"><div class="da-l">${t('barter')}</div><div class="da-v" style="color:var(--pur);">${fmtN(bP)}</div></div><div class="da"><div class="da-l">${t('total')}</div><div class="da-v" style="color:var(--ad);">${fmtN(mP+bP)}</div></div></div>`:''}
-      <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${isCred?'var(--a)':'linear-gradient(90deg,var(--a) 55%,var(--pur))'};animation-delay:${i*.07}s;"></div></div>
-      <div style="font-size:11px;color:var(--t4);margin-bottom:${USER?.role!=='director'?'9px':'0'};">${t('rest_lbl')}: ${fmtN(rest)} ${d.currency} · $${fmtN(d.currency==='TJS'?rest/rate:rest)}</div>
-      ${USER?.role!=='director'?`<div class="a-btns">
-        <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="debtReturn(${d.id},'money')">${isCred?t('pay_m'):t('got_m')}</button>
-        <button class="a-btn" style="background:var(--purl);border-color:var(--purb);color:var(--pur);" onclick="debtReturn(${d.id},'barter')">${t('barter')}</button>
-        <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="delDebt(${d.id})">${t('delete')}</button>
-      </div>
-      ${(d.debt_returns||[]).length?`<div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--t3);margin-bottom:5px;">${t('history')}</div>
-      ${(d.debt_returns||[]).map(r=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span>${r.date} · ${r.type==='money'?t('money'):t('barter')+(r.description?' ('+r.description+')':'')}</span><span style="font-weight:700;color:${r.type==='money'?'var(--ad)':'var(--pur)'};">+${fmtN(r.amount)}</span></div>`).join('')}`:''}
-      `:''}
     </div>`;
   }
+
+  /* Группа = один человек. Остаток считается отдельно по каждой валюте —
+     складывать сомони с долларами нельзя. */
+  function debtGroups(list){
+    const m=new Map();
+    (list||[]).forEach(d=>{
+      const key=normName(d.name)||'—';
+      if(!m.has(key)) m.set(key,{name:d.name||'—',items:[]});
+      m.get(key).items.push(d);
+    });
+    return [...m.values()].map(g=>{
+      const rest={};let late=0;
+      g.items.forEach(d=>{
+        const c=d.currency||'TJS';
+        rest[c]=(rest[c]||0)+((d.total_amount||0)-(d.paid_amount||0));
+        if(isLateD(d)) late++;
+      });
+      // просроченные — выше, дальше по сроку
+      g.items.sort((a,b)=>(isLateD(b)-isLateD(a))||String(a.due_date||'').localeCompare(String(b.due_date||'')));
+      return {...g,rest,late,restTJS:(rest.TJS||0)+(rest.USD||0)*rate};
+    }).sort((a,b)=>(b.late-a.late)||(b.restTJS-a.restTJS));
+  }
+
+  function debtGroup(g,i,isCred){
+    const ini=(g.name||'?').trim().slice(0,2).toUpperCase();
+    const curs=Object.keys(g.rest).filter(c=>g.rest[c]!==0);
+    // Один долг — разворачиваем сразу, скрывать нечего. Несколько — сворачиваем:
+    // ради этого группировка и делалась.
+    const open=g.items.length===1;
+    return `<div class="dg ${open?'open':''}" style="animation-delay:${i*.05}s;">
+      <div class="dg-hd" onclick="toggleDebtGroup(this)">
+        <div class="ava" style="width:38px;height:38px;background:${isCred?'var(--redl)':'var(--al)'};color:${isCred?'var(--red)':'var(--adk)'};">${esc(ini)}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="dg-nm">${esc(g.name)}</div>
+          <div class="dg-sub">
+            <span>${plDebts(g.items.length)}</span>
+            ${g.late?`<span class="dot-late"></span><span style="color:var(--red);font-weight:600;">${t('overdue')}: ${g.late}</span>`:''}
+          </div>
+        </div>
+        <div class="dg-amt">
+          ${curs.length?curs.map(c=>`<div class="dg-a" style="color:${g.late?'var(--red)':'var(--ora)'};">${fmtCur(g.rest[c],c)}</div>`).join('')
+                       :`<div class="dg-a" style="color:var(--ad);">0</div>`}
+        </div>
+        <svg class="dg-chev" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 3l4 4-4 4"/></svg>
+      </div>
+      <div class="dg-body">${g.items.map(debtItem).join('')}</div>
+    </div>`;
+  }
+  const renderDebts=(list,isCred)=>debtGroups(list).map((g,i)=>debtGroup(g,i,isCred)).join('')
+    ||`<div class="empty"><div class="empty-icon">💳</div>${t('no_data')}</div>`;
   return `
   <div class="g2 mb20">
     <div class="sc r" style="animation-delay:.03s;"><div class="sc-lbl">${t('paybl')}</div>
@@ -4297,9 +4409,9 @@ debts:async()=>{
   </button>`:''}
 
   <div class="sh"><div class="sh-t">${t('cred')}</div></div>
-  ${cred.map((d,i)=>dc(d,i)).join('')||`<div class="empty"><div class="empty-icon">💳</div>${t('no_data')}</div>`}
+  ${renderDebts(cred,true)}
   <div class="sh" style="margin-top:8px;"><div class="sh-t">${t('debt')}</div></div>
-  ${deb.map((d,i)=>dc(d,i)).join('')||`<div class="empty"><div class="empty-icon">💳</div>${t('no_data')}</div>`}`;
+  ${renderDebts(deb,false)}`;
 },
 
 /* ── STATS ── */
