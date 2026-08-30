@@ -7,7 +7,12 @@
 -- Функции используют SECURITY INVOKER — RLS остаётся в силе.
 -- ════════════════════════════════════════════════════════════════
 
--- 1. Баланс кассы (один запрос → одно число). Зеркалит логику getCashBalance():
+-- 1. УСТАРЕЛО — приложение это больше не вызывает.
+--    Функция сводит доллары в сомони по курсу из company.usd_rate, а компания
+--    валюты не конвертирует. Вместо неё используется cash_balance_by_currency(),
+--    которая отдаёт остаток кассы отдельно по каждой валюте.
+--    Оставлена только чтобы старые вкладки, не успевшие обновиться, не падали.
+-- Баланс кассы (один запрос → одно число). Зеркалит логику getCashBalance():
 --    income +,  advance −,  expense − (кроме оплаченных из аванса снабженца).
 create or replace function cash_balance()
 returns numeric
@@ -63,20 +68,25 @@ $$;
 --    расходов построчно. Закрывает страницу «Снабженцы», карточку снабженца
 --    и проверку остатка аванса при каждом сохранении расхода: раньше каждое
 --    из этих мест выкачивало всю историю расходов.
---    Сумма считается ровно так же, как считал клиент: coalesce(amount_tjs, 0),
---    без досчёта из amount/currency — иначе цифры разошлись бы с текущими.
+--    Считается по ВАЛЮТАМ, суммой amount. Раньше складывался amount_tjs, то
+--    есть доллары пересчитывались курсом на день ввода, а «выдано» по авансам
+--    пересчитывалось курсом сегодняшним — из-за этого остаток у снабженца полз
+--    сам по себе при каждом движении курса Нацбанка. Компания валюты не
+--    конвертирует: сомони и доллары живут раздельно.
+drop function if exists worker_spend(text);
 create or replace function worker_spend(p_worker text default null)
-returns table(worker_name text, spent_tjs numeric)
+returns table(worker_name text, currency text, spent numeric)
 language sql
 stable
 security invoker
 as $$
-  select coalesce(o.worker_name, '')            as worker_name,
-         sum(coalesce(o.amount_tjs, 0))         as spent_tjs
+  select coalesce(o.worker_name, '') as worker_name,
+         o.currency                  as currency,
+         sum(coalesce(o.amount, 0))  as spent
   from operations o
   where o.type = 'expense'
     and (p_worker is null or o.worker_name = p_worker)
-  group by coalesce(o.worker_name, '');
+  group by coalesce(o.worker_name, ''), o.currency;
 $$;
 
 -- 4. Итоги за период по типу и валюте: не больше нескольких строк на любой
@@ -260,25 +270,45 @@ as $$
   group by o.date::date;
 $$;
 
--- 4h. Сколько всего потрачено с авансов (в TJS) — для полосы «выдано/потрачено».
+-- 4h. Сколько потрачено с авансов — по валютам, для плитки «У снабженцев».
+drop function if exists advance_spend_total();
 create or replace function advance_spend_total()
-returns numeric
+returns table(currency text, spent numeric)
 language sql
 stable
 security invoker
 as $$
-  select coalesce(sum(coalesce(o.amount_tjs, 0)), 0)
+  select o.currency, sum(coalesce(o.amount, 0)) as spent
   from operations o
   where o.type = 'expense'
     and (coalesce(o.method, '') = 'from_advance'
          or exists (select 1 from profiles p
-                    where p.role = 'supplier' and p.name = o.worker_name));
+                    where p.role = 'supplier' and p.name = o.worker_name))
+  group by o.currency;
+$$;
+
+-- 4j. Выдано авансов — по валютам. Раньше клиент пересчитывал долларовые
+--     авансы сегодняшним курсом, а потраченное брал по курсу на день ввода:
+--     ровно отсюда и бралось «плавание» остатка.
+create or replace function advance_given(p_worker text default null)
+returns table(worker_name text, currency text, given numeric)
+language sql
+stable
+security invoker
+as $$
+  select coalesce(a.worker_name, '') as worker_name,
+         a.currency                  as currency,
+         sum(coalesce(a.amount, 0))  as given
+  from advances a
+  where (p_worker is null or a.worker_name = p_worker)
+  group by coalesce(a.worker_name, ''), a.currency;
 $$;
 
 -- 5. Доступ для ролей приложения
 grant execute on function cash_balance()      to anon, authenticated;
 grant execute on function op_rollup_alltime() to anon, authenticated;
-grant execute on function worker_spend(text)  to anon, authenticated;
+grant execute on function worker_spend(text)   to anon, authenticated;
+grant execute on function advance_given(text)  to anon, authenticated;
 grant execute on function op_totals(date, date, text)          to anon, authenticated;
 grant execute on function op_by_category(date, date)           to anon, authenticated;
 grant execute on function op_by_object(date, date)             to anon, authenticated;

@@ -1292,37 +1292,82 @@ async function fetchAllTimeOps(){
    лишние колонки — это лишние мегабайты по сети. */
 const OPS_COLS='id,type,date,object_name,category_name,description,qty,unit,price,amount,amount_tjs,currency,method,worker_name,note,created_at';
 
+/* ── ДЕНЬГИ ПО ВАЛЮТАМ ──
+   Компания ничего не конвертирует: расход вводится в той валюте, в какой он
+   есть, и в ней же живёт дальше. Поэтому любая сумма в приложении — это пара
+   {TJS, USD}, а не одно число. Ниже — минимальный набор для работы с такой
+   парой, чтобы нигде больше не возникало соблазна умножить на курс. */
+const CURS=['TJS','USD'];
+/* Одна сумма со своей валютой: «1 200 TJS» или «$300». */
+const fmtCurAmt=(v,c)=>c==='USD'?'$'+fmtN(v||0):fmtN(v||0)+' TJS';
+const zeroMoney=()=>({TJS:0,USD:0});
+const addMoney=(m,cur,v)=>{ if(m[cur]!==undefined) m[cur]+=Number(v)||0; return m; };
+const subMoney=(a,b)=>({TJS:(a.TJS||0)-(b.TJS||0),USD:(a.USD||0)-(b.USD||0)});
+const isMoneyEmpty=m=>!(m.TJS||0)&&!(m.USD||0);
+/* «1 200 TJS» / «$300». Ноль показываем только если нет вообще ничего. */
+function fmtMoney(m,opts){
+  const o=opts||{};
+  const parts=[];
+  if(m.TJS||o.always) parts.push(`${o.sign&&m.TJS>0?'+':''}${fmtN(m.TJS||0)} TJS`);
+  if(m.USD||o.always) parts.push(`${o.sign&&m.USD>0?'+':''}$${fmtN(m.USD||0)}`);
+  return parts.length?parts.join(o.sep||' · '):'0';
+}
+
 /* ── ПОТРАЧЕНО ПО СНАБЖЕНЦАМ ──
-   Нужна ровно одна цифра на человека, а считалась она перебором всех его
+   Нужна одна пара сумм на человека, а считалась она перебором всех его
    расходов за всю историю — и на странице «Снабженцы», и в карточке, и при
    каждом сохранении расхода. Сервер отдаёт готовые суммы (RPC worker_spend);
-   если функция ещё не установлена, остаётся прежний путь и цифры не меняются.
-   Карта worker_name → потрачено в TJS. */
+   если функция не установлена, остаётся прежний путь.
+   Карта worker_name → {TJS, USD}. */
 async function fetchWorkerSpend(worker){
+  const put=(m,name,cur,v)=>{
+    const k=name||'';
+    if(!m.has(k)) m.set(k,zeroMoney());
+    addMoney(m.get(k),cur,v);
+  };
   try{
     const{data,error}=await SB.rpc('worker_spend',{p_worker:worker??null});
     if(error) throw error;
     if(Array.isArray(data)){
       const m=new Map();
-      data.forEach(r=>m.set(r.worker_name||'',Number(r.spent_tjs)||0));
+      data.forEach(r=>put(m,r.worker_name,r.currency,r.spent));
       return m;
     }
   }catch(e){ /* RPC нет — падаем на клиентский расчёт ниже */ }
-  const rows=await sbFetchAll('operations','worker_name,amount_tjs',q=>{
+  const rows=await sbFetchAll('operations','worker_name,amount,currency',q=>{
     q=q.eq('type','expense');
     return worker==null?q:q.eq('worker_name',worker);
   });
   const m=new Map();
-  (rows||[]).forEach(o=>{
-    const k=o.worker_name||'';
-    m.set(k,(m.get(k)||0)+(o.amount_tjs||0));
-  });
+  (rows||[]).forEach(o=>put(m,o.worker_name,o.currency,o.amount));
   return m;
 }
-/* Одна цифра по конкретному работнику. */
+/* Потрачено конкретным работником, по валютам. */
 async function fetchOneWorkerSpend(worker){
   const m=await fetchWorkerSpend(worker);
-  return m.get(worker||'')||0;
+  return m.get(worker||'')||zeroMoney();
+}
+/* Выдано авансов, по валютам. Карта worker_name → {TJS, USD}. */
+async function fetchAdvanceGiven(worker){
+  const put=(m,name,cur,v)=>{
+    const k=name||'';
+    if(!m.has(k)) m.set(k,zeroMoney());
+    addMoney(m.get(k),cur,v);
+  };
+  try{
+    const{data,error}=await SB.rpc('advance_given',{p_worker:worker??null});
+    if(error) throw error;
+    if(Array.isArray(data)){
+      const m=new Map();
+      data.forEach(r=>put(m,r.worker_name,r.currency,r.given));
+      return m;
+    }
+  }catch(e){ /* RPC нет — прежний путь */ }
+  const rows=await sbFetchAll('advances','worker_name,amount,currency',
+    q=>worker==null?q:q.eq('worker_name',worker));
+  const m=new Map();
+  (rows||[]).forEach(a=>put(m,a.worker_name,a.currency,a.amount));
+  return m;
 }
 
 /* ── ВНЕШНИЕ БИБЛИОТЕКИ ПО ТРЕБОВАНИЮ ──
@@ -1758,6 +1803,14 @@ function exportPDF(title,ops,opts){
   const _tj=LANG==='tj';
   const typeLabel=o=>o.type==='income'?(_tj?'Даромад':'Приход'):o.type==='advance'?(_tj?'Пешпардохт':'Аванс'):(_tj?'Харҷ':'Расход');
   const nf=n=>Number(n||0).toLocaleString('ru',{maximumFractionDigits:2});
+  /* Пара {TJS, USD} в текст. Валюты не сводятся, поэтому печатаются обе. */
+  const _money=m=>{
+    if(!m||typeof m!=='object') return nf(m)+' TJS';
+    const p=[];
+    if(m.TJS) p.push(nf(m.TJS)+' TJS');
+    if(m.USD) p.push('$'+nf(m.USD));
+    return p.length?p.join(' · '):'0';
+  };
   const fmtDate=d=>{if(!d)return '—';const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:d;};
   // Chronological order (oldest → newest), e.g. 1 → 30 for a month
   const sorted=[...ops].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||((a.id||0)-(b.id||0)));
@@ -1845,9 +1898,9 @@ function exportPDF(title,ops,opts){
 
 ${opts.supplier ? `
 <div class="summary">
-  <div class="sum-item"><div class="sum-label">${_tj?'Дода шуд':'Выдано'}</div><div class="sum-val green">${nf(opts.given||0)} TJS</div></div>
-  <div class="sum-item"><div class="sum-label">${_tj?'Харҷ шуд':'Потрачено'}</div><div class="sum-val red">-${nf(opts.spent||0)} TJS</div></div>
-  <div class="sum-item"><div class="sum-label">${_tj?'Бақия':'Остаток'}</div><div class="sum-val ${(opts.remain||0)>=0?'green':'red'}">${(opts.remain||0)>=0?'':'-'}${nf(Math.abs(opts.remain||0))} TJS</div></div>
+  <div class="sum-item"><div class="sum-label">${_tj?'Дода шуд':'Выдано'}</div><div class="sum-val green">${_money(opts.given)}</div></div>
+  <div class="sum-item"><div class="sum-label">${_tj?'Харҷ шуд':'Потрачено'}</div><div class="sum-val red">${_money(opts.spent)}</div></div>
+  <div class="sum-item"><div class="sum-label">${_tj?'Бақия':'Остаток'}</div><div class="sum-val ${((opts.remain?.TJS||0)>=0&&(opts.remain?.USD||0)>=0)?'green':'red'}">${_money(opts.remain)}</div></div>
   <div class="sum-item"><div class="sum-label">${_tj?'Амалиётҳо':'Операций'}</div><div class="sum-val blue">${ops.length}</div></div>
 </div>` : (hasExp ? `
 <div class="summary">
@@ -2435,12 +2488,12 @@ async function fetchNBTRates(){
     RATES.EUR=d.rates.EUR?.rate||null;
     RATES.RUB=d.rates.RUB?.rate||null;
     RATES.updated=d.updated;
-    if(RATES.USD&&Math.abs(RATES.USD-(COMPANY.usd_rate||10.92))>0.001){
-      COMPANY.usd_rate=RATES.USD;
-      if(USER?.role==='accountant'||USER?.role==='admin'){
-        await SB.from('company').update({usd_rate:RATES.USD}).eq('id',1);
-      }
-    }
+    /* Курс здесь и заканчивается — он только показывается в блоке «Курсы валют».
+       Раньше эта функция при каждом входе перезаписывала company.usd_rate, а на
+       него опирались остаток аванса, «У снабженцев», «Нетто» по долгам и
+       проверка «хватает ли денег». Из-за этого суммы менялись сами, без единой
+       новой операции, стоило Нацбанку сдвинуть курс.
+       Компания валюты не конвертирует: сомони и доллары считаются раздельно. */
   }catch(e){console.warn('NBT rates:',e);}
 }
 
@@ -2709,7 +2762,9 @@ async function fetchHomeAggregates(obj){
     (byMonthR.data||[]).forEach(r=>{byMonth[r.ym]={inc:Number(r.inc)||0,exp:Number(r.exp)||0};});
     const byCat={};
     (byCatR.data||[]).forEach(r=>{byCat[r.category_name]=Number(r.amount)||0;});
-    return {cur,advSpent:Number(advSpent.data)||0,byObj,byMonth,byCat,byDay,fromRpc:true};
+    const spent=zeroMoney();
+    (advSpent.data||[]).forEach(r=>addMoney(spent,r.currency,r.spent));
+    return {cur,advSpent:spent,byObj,byMonth,byCat,byDay,fromRpc:true};
   }catch(e){ /* функций нет — считаем по своду, как раньше */ }
 
   const[allTimeOps,periodRows,dayRows]=await Promise.all([
@@ -2725,7 +2780,7 @@ async function fetchHomeAggregates(obj){
   const supplierNames=new Set((profs||[]).map(p=>p.name));
   const isAdvExp=o=>o.method==='from_advance'||supplierNames.has(o.worker_name);
   const cur={TJS:{inc:0,exp:0,adv:0},USD:{inc:0,exp:0,adv:0}};
-  let advSpent=0;
+  const advSpent=zeroMoney();
   (allTimeOps||[]).forEach(o=>{
     const c=cur[o.currency];
     if(c){
@@ -2733,7 +2788,9 @@ async function fetchHomeAggregates(obj){
       else if(o.type==='advance')c.adv+=o.amount||0;
       else if(o.type==='expense'&&!isAdvExp(o))c.exp+=o.amount||0;
     }
-    if(o.type==='expense'&&isAdvExp(o))advSpent+=o.amount_tjs||0;
+    // По валютам, суммой amount: amount_tjs здесь давал курс дня ввода и
+    // расходился с «выдано», которое пересчитывалось курсом сегодняшним.
+    if(o.type==='expense'&&isAdvExp(o))addMoney(advSpent,o.currency,o.amount);
   });
   const byObj={};
   (allTimeOps||[]).forEach(o=>{
@@ -3019,15 +3076,16 @@ async function fSubmit(isSupplier){
     amt=ti?.value?parseFloat(ti.value)||q*p:q*p;
     desc=document.getElementById('f-desc')?.value||'';
     if(!desc&&!amt){showToast(t('fill_fields'),true);return;}
-    const amtTJS_check=SEL_CUR==='USD'?amt*(COMPANY.usd_rate||10.92):amt;
+    // Проверяем в валюте самого расхода: доллары против долларов, сомони
+    // против сомони. Пересчёта нет — курс на решение больше не влияет.
     if(isSupplier||isSup()){
       // Supplier: block if expense exceeds remaining advance balance
       const rem=await getSupplierRemaining(USER?.name||'');
-      if(amtTJS_check>rem){showToast(`${t('adv_over')}\n${t('adv_over_detail')}: ${fmtN(rem)} TJS`,true);return;}
+      if(amt>(rem[SEL_CUR]||0)){showToast(`${t('adv_over')}\n${t('adv_over_detail')}: ${fmtCurAmt(rem[SEL_CUR]||0,SEL_CUR)}`,true);return;}
     } else {
       // Accountant/admin: block if expense exceeds current cash balance
       const bal=await getCashBalance();
-      if(amtTJS_check>bal){showToast(`❌ ${t('no_funds')}!\n${t('no_funds_detail')}: ${fmtN(bal)} TJS · ${t('need')}: ${fmtN(amtTJS_check)} TJS`,true);return;}
+      if(amt>(bal[SEL_CUR]||0)){showToast(`❌ ${t('no_funds')}!\n${t('no_funds_detail')}: ${fmtCurAmt(bal[SEL_CUR]||0,SEL_CUR)} · ${t('need')}: ${fmtCurAmt(amt,SEL_CUR)}`,true);return;}
     }
   }else if(OP_TYPE==='income'){
     amt=parseFloat(document.getElementById('f-amount')?.value)||0;
@@ -3060,8 +3118,10 @@ async function fSubmit(isSupplier){
   // Auto-close active advances if supplier balance exhausted
   if(isSupplier||isSup()){
     const wName=USER.name;
+    // Закрываем авансы, только когда исчерпаны ОБЕ валюты: остаток в долларах
+    // не гасится тратами в сомони и наоборот.
     const remAfter=await getSupplierRemaining(wName);
-    if(remAfter<=0) await SB.from('advances').update({status:'done'}).eq('worker_name',wName).eq('status','active');
+    if(isMoneyEmpty(remAfter)) await SB.from('advances').update({status:'done'}).eq('worker_name',wName).eq('status','active');
   }
   showToast(_r.queued?'📴 Сохранено офлайн — отправится при интернете':t('saved'));
   updateOfflineUI();
@@ -3209,9 +3269,8 @@ function openAddOpModal(type){
         if(!amt){showToast(t('enter_amt'),true);return;}
         // Cash balance check — block if insufficient funds
         if(!isSup()){
-          const amtTJS_mo=SEL_CUR==='USD'?amt*rate:amt;
           const bal_mo=await getCashBalance();
-          if(amtTJS_mo>bal_mo){showToast(`❌ ${t('no_funds')}!\n${t('no_funds_detail')}: ${fmtN(bal_mo)} TJS · ${t('need')}: ${fmtN(amtTJS_mo)} TJS`,true);return;}
+          if(amt>(bal_mo[SEL_CUR]||0)){showToast(`❌ ${t('no_funds')}!\n${t('no_funds_detail')}: ${fmtCurAmt(bal_mo[SEL_CUR]||0,SEL_CUR)} · ${t('need')}: ${fmtCurAmt(amt,SEL_CUR)}`,true);return;}
         }
       } else if(OP_TYPE==='income'){
         amt=parseFloat(document.getElementById('mo-amount')?.value)||0;
@@ -3226,9 +3285,8 @@ function openAddOpModal(type){
         if(!amt){showToast(t('enter_amt'),true);return;}
         if(!w){showToast(t('specify_adv_w'),true);return;}
         // Cash balance check for advance
-        const needTJS2=SEL_CUR==='USD'?amt*(COMPANY.usd_rate||10.92):amt;
         const bal2=await getCashBalance();
-        if(needTJS2>bal2){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtN(bal2)} TJS, ${t('need')}: ${fmtN(needTJS2)} TJS`,true);return;}
+        if(amt>(bal2[SEL_CUR]||0)){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtCurAmt(bal2[SEL_CUR]||0,SEL_CUR)}, ${t('need')}: ${fmtCurAmt(amt,SEL_CUR)}`,true);return;}
         desc='Аванс → '+w;
         // Save to advances table
         const ar=await dbInsertQueued('advances',{
@@ -3404,7 +3462,8 @@ home:async()=>{
   const allAdvUSD = agg.cur.USD.adv;
   const balTJS = allIncTJS - allExpTJS - allAdvTJS;
   const balUSD = allIncUSD - allExpUSD - allAdvUSD;
-  const bal = balTJS + balUSD*rate;
+  /* Свести кассу в одно число нельзя — компания не конвертирует валюты.
+     Сомони и доллары показываются раздельно, в шапке и в «Карте денег». */
   // All-time ratio for the hero progress bar (expense / income, all-time)
   const allRatioPct = allIncTJS>0 ? Math.min(Math.round((allExpTJS+allAdvTJS)/allIncTJS*100), 100) : 0;
   const allRatioColor = allRatioPct>90?'#fc8181':allRatioPct>65?'#f6c90e':'#39B980';
@@ -3414,12 +3473,16 @@ home:async()=>{
   const credUSD=debts.filter(d=>d.type==='creditor'&&d.currency==='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
   const debTJS=debts.filter(d=>d.type==='debtor'&&d.currency!=='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
   const debUSD=debts.filter(d=>d.type==='debtor'&&d.currency==='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
-  const cred=credTJS+credUSD*rate;
-  const deb=debTJS+debUSD*rate;
+  // «Нетто» одним числом тоже не считается: дебиторка и кредиторка живут
+  // в своих валютах и вычитаются только внутри одной.
+  const netTJS=debTJS-credTJS;
+  const netUSD=debUSD-credUSD;
 
   // Advances (supplier balance)
-  const advTot_given = advs.reduce((a,x)=>a+(x.currency==='USD'?x.amount*rate:x.amount),0);
+  const advTot_given = advs.reduce((m,x)=>addMoney(m,x.currency,x.amount),zeroMoney());
   const advTot_spent = agg.advSpent;
+  const advTot_rem = {TJS:Math.max(0,advTot_given.TJS-advTot_spent.TJS),
+                      USD:Math.max(0,advTot_given.USD-advTot_spent.USD)};
 
   // By category (period-filtered, for selected object)
   const byCat=agg.byCat;
@@ -3474,7 +3537,7 @@ home:async()=>{
 
     // Net debt label
     const netEl=document.getElementById('cnt-net');
-    if(netEl) setTimeout(()=>{ netEl.textContent=t('net_lbl')+': '+fmtN(deb-cred)+' TJS'; }, 700);
+    if(netEl) setTimeout(()=>{ netEl.textContent=t('net_lbl')+': '+fmtMoney({TJS:netTJS,USD:netUSD},{always:!netTJS&&!netUSD}); }, 700);
 
     /* ── SPARKLINES ── */
     // Get last 7 days
@@ -3527,7 +3590,7 @@ home:async()=>{
     const incData7=days7.map(d=>dayOps[d]?.inc||0);
     const expData7=days7.map(d=>dayOps[d]?.exp||0);
     const balData7=incData7.map((v,i)=>v-expData7[i]);
-    const netData7=days7.map((_,i)=>Math.max(0,deb-cred));
+    const netData7=days7.map((_,i)=>Math.max(0,netTJS));
 
     drawSparkline('spark-inc', incData7, '#2A9066', 'rgba(57,185,128,.12)');
     drawSparkline('spark-exp', expData7, '#E53E3E', 'rgba(229,62,62,.10)');
@@ -3600,7 +3663,6 @@ home:async()=>{
   const incPrev30=sumDays(_d60,_d30);
   const heroTrendPct=incPrev30>0?Math.round((inc30-incPrev30)/incPrev30*100):0;
   const heroTrendPos=heroTrendPct>=0;
-  const heroAdvRem=Math.max(0,advTot_given-advTot_spent);
 
   return `
   <!-- ══ HERO BANNER ══ -->
@@ -3721,7 +3783,7 @@ home:async()=>{
           <div style="font-size:18px;font-weight:800;color:var(--red);" id="cnt-cred">${fmtN(credTJS)}<span style="font-size:11px;font-weight:500;opacity:.7;"> TJS</span></div>
           ${credUSD>0?`<div style="font-size:13px;font-weight:700;color:var(--red);">$${fmtN(credUSD)}</div>`:''}</div>
       </div>
-      <div class="sc-val2" style="margin-top:3px;" id="cnt-net">${t('net_lbl')}: ${fmtN(deb-cred)} TJS</div>
+      <div class="sc-val2" style="margin-top:3px;" id="cnt-net">${t('net_lbl')}: ${fmtMoney({TJS:netTJS,USD:netUSD},{always:!netTJS&&!netUSD})}</div>
     </div>
   </div>
 
@@ -3729,7 +3791,7 @@ home:async()=>{
   <div class="sh"><div class="sh-t">${t('where')}</div></div>
   <div class="money-map mb20">
     <div class="mm g" style="animation-delay:.04s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div><div class="mm-l">${t('in_cash')} TJS</div><div class="mm-v" style="color:var(--adk);">${fmtN(balTJS)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(balUSD)} USD</div></div>
-    <div class="mm y" style="animation-delay:.07s;"><div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div><div class="mm-l">${t('at_snabs')}</div><div class="mm-v" style="color:var(--yel);">${fmtN(Math.max(0,advTot_given-advTot_spent))}</div><div class="mm-v2" style="color:var(--t4);">${t('issued')}: ${fmtN(advTot_given)}</div></div>
+    <div class="mm y" style="animation-delay:.07s;"><div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div><div class="mm-l">${t('at_snabs')}</div><div class="mm-v" style="color:var(--yel);">${fmtMoney(advTot_rem,{always:isMoneyEmpty(advTot_rem),sep:' · '})}</div><div class="mm-v2" style="color:var(--t4);">${t('issued')}: ${fmtMoney(advTot_given,{always:isMoneyEmpty(advTot_given)})}</div></div>
     <div class="mm b" style="animation-delay:.1s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('recv')}</div><div class="mm-v" style="color:var(--ad);">${fmtN(debTJS)}<span style="font-size:10px;opacity:.6;"> TJS</span></div><div class="mm-v2" style="color:var(--t4);">${debUSD>0?'$'+fmtN(debUSD)+' USD':t('deb_tjs')}</div></div>
     <div class="mm r" style="animation-delay:.13s;"><div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('paybl')}</div><div class="mm-v" style="color:var(--red);">${fmtN(credTJS)}<span style="font-size:10px;opacity:.6;"> TJS</span></div><div class="mm-v2" style="color:var(--t4);">${credUSD>0?'$'+fmtN(credUSD)+' USD':t('cred_tjs')}</div></div>
   </div>
@@ -3973,7 +4035,6 @@ ops:async()=>{
 
 /* ── SNABS ── */
 snabs:async()=>{
-  const rate=COMPANY.usd_rate||10.92;
   // Раньше здесь выкачивалась вся история расходов ради суммы по каждому
   // работнику; теперь сервер отдаёт по строке на человека.
   const[advs,spentByWorker]=await Promise.all([
@@ -3994,22 +4055,27 @@ snabs:async()=>{
     const active=wAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
     const done=wAdvs.filter(a=>a.status==='done'||a.status==='closed');
     // Use ALL advances (active+closed) so balance=0 when advance auto-closes after full spend
-    const totalGiven=wAdvs.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
-    const spent=spentByWorker.get(name)||0;
-    const rem=Math.max(0,totalGiven-spent);
-    const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
+    // Всё по валютам: долларовый аванс тратится долларами, сомониевый — сомони.
+    const totalGiven=wAdvs.reduce((m,a)=>addMoney(m,a.currency,a.amount),zeroMoney());
+    const spent=spentByWorker.get(name)||zeroMoney();
+    const rem={TJS:Math.max(0,totalGiven.TJS-spent.TJS),USD:Math.max(0,totalGiven.USD-spent.USD)};
+    // Полоса прогресса — доля потраченного; считаем по той валюте, в которой
+    // выдано больше, иначе одну шкалу на две валюты не построить.
+    const base=totalGiven.TJS>=totalGiven.USD?'TJS':'USD';
+    const pct=totalGiven[base]>0?Math.min(spent[base]/totalGiven[base]*100,100):0;
     return{name,active,done,totalGiven,spent,rem,pct};
   });
 
-  const totalGivenAll=workerList.reduce((s,w)=>s+w.totalGiven,0);
-  const totalSpentAll=workerList.reduce((s,w)=>s+w.spent,0);
+  const sumMoney=(sel)=>workerList.reduce((m,w)=>({TJS:m.TJS+sel(w).TJS,USD:m.USD+sel(w).USD}),zeroMoney());
+  const totalGivenAll=sumMoney(w=>w.totalGiven);
+  const totalSpentAll=sumMoney(w=>w.spent);
   const activeCount=workerList.reduce((s,w)=>s+w.active.length,0);
 
   function workerCard(w,i){
     const clr=clrs[i%4],bg=bgs[i%4];
     const ini=w.name.split(' ').map(x=>x[0]||'').join('').slice(0,2).toUpperCase();
     const pctColor=w.pct>90?'var(--red)':w.pct>70?'var(--yel)':'var(--a)';
-    const remColor=w.rem<0?'var(--red)':w.pct>70?'var(--yel)':'var(--adk)';
+    const remColor=w.pct>70?'var(--yel)':'var(--adk)';
     const safeN=w.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     return `
     <div class="card mb12" style="animation:fadeUp .3s ease ${i*.06}s both;cursor:pointer;" onclick="openWorkerDetail('${safeN}')">
@@ -4020,8 +4086,8 @@ snabs:async()=>{
           <div style="font-size:11px;color:var(--t4);margin-top:2px;">${w.active.length} ${t('active_sfx')} · ${w.done.length} ${t('closed_sfx')}</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:18px;font-weight:800;color:${remColor};">${fmtN(w.rem)}</div>
-          <div style="font-size:10px;color:var(--t4);">TJS ${t('rest_lbl')}</div>
+          <div style="font-size:16px;font-weight:800;color:${remColor};line-height:1.3;">${fmtMoney(w.rem,{always:isMoneyEmpty(w.rem),sep:'<br>'})}</div>
+          <div style="font-size:10px;color:var(--t4);">${t('rest_lbl')}</div>
         </div>
       </div>
       <div style="background:var(--bg2);border-radius:6px;height:6px;overflow:hidden;margin-bottom:6px;">
@@ -4029,16 +4095,16 @@ snabs:async()=>{
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
         <span style="font-size:10px;color:var(--t4);">${Math.round(w.pct)}% ${t('spent')}</span>
-        <span style="font-size:10px;color:var(--t4);">${t('adv_issued')}: ${fmtN(w.totalGiven)} TJS</span>
+        <span style="font-size:10px;color:var(--t4);">${t('adv_issued')}: ${fmtMoney(w.totalGiven,{always:isMoneyEmpty(w.totalGiven)})}</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
         <div style="background:var(--ap);border-radius:10px;padding:9px 12px;">
           <div style="font-size:10px;color:var(--t4);margin-bottom:3px;">${t('adv_issued')}</div>
-          <div style="font-size:13px;font-weight:700;color:var(--ad);">+${fmtN(w.totalGiven)} TJS</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ad);">${fmtMoney(w.totalGiven,{always:isMoneyEmpty(w.totalGiven),sign:true})}</div>
         </div>
         <div style="background:var(--redl);border-radius:10px;padding:9px 12px;">
           <div style="font-size:10px;color:var(--t4);margin-bottom:3px;">${t('spent_lbl')}</div>
-          <div style="font-size:13px;font-weight:700;color:var(--red);">−${fmtN(w.spent)} TJS</div>
+          <div style="font-size:13px;font-weight:700;color:var(--red);">${isMoneyEmpty(w.spent)?'0':'−'+fmtMoney(w.spent)}</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
@@ -4060,13 +4126,13 @@ snabs:async()=>{
   <div class="g2 mb16">
     <div class="sc g" style="animation-delay:.03s;">
       <div class="sc-lbl">↑ ${t('adv_iss')}</div>
-      <div style="font-size:20px;font-weight:800;color:var(--ad);">${fmtN(totalGivenAll)} TJS</div>
+      <div style="font-size:17px;font-weight:800;color:var(--ad);line-height:1.35;">${fmtMoney(totalGivenAll,{always:isMoneyEmpty(totalGivenAll),sep:'<br>'})}</div>
       <div class="sc-val2">${workerList.length} снабж. · ${activeCount} ${t('active_sfx')}</div>
     </div>
     <div class="sc r" style="animation-delay:.06s;">
       <div class="sc-lbl">↓ ${t('spent_lbl')}</div>
-      <div style="font-size:20px;font-weight:800;color:var(--red);">${fmtN(totalSpentAll)} TJS</div>
-      <div class="sc-val2">${t('rest_lbl')}: ${fmtN(totalGivenAll-totalSpentAll)} TJS</div>
+      <div style="font-size:17px;font-weight:800;color:var(--red);line-height:1.35;">${fmtMoney(totalSpentAll,{always:isMoneyEmpty(totalSpentAll),sep:'<br>'})}</div>
+      <div class="sc-val2">${t('rest_lbl')}: ${fmtMoney(subMoney(totalGivenAll,totalSpentAll),{always:true})}</div>
     </div>
   </div>
   <div class="sh mb8">
@@ -4105,9 +4171,10 @@ snab_detail:async()=>{
   const active=allAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
   const closedAdvs=allAdvs.filter(a=>a.status==='done'||a.status==='closed');
   // Use ALL advances (active+closed) for total — so rem=0 when auto-closed after full spend
-  const totalGiven=allAdvs.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
-  const rem=Math.max(0,totalGiven-spent);
-  const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
+  const totalGiven=allAdvs.reduce((m,a)=>addMoney(m,a.currency,a.amount),zeroMoney());
+  const rem={TJS:Math.max(0,totalGiven.TJS-spent.TJS),USD:Math.max(0,totalGiven.USD-spent.USD)};
+  const baseCur=totalGiven.TJS>=totalGiven.USD?'TJS':'USD';
+  const pct=totalGiven[baseCur]>0?Math.min(spent[baseCur]/totalGiven[baseCur]*100,100):0;
   const pctColor=pct>90?'var(--red)':pct>70?'var(--yel)':'var(--a)';
   const remColor=pct>=100?'var(--t3)':pct>90?'var(--yel)':'var(--adk)';
   const ini=name.split(' ').map(x=>x[0]||'').join('').slice(0,2).toUpperCase();
@@ -4124,13 +4191,21 @@ snab_detail:async()=>{
 
   // ── FIFO: distribute total spent across day-groups (oldest first) ──
   // Fully-consumed older advances auto-collapse into compact rows.
-  let _remSpent=spent;
+  // FIFO идёт отдельно по каждой валюте: долларовый аванс гасится долларовыми
+  // тратами, сомониевый — сомониевыми, между собой они не перетекают.
+  const _remSpent={...spent};
   const groupCov=new Map();
   [...dayGroups].reverse().forEach(([d,g])=>{
-    const gTotal=g.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
-    const consumed=Math.min(gTotal,_remSpent);
-    _remSpent-=consumed;
-    groupCov.set(d,{consumed,total:gTotal,full:consumed>=gTotal-0.01,pct:gTotal>0?Math.min(consumed/gTotal*100,100):0});
+    const gTotal=g.reduce((m,a)=>addMoney(m,a.currency,a.amount),zeroMoney());
+    const consumed=zeroMoney();
+    CURS.forEach(c=>{
+      const take=Math.min(gTotal[c],_remSpent[c]);
+      consumed[c]=take;_remSpent[c]-=take;
+    });
+    const base=gTotal.TJS>=gTotal.USD?'TJS':'USD';
+    groupCov.set(d,{consumed,total:gTotal,
+      full:(gTotal.TJS-consumed.TJS<=0.01)&&(gTotal.USD-consumed.USD<=0.01),
+      pct:gTotal[base]>0?Math.min(consumed[base]/gTotal[base]*100,100):0});
   });
 
   const accentClr=['var(--a)','var(--blue)','var(--pur)','var(--ora)'];
@@ -4140,7 +4215,7 @@ snab_detail:async()=>{
 
   function dayCard(date,group,gi){
     const clr=accentClr[gi%4],bg=accentBg[gi%4],bd=accentBd[gi%4];
-    const dayTotal=group.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+    const dayTotal=group.reduce((m,a)=>addMoney(m,a.currency,a.amount),zeroMoney());
     const ids=group.map(a=>a.id).join(',');
     const safeObj=(group[0]?.object_name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const multi=group.length>1;
@@ -4156,12 +4231,13 @@ snab_detail:async()=>{
           <span style="font-size:12px;font-weight:600;color:var(--t3);">${niceDt}</span>
           <span style="font-size:10px;color:var(--t4);margin-left:6px;">${multi?group.length+' авансов':group[0].task||'Аванс'} · израсходован</span>
         </div>
-        <span style="font-size:12px;font-weight:700;color:var(--t4);text-decoration:line-through;">${fmtN(dayTotal)} TJS</span>
+        <span style="font-size:12px;font-weight:700;color:var(--t4);text-decoration:line-through;">${fmtMoney(dayTotal,{always:isMoneyEmpty(dayTotal)})}</span>
       </div>`;
     }
 
     // Active (partially/not spent) → compact card with progress + inline actions
-    const rest=dayTotal-cov.consumed;
+    const rest=subMoney(dayTotal,cov.consumed);
+    const anyConsumed=!isMoneyEmpty(cov.consumed);
     return `<div style="animation:fadeUp .3s ease ${gi*.06}s both;background:var(--w);border:1px solid ${bd};border-left:3px solid ${clr};border-radius:var(--r2);margin-bottom:8px;padding:10px 13px;box-shadow:var(--sh);">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="min-width:0;">
@@ -4169,11 +4245,11 @@ snab_detail:async()=>{
           <div style="font-size:10px;color:var(--t4);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${multi?group.length+' авансов':group[0].task||'Аванс'}${!multi&&group[0].object_name?' · '+group[0].object_name:''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:17px;font-weight:900;color:${clr};line-height:1;">+${fmtN(dayTotal)}<span style="font-size:9px;opacity:.6;"> TJS</span></div>
-          ${cov.consumed>0?`<div style="font-size:9px;color:var(--t4);margin-top:1px;">ост. ${fmtN(rest)}</div>`:''}
+          <div style="font-size:15px;font-weight:900;color:${clr};line-height:1.25;">${fmtMoney(dayTotal,{always:isMoneyEmpty(dayTotal),sign:true,sep:'<br>'})}</div>
+          ${anyConsumed?`<div style="font-size:9px;color:var(--t4);margin-top:1px;">ост. ${fmtMoney(rest,{always:true})}</div>`:''}
         </div>
       </div>
-      ${cov.consumed>0?`<div style="height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;margin-top:7px;"><div style="height:100%;width:${cov.pct.toFixed(0)}%;background:${clr};border-radius:2px;"></div></div>`:''}
+      ${anyConsumed?`<div style="height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;margin-top:7px;"><div style="height:100%;width:${cov.pct.toFixed(0)}%;background:${clr};border-radius:2px;"></div></div>`:''}
       ${canWrite()?`<div style="display:flex;gap:6px;margin-top:8px;">
         <button onclick="advAddExpense('${safeN}','${safeObj}')" style="flex:1;padding:7px 2px;border-radius:7px;background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">− ${t('expense')}</button>
         <button onclick="advStageGroup('${ids}')" style="flex:1;padding:7px 2px;border-radius:7px;background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')} →</button>
@@ -4191,7 +4267,7 @@ snab_detail:async()=>{
   const closedGroups=[...closedMap.entries()].sort((a,b)=>b[0].localeCompare(a[0]));
 
   function closedDayRow(date,group,i){
-    const total=group.reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+    const total=group.reduce((m,a)=>addMoney(m,a.currency,a.amount),zeroMoney());
     const ids=group.map(a=>a.id).join(',');
     const [y,m,d]=date.split('-');
     const niceDt=d&&m?`${parseInt(d)} ${months[parseInt(m)-1]}`:date;
@@ -4201,7 +4277,7 @@ snab_detail:async()=>{
         <span style="font-size:12px;color:var(--t3);">${niceDt}</span>
         ${group.length>1?`<span style="font-size:10px;color:var(--t4);margin-left:5px;">${group.length} авансов</span>`:`<span style="font-size:10px;color:var(--t4);margin-left:5px;">${group[0].task||''}</span>`}
       </div>
-      <span style="font-size:12px;font-weight:700;color:var(--t3);">${fmtN(total)} TJS</span>
+        <span style="font-size:12px;font-weight:700;color:var(--t3);">${fmtMoney(total,{always:isMoneyEmpty(total)})}</span>
     </div>`;
   }
 
@@ -4232,15 +4308,15 @@ snab_detail:async()=>{
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div style="background:var(--ap);border-radius:10px;padding:9px 10px;">
         <div style="font-size:10px;color:var(--t4);margin-bottom:2px;">${t('adv_issued')}</div>
-        <div style="font-size:13px;font-weight:800;color:var(--ad);">+${fmtN(totalGiven)}</div>
+          <div style="font-size:13px;font-weight:800;color:var(--ad);">${fmtMoney(totalGiven,{always:isMoneyEmpty(totalGiven),sign:true})}</div>
       </div>
       <div style="background:var(--redl);border-radius:10px;padding:9px 10px;">
         <div style="font-size:10px;color:var(--t4);margin-bottom:2px;">${t('spent_lbl')}</div>
-        <div style="font-size:13px;font-weight:800;color:var(--red);">−${fmtN(spent)}</div>
+          <div style="font-size:13px;font-weight:800;color:var(--red);">${isMoneyEmpty(spent)?'0':'−'+fmtMoney(spent)}</div>
       </div>
-      <div style="background:${rem<0?'var(--redl)':rem<totalGiven*.1?'var(--yell)':'var(--ap)'};border-radius:10px;padding:9px 10px;">
+      <div style="background:${pct>=90?'var(--yell)':'var(--ap)'};border-radius:10px;padding:9px 10px;">
         <div style="font-size:10px;color:var(--t4);margin-bottom:2px;">${t('rest_lbl')}</div>
-        <div style="font-size:13px;font-weight:800;color:${remColor};">${fmtN(rem)}</div>
+          <div style="font-size:13px;font-weight:800;color:${remColor};">${fmtMoney(rem,{always:isMoneyEmpty(rem)})}</div>
       </div>
     </div>
   </div>
@@ -4274,8 +4350,9 @@ debts:async()=>{
   const sumD_TJS=deb.filter(d=>d.currency!=='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
   const sumD_USD=deb.filter(d=>d.currency==='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
   // Combined TJS-equivalent for netto only
-  const sumC=sumC_TJS+sumC_USD*rate;
-  const sumD=sumD_TJS+sumD_USD*rate;
+  // «Нетто» одним числом не считается — валюты не сводятся.
+  const netC={TJS:sumC_TJS,USD:sumC_USD};
+  const netD={TJS:sumD_TJS,USD:sumD_USD};
   const fmtCur=(v,c)=>c==='USD'?'$'+fmtN(v):fmtN(v)+' TJS';
   const isLateD=d=>!!(d.due_date&&d.due_date<today()&&d.paid_amount<d.total_amount);
 
@@ -4345,8 +4422,9 @@ debts:async()=>{
       });
       // просроченные — выше, дальше по сроку
       g.items.sort((a,b)=>(isLateD(b)-isLateD(a))||String(a.due_date||'').localeCompare(String(b.due_date||'')));
-      return {...g,rest,late,restTJS:(rest.TJS||0)+(rest.USD||0)*rate};
-    }).sort((a,b)=>(b.late-a.late)||(b.restTJS-a.restTJS));
+      // Ключ только для сортировки групп; деньгами не показывается.
+    return {...g,rest,late,sortKey:(rest.TJS||0)+(rest.USD||0)};
+    }).sort((a,b)=>(b.late-a.late)||(b.sortKey-a.sortKey));
   }
 
   function debtGroup(g,i,isCred){
@@ -4384,14 +4462,14 @@ debts:async()=>{
         ${sumC_USD>0?`<div class="sc-val" style="color:var(--red);">$${fmtN(sumC_USD)}</div>`:''}
         ${sumC_TJS===0&&sumC_USD===0?`<div class="sc-val" style="color:var(--t4);">0</div>`:''}
       </div>
-      <div class="sc-val2">${t('net_lbl')}: ${fmtN(sumC)} TJS</div></div>
+      <div class="sc-val2">${t('net_lbl')}: ${fmtMoney(netC,{always:isMoneyEmpty(netC)})}</div></div>
     <div class="sc g" style="animation-delay:.06s;"><div class="sc-lbl">${t('recv')}</div>
       <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
         ${sumD_TJS>0?`<div class="sc-val" style="color:var(--ad);">${fmtN(sumD_TJS)}<span style="font-size:11px;opacity:.6;"> TJS</span></div>`:''}
         ${sumD_USD>0?`<div class="sc-val" style="color:var(--ad);">$${fmtN(sumD_USD)}</div>`:''}
         ${sumD_TJS===0&&sumD_USD===0?`<div class="sc-val" style="color:var(--t4);">0</div>`:''}
       </div>
-      <div class="sc-val2">${t('net_lbl')}: ${fmtN(sumD)} TJS</div></div>
+      <div class="sc-val2">${t('net_lbl')}: ${fmtMoney(netD,{always:isMoneyEmpty(netD)})}</div></div>
   </div>
   ${canAdmin()?`
   <button onclick="openNewDebt()"
@@ -4502,12 +4580,10 @@ stats:async()=>{
     <div style="padding:14px 16px;background:${incTJS-expTJS>=0?'linear-gradient(135deg,rgba(57,185,128,.12),rgba(57,185,128,.05))':'linear-gradient(135deg,rgba(229,62,62,.1),rgba(229,62,62,.04))'};border-radius:16px;border:1px solid ${incTJS-expTJS>=0?'rgba(57,185,128,.25)':'rgba(229,62,62,.2)'};animation:fadeUp .3s ease .24s both;">
       <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">${t('net_p')} TJS</div>
       <div style="font-size:26px;font-weight:900;color:${incTJS-expTJS>=0?'var(--ad)':'var(--red)'};">${incTJS-expTJS>=0?'+':''}${fmtN(incTJS-expTJS)}<span style="font-size:13px;opacity:.5;margin-left:4px;">TJS</span></div>
-      <div style="font-size:11px;color:var(--t4);margin-top:3px;">≈ $${fmtN((incTJS-expTJS)/rate)}</div>
     </div>
     <div style="padding:14px 16px;background:${incUSD-expUSD>=0?'linear-gradient(135deg,rgba(49,130,206,.1),rgba(49,130,206,.04))':'linear-gradient(135deg,rgba(229,62,62,.1),rgba(229,62,62,.04))'};border-radius:16px;border:1px solid ${incUSD-expUSD>=0?'rgba(49,130,206,.25)':'rgba(229,62,62,.2)'};animation:fadeUp .3s ease .28s both;">
       <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">${t('net_p')} USD</div>
       <div style="font-size:26px;font-weight:900;color:${incUSD-expUSD>=0?'var(--blue)':'var(--red)'};">${incUSD-expUSD>=0?'+':''}$${fmtN(incUSD-expUSD)}</div>
-      <div style="font-size:11px;color:var(--t4);margin-top:3px;">≈ ${fmtN((incUSD-expUSD)*rate)} TJS</div>
     </div>
   </div>
   </div>
@@ -4639,11 +4715,10 @@ my:async()=>{
   // Last 30 days → shown in history
   const recentAdvs=allAdvs.filter(a=>(a.date||a.created_at?.slice(0,10)||'')>=d30);
   // Balance = ALL advances ever issued − ALL expenses ever spent → 0 when fully settled
-  const totalGiven=allAdvs.reduce((s,a)=>{
-    const tjs=a.currency==='USD'?a.amount*rate:a.amount;return s+tjs;
-  },0);
-  const rem=Math.max(0,totalGiven-spent);
-  const pct=totalGiven>0?Math.min(spent/totalGiven*100,100):0;
+  const totalGiven=allAdvs.reduce((m,a)=>addMoney(m,a.currency,a.amount),zeroMoney());
+  const rem={TJS:Math.max(0,totalGiven.TJS-spent.TJS),USD:Math.max(0,totalGiven.USD-spent.USD)};
+  const baseCur=totalGiven.TJS>=totalGiven.USD?'TJS':'USD';
+  const pct=totalGiven[baseCur]>0?Math.min(spent[baseCur]/totalGiven[baseCur]*100,100):0;
   const pctColor=pct>90?'var(--red)':pct>70?'var(--yel)':'var(--a)';
 
   if(!activeAdvs.length&&!recentAdvs.length) return `
@@ -4653,7 +4728,7 @@ my:async()=>{
       <div style="font-size:13px;color:var(--t4);">Аванс ещё не выдан</div>
     </div>`;
 
-  const remColor=rem<0?'#E53E3E':rem<totalGiven*.1?'#D69E2E':'#39B980';
+  const remColor=pct>=100?'#D69E2E':'#39B980';
 
   return `
   <!-- HERO BALANCE CARD -->
@@ -4667,7 +4742,7 @@ my:async()=>{
 
     <!-- Remainder hero number -->
     <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:4px;">${t('rest_lbl')}</div>
-    <div style="font-size:34px;font-weight:900;color:${remColor};letter-spacing:-.5px;margin-bottom:16px;font-family:var(--ff);">${fmtN(rem)} <span style="font-size:16px;font-weight:600;opacity:.7;">TJS</span></div>
+    <div style="font-size:30px;font-weight:900;color:${remColor};letter-spacing:-.5px;margin-bottom:16px;font-family:var(--ff);line-height:1.2;">${fmtMoney(rem,{always:isMoneyEmpty(rem),sep:'<br>'})}</div>
 
     <!-- Progress bar -->
     <div style="background:rgba(255,255,255,.1);border-radius:6px;height:6px;overflow:hidden;margin-bottom:8px;">
@@ -4679,13 +4754,11 @@ my:async()=>{
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;">
         <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.08em;">${t('adv_issued')}</div>
-        <div style="font-size:15px;font-weight:800;color:#39B980;">+${fmtN(totalGiven)}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.25);">TJS</div>
+        <div style="font-size:14px;font-weight:800;color:#39B980;line-height:1.35;">${fmtMoney(totalGiven,{always:isMoneyEmpty(totalGiven),sign:true,sep:'<br>'})}</div>
       </div>
       <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;">
         <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.08em;">${t('spent')}</div>
-        <div style="font-size:15px;font-weight:800;color:#FC8181;">−${fmtN(spent)}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.25);">TJS</div>
+        <div style="font-size:14px;font-weight:800;color:#FC8181;line-height:1.35;">${isMoneyEmpty(spent)?'0':'−'+fmtMoney(spent,{sep:'<br>−'})}</div>
       </div>
     </div>
   </div>
@@ -4699,7 +4772,6 @@ my:async()=>{
       <div class="sh-t" style="font-size:13px;font-weight:700;">📥 История выдач <span style="font-weight:400;color:var(--t4);font-size:11px;">(30 ${t('days_sfx')})</span></div>
     </div>
     ${recentAdvs.length?collapseList(recentAdvs.map((a,i)=>{
-      const amtTjs=a.currency==='USD'?a.amount*rate:a.amount;
       const isDone=a.status==='done'||a.status==='closed';
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i<recentAdvs.length-1?'border-bottom:1px solid var(--bd);':''}">
         <div style="width:38px;height:38px;border-radius:11px;background:${isDone?'var(--bg)':'var(--ap)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;opacity:${isDone?.6:1};">📥</div>
@@ -4709,8 +4781,7 @@ my:async()=>{
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:14px;font-weight:700;color:${isDone?'var(--t3)':'var(--ad)'};">+${fmtN(a.amount)} ${a.currency||'TJS'}</div>
-          ${a.currency==='USD'?`<div style="font-size:10px;color:var(--t4);">≈ ${fmtN(amtTjs)} TJS</div>`:''}
-        </div>
+          </div>
       </div>`;
     }),4,'my-adv-more'):`<div class="empty"><div class="empty-icon">📥</div>Нет выдач за последние 30 дней</div>`}
   </div>
@@ -4735,7 +4806,6 @@ myexp:async()=>{
   // другое получалось выгрузкой всей истории расходов снабженца.
   const src=workerOpsSource(name,'expense');
   const[first,total]=await Promise.all([src(0,OPS_CHUNK),fetchOneWorkerSpend(name)]);
-  const rate=COMPANY.usd_rate||10.92;
   setTimeout(()=>{
     const ol=document.getElementById('myexp-list');
     if(!ol)return;
@@ -4745,7 +4815,7 @@ myexp:async()=>{
   },0);
   return `
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:9px;">
-    <div><div class="sc-lbl">${t('myexp')}</div><div style="font-size:20px;font-weight:800;color:var(--red);">−${fmtN(total)} TJS</div><div style="font-size:11px;color:var(--t4);">≈ $${fmtN(total/rate)}</div></div>
+    <div><div class="sc-lbl">${t('myexp')}</div><div style="font-size:19px;font-weight:800;color:var(--red);line-height:1.35;">${isMoneyEmpty(total)?'0':'−'+fmtMoney(total,{sep:'<br>−'})}</div></div>
     <div class="exp-row"><button class="eb eb-xl" onclick="exportMyExpenses('xl')">${t('xl')}</button><button class="eb eb-pdf" onclick="exportMyPDF('${t('myexp')}')">${t('pdf')}</button></div>
   </div>
   <div class="card">
@@ -4760,14 +4830,18 @@ tasks:async()=>{
     fetchOneWorkerSpend(USER?.name)
   ]);
   return `${(advs||[]).map((a,i)=>{
-    const rem=a.amount-spent;const pct=a.amount>0?Math.min(spent/a.amount*100,100):0;
+    // Аванс и траты сопоставляются в одной валюте — в валюте самого аванса.
+    const cur=a.currency||'TJS';
+    const spentCur=spent[cur]||0;
+    const rem=(a.amount||0)-spentCur;
+    const pct=a.amount>0?Math.min(spentCur/a.amount*100,100):0;
     const names=Array.isArray(a.stage_names)?a.stage_names:['Старт','Закупка','Доставка','Сдача'];
     return `<div class="pc" style="animation-delay:${i*.06}s;">
-      <div class="pc-top"><div class="pc-lft"><div class="ava" style="width:38px;height:38px;background:var(--al);color:var(--adk);">${esc((a.object_name||'?').slice(-2))}</div><div><div class="pc-name">${esc(a.task||'—')}</div><div class="pc-sub">${esc(a.object_name)} · ${fmtN(a.amount)} TJS</div></div></div>
+      <div class="pc-top"><div class="pc-lft"><div class="ava" style="width:38px;height:38px;background:var(--al);color:var(--adk);">${esc((a.object_name||'?').slice(-2))}</div><div><div class="pc-name">${esc(a.task||'—')}</div><div class="pc-sub">${esc(a.object_name)} · ${fmtCurAmt(a.amount,cur)}</div></div></div>
       <span class="badge ${(a.stage||0)>=(a.stages||4)?'bg':'by'}">${(a.stage||0)>=(a.stages||4)?t('done_ok'):t('stage_lbl')+' '+(a.stage||0)+'/'+(a.stages||4)}</span></div>
       ${stageTrack(a.stage||0,a.stages||4,names)}
       <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${pct>80?'var(--red)':'var(--a)'};"></div></div>
-      <div class="pc-nums"><span style="color:var(--red);">${t('spent_lbl')}: ${fmtN(spent)}</span><span style="color:var(--ad);">${t('rest_lbl')}: ${fmtN(rem)}</span></div>
+      <div class="pc-nums"><span style="color:var(--red);">${t('spent_lbl')}: ${fmtCurAmt(spentCur,cur)}</span><span style="color:var(--ad);">${t('rest_lbl')}: ${fmtCurAmt(rem,cur)}</span></div>
       <div class="a-btns">
         ${(a.stage||0)+1<(a.stages||4)?`<button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="advStage(${a.id})">Следующий этап →</button>`:`<div class="a-btn" style="background:var(--bg);border-color:var(--bd);color:var(--t4);cursor:default;text-align:center;">✓ Ждёт закрытия бухгалтером</div>`}
         <button class="a-btn" style="background:var(--redl);border-color:var(--redb);color:var(--red);" onclick="go('addexp')">− Расход</button>
@@ -4826,19 +4900,20 @@ _masters_unused:async()=>{
 /* ── ADVANCE HELPERS ── */
 function canAdmin(){return USER?.role==='accountant'||USER?.role==='admin';}
 
-/* Returns remaining advance balance for a supplier (ALL advances − ALL expenses).
-   Uses all advances (active+closed) so that after a closed cycle, a new advance
-   correctly adds to the cumulative balance instead of going negative. */
+/* Остаток аванса снабженца — ПО ВАЛЮТАМ: {TJS, USD}.
+   Берутся все авансы (и закрытые тоже), чтобы после закрытого цикла новый
+   аванс прибавлялся к накопленному остатку, а не уходил в минус.
+   Долларовый аванс тратится долларами, сомониевый — сомони; пересчёта между
+   ними нет, и именно поэтому остаток больше не меняется от курса. */
 async function getSupplierRemaining(workerName){
-  const[advs,totalSpent]=await Promise.all([
-    sbFetchAll('advances','amount,currency',q=>q.eq('worker_name',workerName)),
+  const[given,spent]=await Promise.all([
+    fetchAdvanceGiven(workerName),
     fetchOneWorkerSpend(workerName)
   ]);
-  const rate=COMPANY.usd_rate||10.92;
-  const totalAdv=(advs||[]).reduce((s,a)=>{
-    const tjs=a.currency==='USD'?a.amount*rate:a.amount;return s+tjs;
-  },0);
-  return Math.max(0,Math.round((totalAdv-totalSpent)*100)/100);
+  const g=given.get(workerName||'')||zeroMoney();
+  const rem=subMoney(g,spent);
+  return {TJS:Math.max(0,Math.round(rem.TJS*100)/100),
+          USD:Math.max(0,Math.round(rem.USD*100)/100)};
 }
 
 /* Supplier PDF export with balance summary (given / spent / remaining) */
@@ -4852,36 +4927,47 @@ async function exportMyPDF(title){
     fetchWorkerOpsAll(wName,'expense')
   ]);
   const rate=COMPANY.usd_rate||10.92;
-  const given=(advs||[]).reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
-  const remain=Math.round((given-spent)*100)/100;
+  const given=(advs||[]).reduce((m,a)=>addMoney(m,a.currency,a.amount),zeroMoney());
+  const remain=subMoney(given,spent);
   exportPDF(title,rows||[],{supplier:true,given,spent,remain});
 }
 
-/* Returns current cash balance in TJS (income − direct_expenses − advances) */
+/* Остаток кассы ПО ВАЛЮТАМ: {TJS, USD}.
+   Раньше возвращалось одно число в сомони — доллары сводились по курсу из
+   company.usd_rate. Курс обновлялся сам, и лимит «хватает ли денег» ездил
+   вместе с ним. Теперь долларовый расход проверяется против долларовой кассы,
+   сомониевый — против сомониевой. */
 async function getCashBalance(){
-  // Fast path: server computes the balance (scales to any row count)
   try{
-    const {data,error}=await SB.rpc('cash_balance');
-    if(!error && data!=null) return Math.round(Number(data)*100)/100;
-  }catch(e){ /* RPC missing → fall back to client computation below */ }
-  const rate=COMPANY.usd_rate||10.92;
+    const{data,error}=await SB.rpc('cash_balance_by_currency');
+    if(error) throw error;
+    if(Array.isArray(data)){
+      const m=zeroMoney();
+      data.forEach(r=>{
+        if(m[r.currency]===undefined)return;
+        m[r.currency]+=(Number(r.inc)||0)-(Number(r.exp_direct)||0)-(Number(r.adv)||0);
+      });
+      return {TJS:Math.round(m.TJS*100)/100,USD:Math.round(m.USD*100)/100};
+    }
+  }catch(e){ /* RPC нет → считаем по строкам ниже */ }
   const[ops,{data:supProfs}]=await Promise.all([
-    sbFetchAll('operations','type,amount_tjs,amount,currency,method,worker_name'),
+    sbFetchAll('operations','type,amount,currency,method,worker_name'),
     SB.from('profiles').select('name').eq('role','supplier')
   ]);
   const supNames=new Set((supProfs||[]).map(p=>p.name));
-  let bal=0;
+  const bal=zeroMoney();
   (ops||[]).forEach(op=>{
-    const tjs=op.amount_tjs!=null?op.amount_tjs:(op.currency==='USD'?(op.amount||0)*rate:(op.amount||0));
-    if(op.type==='income') bal+=tjs;
-    else if(op.type==='advance') bal-=tjs;
+    if(bal[op.currency]===undefined)return;
+    const v=op.amount||0;
+    if(op.type==='income') bal[op.currency]+=v;
+    else if(op.type==='advance') bal[op.currency]-=v;
     // Only subtract expenses that came directly from cash (not advance-funded supplier expenses)
     else if(op.type==='expense'){
       const isAdvFunded=op.method==='from_advance'||supNames.has(op.worker_name);
-      if(!isAdvFunded) bal-=tjs;
+      if(!isAdvFunded) bal[op.currency]-=v;
     }
   });
-  return Math.round(bal*100)/100;
+  return {TJS:Math.round(bal.TJS*100)/100,USD:Math.round(bal.USD*100)/100};
 }
 
 function openNewAdvanceFull(){
@@ -4907,8 +4993,9 @@ function openNewAdvanceFull(){
         </div>
         <div class="fld">
           <div class="fld-l">Сумма</div>
-          <input class="fi fi-lg" id="na-amt" type="number" placeholder="0"
-            oninput="const r=COMPANY.usd_rate||10.92,a=parseFloat(this.value)||0,c=document.getElementById('na-cur').value;document.getElementById('na-hint').textContent=c==='TJS'?'≈ $'+Math.round(a/r)+' USD':'≈ '+Math.round(a*r)+' TJS';">
+          <!-- Подсказки «≈ столько-то в другой валюте» больше нет: сумма
+               остаётся в той валюте, в которой её ввели. -->
+          <input class="fi fi-lg" id="na-amt" type="number" placeholder="0">
         </div>
         <div class="fld">
           <div class="fld-l">Валюта</div>
@@ -4944,9 +5031,9 @@ function openNewAdvanceFull(){
         const r=COMPANY.usd_rate||10.92;
         const amtTJS=cur==='USD'?amt*r:amt;
         const amtUSD=cur==='TJS'?amt/r:amt;
-        // Cash balance check
+        // Cash balance check — в валюте самого аванса
         const bal=await getCashBalance();
-        if(amtTJS>bal){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtN(bal)} TJS, ${t('need')}: ${fmtN(amtTJS)} TJS`,true);return;}
+        if(amt>(bal[cur]||0)){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtCurAmt(bal[cur]||0,cur)}, ${t('need')}: ${fmtCurAmt(amt,cur)}`,true);return;}
         // Save to advances table
         const{error:ae}=await SB.from('advances').insert({
           worker_name:worker,object_name:obj,task:task||'Аванс',
@@ -5080,11 +5167,9 @@ async function openNewAdv(){
       const due=document.getElementById('na-d').value;
       if(!w){showToast(t('specify_adv_w'),true);return;}
       if(!amt){showToast(t('enter_amt'),true);return;}
-      const rate=COMPANY.usd_rate||10.92;
-      // Cash balance check
-      const needTJS=cur==='USD'?amt*rate:amt;
+      // Cash balance check — в валюте самого аванса
       const bal=await getCashBalance();
-      if(needTJS>bal){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtN(bal)} TJS, ${t('need')}: ${fmtN(needTJS)} TJS`,true);return;}
+      if(amt>(bal[cur]||0)){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtCurAmt(bal[cur]||0,cur)}, ${t('need')}: ${fmtCurAmt(amt,cur)}`,true);return;}
       // Save advance record
       const{error:ae}=await SB.from('advances').insert({
         worker_name:w,object_name:obj,task:task||'Аванс',
@@ -5143,15 +5228,17 @@ async function advReturnGroup(idsStr){
   const ids=String(idsStr).split(',').map(Number).filter(Boolean);
   // Calculate total of this day's advances as hint
   const{data:advList}=await SB.from('advances').select('amount,currency').in('id',ids);
-  const rate=COMPANY.usd_rate||10.92;
-  const totalHint=(advList||[]).reduce((s,a)=>s+(a.currency==='USD'?a.amount*rate:a.amount),0);
+  const hintMoney=(advList||[]).reduce((m,a)=>addMoney(m,a.currency,a.amount),zeroMoney());
+  // Возврат вводится одной суммой, поэтому подсказка — в преобладающей валюте.
+  const hintCur=hintMoney.TJS>=hintMoney.USD?'TJS':'USD';
+  const totalHint=hintMoney[hintCur];
   openModal('Возврат аванса',`
     <div style="background:var(--ap);border:1px solid var(--al);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;">
       <div style="font-size:11px;color:var(--ad);font-weight:600;">Сумма выданного за этот день</div>
-      <div style="font-size:18px;font-weight:800;color:var(--adk);">${fmtN(totalHint)} TJS</div>
+      <div style="font-size:18px;font-weight:800;color:var(--adk);">${fmtMoney(hintMoney,{always:isMoneyEmpty(hintMoney)})}</div>
     </div>
     <div class="fld">
-      <div class="fld-l">Сумма возврата (TJS)</div>
+      <div class="fld-l">Сумма возврата (${hintCur})</div>
       <input class="fi fi-lg" id="ar-amt" type="number" min="0.01" step="0.01" placeholder="${totalHint}" autocomplete="off" style="margin-top:6px;font-size:18px;font-weight:800;color:var(--a);">
     </div>
     <div class="fld" style="margin-top:10px;">
@@ -5275,10 +5362,9 @@ async function advAddExpense(workerName, objName){
       const amt=tot?.value?parseFloat(tot.value)||q2*p:q2*p;
       if(!amt){showToast(t('enter_amt'),true);return;}
       const rate=COMPANY.usd_rate||10.92;
-      // Block if expense exceeds remaining advance balance
-      const amtTJS_ae=SEL_CUR==='USD'?amt*rate:amt;
+      // Block if expense exceeds remaining advance balance — в своей валюте
       const rem_ae=await getSupplierRemaining(workerName);
-      if(amtTJS_ae>rem_ae){showToast(`${t('adv_over')}\n${t('adv_over_detail')}: ${fmtN(rem_ae)} TJS`,true);return;}
+      if(amt>(rem_ae[SEL_CUR]||0)){showToast(`${t('adv_over')}\n${t('adv_over_detail')}: ${fmtCurAmt(rem_ae[SEL_CUR]||0,SEL_CUR)}`,true);return;}
       const{error}=await SB.from('operations').insert({
         type:'expense',date:document.getElementById('ae-date')?.value||today(),
         object_name:SEL_OBJ||'',category_name:SEL_CAT||'Прочее',
@@ -5293,7 +5379,7 @@ async function advAddExpense(workerName, objName){
       if(error){showToast(error.message,true);return;}
       // Auto-close all active advances if balance exhausted
       const remAfter=await getSupplierRemaining(workerName);
-      if(remAfter<=0){
+      if(isMoneyEmpty(remAfter)){
         await SB.from('advances').update({status:'done'}).eq('worker_name',workerName).eq('status','active');
         showToast('✓ '+t('expense')+' '+fmtN(amt)+' '+SEL_CUR+' · Аванс закрыт автоматически');
       } else {
@@ -5351,10 +5437,11 @@ async function debtReturn(id,type){
       ]);
       const syncCash=!isBarter&&document.getElementById('dr-cash')?.checked;
       if(syncCash&&isCreditor){
-        // Paying back a creditor = cash expense — check balance first
-        const rate=COMPANY.usd_rate||10.92;
+        // Paying back a creditor = cash expense — check balance first,
+        // в валюте самого долга: доллары гасятся долларами.
+        const curD=dbt?.currency||'TJS';
         const balChk=await getCashBalance();
-        if(amt>balChk){showToast(`❌ ${t('no_funds')}!\n${t('no_funds_detail')}: ${fmtN(balChk)} TJS · ${t('need')}: ${fmtN(amt)} TJS`,true);return;}
+        if(amt>(balChk[curD]||0)){showToast(`❌ ${t('no_funds')}!\n${t('no_funds_detail')}: ${fmtCurAmt(balChk[curD]||0,curD)} · ${t('need')}: ${fmtCurAmt(amt,curD)}`,true);return;}
       }
       if(syncCash){
         const rate=COMPANY.usd_rate||10.92;
@@ -5400,10 +5487,8 @@ function openNewDebt(){
       const syncCashPre=document.getElementById('nd-cash')?.checked;
       if(dtype==='debtor'&&syncCashPre){
         const curPre=document.getElementById('nd-c').value;
-        const ratePre=COMPANY.usd_rate||10.92;
-        const needPre=curPre==='USD'?a*ratePre:a;
         const balPre=await getCashBalance();
-        if(needPre>balPre){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtN(balPre)} TJS, ${t('need')}: ${fmtN(needPre)} TJS`,true);return;}
+        if(a>(balPre[curPre]||0)){showToast(`❌ ${t('no_funds')}! ${t('no_funds_detail')}: ${fmtCurAmt(balPre[curPre]||0,curPre)}, ${t('need')}: ${fmtCurAmt(a,curPre)}`,true);return;}
       }
       const{error}=await SB.from('debts').insert({type:dtype,name:n,description:document.getElementById('nd-desc').value,total_amount:a,currency:document.getElementById('nd-c').value,due_date:document.getElementById('nd-d').value});
       if(error){showToast(error.message,true);return;}
