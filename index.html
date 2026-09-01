@@ -517,8 +517,18 @@ html{height:100dvh;}
 .reveal-h{font-size:12px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin:22px 2px 12px;display:flex;align-items:center;gap:9px;}
 .reveal-h::before{content:'';width:4px;height:15px;border-radius:3px;background:linear-gradient(180deg,#39B980,#2176ae);}
 .mm-l{font-size:9px;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
-.mm-v{font-size:16px;font-weight:800;letter-spacing:-.3px;}
+.mm-v{font-size:17px;font-weight:800;letter-spacing:-.3px;line-height:1.2;}
 .mm-v2{font-size:10px;color:var(--t4);margin-top:2px;font-weight:600;}
+/* Валюта рядом с суммой — приглушённая, чтобы не спорить с цифрой */
+.mm-cur{font-size:9px;font-weight:700;opacity:.5;margin-left:3px;letter-spacing:.04em;}
+/* Вторая валюта: та же строка смысла, но тише основной */
+.mm-v2nd{font-size:13px;font-weight:800;letter-spacing:-.2px;margin-top:1px;opacity:.85;}
+/* Тонкая полоса «сколько израсходовано» внутри плитки */
+.mm-bar{height:3px;background:var(--bd);border-radius:2px;overflow:hidden;margin:8px 0 5px;}
+.mm-bar-fi{height:100%;border-radius:2px;transition:width .7s cubic-bezier(.22,1,.36,1);}
+/* Подпись под суммой: количество долгов, доля, пояснение */
+.mm-foot{font-size:9.5px;color:var(--t4);margin-top:4px;font-weight:600;line-height:1.35;}
+.mm-late{color:var(--red);margin-left:5px;white-space:nowrap;}
 
 /* RATES */
 .rates-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:18px;}
@@ -1311,6 +1321,18 @@ const zeroMoney=()=>({TJS:0,USD:0});
 const addMoney=(m,cur,v)=>{ if(m[cur]!==undefined) m[cur]+=Number(v)||0; return m; };
 const subMoney=(a,b)=>({TJS:(a.TJS||0)-(b.TJS||0),USD:(a.USD||0)-(b.USD||0)});
 const isMoneyEmpty=m=>!(m.TJS||0)&&!(m.USD||0);
+/* Сумма в плитке «Карты денег». Крупной строкой идёт та валюта, в которой
+   есть деньги; вторая — под ней и тише. Если сомони нет, доллар не оставляет
+   вместо себя пустую строку, а сам становится главным. */
+function mmAmount(m,color,id){
+  const showTJS=m.TJS||!m.USD;
+  const out=[];
+  if(showTJS) out.push(`<div class="mm-v" style="color:${color};">`+
+    (id?`<span id="${id}">${fmtN(m.TJS)}</span>`:fmtN(m.TJS))+
+    `<span class="mm-cur">TJS</span></div>`);
+  if(m.USD) out.push(`<div class="${showTJS?'mm-v2nd':'mm-v'}" style="color:${color};">$${fmtN(m.USD)}</div>`);
+  return out.join('');
+}
 /* «1 200 TJS» / «$300». Ноль показываем только если нет вообще ничего. */
 function fmtMoney(m,opts){
   const o=opts||{};
@@ -3469,8 +3491,8 @@ home:async()=>{
   const[totals, agg, debtsR, advR, recentR]=await Promise.all([
     fetchOpsTotals(homeObj),
     fetchHomeAggregates(homeObj),
-    // Главной от долгов нужны только эти четыре поля для двух сумм.
-    qCached('home_debts',()=>SB.from('debts').select('type,currency,total_amount,paid_amount')),
+    // due_date нужен «Карте денег», чтобы показать, сколько долгов просрочено.
+    qCached('home_debts',()=>SB.from('debts').select('type,currency,total_amount,paid_amount,due_date')),
     qCached('home_advances',()=>sbFetchAll('advances','amount,currency')),
     qCached('home_recent_'+PERIOD+'_'+(homeObj||''),()=>{
       let q=periodFilter(SB.from('operations').select(OPS_COLS));
@@ -3511,12 +3533,26 @@ home:async()=>{
   // в своих валютах и вычитаются только внутри одной.
   const netTJS=debTJS-credTJS;
   const netUSD=debUSD-credUSD;
+  // Сколько долгов и сколько из них просрочено — этого на главной не было
+  // нигде, а именно это и нужно видеть первым.
+  const _t=today();
+  const openDebt=d=>(d.total_amount-d.paid_amount)>0;
+  const lateDebt=d=>openDebt(d)&&d.due_date&&d.due_date<_t;
+  const debCnt=debts.filter(d=>d.type==='debtor'&&openDebt(d)).length;
+  const credCnt=debts.filter(d=>d.type==='creditor'&&openDebt(d)).length;
+  const debLate=debts.filter(d=>d.type==='debtor'&&lateDebt(d)).length;
+  const credLate=debts.filter(d=>d.type==='creditor'&&lateDebt(d)).length;
 
   // Advances (supplier balance)
   const advTot_given = advs.reduce((m,x)=>addMoney(m,x.currency,x.amount),zeroMoney());
   const advTot_spent = agg.advSpent;
   const advTot_rem = {TJS:Math.max(0,advTot_given.TJS-advTot_spent.TJS),
                       USD:Math.max(0,advTot_given.USD-advTot_spent.USD)};
+  // Доля израсходованного у снабженцев — по той валюте, в которой выдано
+  // больше: одну шкалу на две валюты честно не построить. null — выдач нет.
+  const advBase = advTot_given.TJS>=advTot_given.USD?'TJS':'USD';
+  const advPct = advTot_given[advBase]>0
+    ? Math.min(advTot_spent[advBase]/advTot_given[advBase]*100,100) : null;
 
   // By category (period-filtered, for selected object)
   const byCat=agg.byCat;
@@ -3563,17 +3599,11 @@ home:async()=>{
       requestAnimationFrame(step);
     }
 
-    // Fire all counters with 600ms duration
+    // Счётчики «Карты денег». Анимируется сомониевая часть — у неё отдельный
+    // span; долларовая стоит строкой ниже и не пересчитывается.
     animCounter('cnt-balTJS', balTJS, '', '', 900);
-    animCounter('cnt-balUSD', balUSD, '$', '', 900);
-    // Эти два элемента показывают сомониевую часть — её и анимируем.
-    // Долларовая стоит отдельной строкой рядом и не пересчитывается.
     animCounter('cnt-deb', debTJS, '', '', 600);
     animCounter('cnt-cred', credTJS, '', '', 600);
-
-    // Net debt label
-    const netEl=document.getElementById('cnt-net');
-    if(netEl) setTimeout(()=>{ netEl.textContent=t('net_lbl')+': '+fmtMoney({TJS:netTJS,USD:netUSD},{always:!netTJS&&!netUSD}); }, 700);
 
     /* ── SPARKLINES ── */
     // Get last 7 days
@@ -3790,46 +3820,39 @@ home:async()=>{
     ${window._homeObj?`<button onclick="window._homeObj='';destroyCharts();renderPage('home')" style="padding:7px 12px;background:var(--redl);border:1px solid rgba(229,62,62,.2);border-radius:8px;font-size:11px;font-weight:700;color:var(--red);cursor:pointer;font-family:var(--ff);white-space:nowrap;">✕ ${window._homeObj}</button>`:''}
   </div>
 
-  <div class="g2 mb20">
-    <div class="sc g" style="animation-delay:.1s;">
-      <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round"><rect x="1" y="3" width="11" height="8" rx="1.5"/><path d="M1 6h11"/></svg>
-        ${t('balance')}
-      </div>
-      <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
-        <div><div style="font-size:10px;color:var(--t4);">TJS</div>
-          <div style="font-size:20px;font-weight:800;color:${balTJS>=0?'var(--adk)':'var(--red)'};" id="cnt-balTJS">${balTJS>=0?'+':''}${fmtN(balTJS)}</div></div>
-        <div style="width:1px;background:var(--bd);height:22px;align-self:center;"></div>
-        <div><div style="font-size:10px;color:var(--t4);">USD</div>
-          <div style="font-size:20px;font-weight:800;color:${balUSD>=0?'var(--blue)':'var(--red)'};" id="cnt-balUSD">${balUSD>=0?'+$':'-$'}${fmtN(Math.abs(balUSD))}</div></div>
-      </div>
-      <div class="sc-val2" style="margin-top:3px;">${t('after_adv')}</div>
-    </div>
-    <div class="sc o" style="animation-delay:.13s;">
-      <div class="sc-lbl" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--ora)" stroke-width="1.8" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 4v3l2 1.5" stroke-linecap="round"/></svg>
-        ${t('debts')}
-      </div>
-      <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
-        <div><div style="font-size:10px;color:var(--ad);">${t('recv')}</div>
-          <div style="font-size:18px;font-weight:800;color:var(--ad);" id="cnt-deb">${fmtN(debTJS)}<span style="font-size:11px;font-weight:500;opacity:.7;"> TJS</span></div>
-          ${debUSD>0?`<div style="font-size:13px;font-weight:700;color:var(--blue);">$${fmtN(debUSD)}</div>`:''}</div>
-        <div style="width:1px;background:var(--bd);height:32px;align-self:center;"></div>
-        <div><div style="font-size:10px;color:var(--red);">${t('paybl')}</div>
-          <div style="font-size:18px;font-weight:800;color:var(--red);" id="cnt-cred">${fmtN(credTJS)}<span style="font-size:11px;font-weight:500;opacity:.7;"> TJS</span></div>
-          ${credUSD>0?`<div style="font-size:13px;font-weight:700;color:var(--red);">$${fmtN(credUSD)}</div>`:''}</div>
-      </div>
-      <div class="sc-val2" style="margin-top:3px;" id="cnt-net">${t('net_lbl')}: ${fmtMoney({TJS:netTJS,USD:netUSD},{always:!netTJS&&!netUSD})}</div>
-    </div>
-  </div>
-
 <!-- MONEY MAP -->
   <div class="sh"><div class="sh-t">${t('where')}</div></div>
   <div class="money-map mb20">
-    <div class="mm g" style="animation-delay:.04s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div><div class="mm-l">${t('in_cash')} TJS</div><div class="mm-v" style="color:var(--adk);">${fmtN(balTJS)}</div><div class="mm-v2" style="color:var(--t4);">$${fmtN(balUSD)} USD</div></div>
-    <div class="mm y" style="animation-delay:.07s;"><div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div><div class="mm-l">${t('at_snabs')}</div><div class="mm-v" style="color:var(--yel);">${fmtMoney(advTot_rem,{always:isMoneyEmpty(advTot_rem),sep:' · '})}</div><div class="mm-v2" style="color:var(--t4);">${t('issued')}: ${fmtMoney(advTot_given,{always:isMoneyEmpty(advTot_given)})}</div></div>
-    <div class="mm b" style="animation-delay:.1s;"><div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('recv')}</div><div class="mm-v" style="color:var(--ad);">${fmtN(debTJS)}<span style="font-size:10px;opacity:.6;"> TJS</span></div><div class="mm-v2" style="color:var(--t4);">${debUSD>0?'$'+fmtN(debUSD)+' USD':t('deb_tjs')}</div></div>
-    <div class="mm r" style="animation-delay:.13s;"><div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mm-l">${t('paybl')}</div><div class="mm-v" style="color:var(--red);">${fmtN(credTJS)}<span style="font-size:10px;opacity:.6;"> TJS</span></div><div class="mm-v2" style="color:var(--t4);">${credUSD>0?'$'+fmtN(credUSD)+' USD':t('cred_tjs')}</div></div>
+    <div class="mm g" style="animation-delay:.04s;">
+      <div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div>
+      <div class="mm-l">${t('in_cash')}</div>
+      ${mmAmount({TJS:balTJS,USD:balUSD},'var(--adk)','cnt-balTJS')}
+      <div class="mm-foot">${t('after_adv')}</div>
+    </div>
+
+    <div class="mm y" style="animation-delay:.07s;">
+      <div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div>
+      <div class="mm-l">${t('at_snabs')}</div>
+      ${mmAmount(advTot_rem,'var(--yel)')}
+      ${advPct!==null?`
+      <div class="mm-bar"><div class="mm-bar-fi" style="width:${advPct.toFixed(0)}%;background:${advPct>90?'var(--red)':'var(--yel)'};"></div></div>
+      <div class="mm-foot">${Math.round(advPct)}% ${t('spent').toLowerCase()} · ${t('issued').toLowerCase()} ${fmtMoney(advTot_given)}</div>`
+      :`<div class="mm-foot">${t('issued')}: ${fmtMoney(advTot_given,{always:true})}</div>`}
+    </div>
+
+    <div class="mm b" style="animation-delay:.1s;">
+      <div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="mm-l">${t('recv')}</div>
+      ${mmAmount({TJS:debTJS,USD:debUSD},'var(--ad)','cnt-deb')}
+      <div class="mm-foot">${debCnt?plDebts(debCnt):t('no_data')}${debLate?`<span class="mm-late">● ${debLate} ${t('overdue').toLowerCase()}</span>`:''}</div>
+    </div>
+
+    <div class="mm r" style="animation-delay:.13s;">
+      <div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="mm-l">${t('paybl')}</div>
+      ${mmAmount({TJS:credTJS,USD:credUSD},'var(--red)','cnt-cred')}
+      <div class="mm-foot">${credCnt?plDebts(credCnt):t('no_data')}${credLate?`<span class="mm-late">● ${credLate} ${t('overdue').toLowerCase()}</span>`:''}</div>
+    </div>
   </div>
 
   <!-- CHARTS -->
