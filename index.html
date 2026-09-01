@@ -498,7 +498,8 @@ html{height:100dvh;}
 .skel-h{height:12px;}.skel-l{height:10px;}.skel-xl{height:22px;}.skel-2xl{height:36px;}.skel-3xl{height:48px;}
 
 /* MONEY MAP */
-.money-map{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px;}
+/* Три плитки: касса живёт в шапке, дублировать её здесь незачем. */
+.money-map{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:18px;}
 .mm{background:var(--w);border:1px solid var(--bd);border-radius:16px;padding:14px 11px;text-align:center;box-shadow:var(--sh);animation:fadeUp .3s ease both;position:relative;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease;}
 .mm:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(26,35,50,.12);}
 .mm::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
@@ -1321,24 +1322,33 @@ const zeroMoney=()=>({TJS:0,USD:0});
 const addMoney=(m,cur,v)=>{ if(m[cur]!==undefined) m[cur]+=Number(v)||0; return m; };
 const subMoney=(a,b)=>({TJS:(a.TJS||0)-(b.TJS||0),USD:(a.USD||0)-(b.USD||0)});
 const isMoneyEmpty=m=>!(m.TJS||0)&&!(m.USD||0);
-/* Сумма в плитке «Карты денег». Крупной строкой идёт та валюта, в которой
-   есть деньги; вторая — под ней и тише. Если сомони нет, доллар не оставляет
-   вместо себя пустую строку, а сам становится главным. */
+/* Какая валюта идёт первой (крупной строкой) — та, где число больше.
+   Сравниваются именно числа, а не стоимость: это правило показа, а не расчёт.
+   Из-за масштаба (1 USD ≈ 11 TJS) сомони почти всегда окажется крупнее —
+   так и задумано, приложение ничего не пересчитывает. */
+function moneyOrder(m){
+  const t=m.TJS||0,u=m.USD||0;
+  if(!t&&!u) return ['TJS'];              // совсем пусто — показываем «0 TJS»
+  if(!u) return ['TJS'];
+  if(!t) return ['USD'];
+  return u>t?['USD','TJS']:['TJS','USD'];
+}
+/* Сумма в плитке «Карты денег»: сначала бо́льшая, вторая под ней и тише. */
 function mmAmount(m,color,id){
-  const showTJS=m.TJS||!m.USD;
-  const out=[];
-  if(showTJS) out.push(`<div class="mm-v" style="color:${color};">`+
-    (id?`<span id="${id}">${fmtN(m.TJS)}</span>`:fmtN(m.TJS))+
-    `<span class="mm-cur">TJS</span></div>`);
-  if(m.USD) out.push(`<div class="${showTJS?'mm-v2nd':'mm-v'}" style="color:${color};">$${fmtN(m.USD)}</div>`);
-  return out.join('');
+  return moneyOrder(m).map((c,i)=>{
+    const txt=c==='USD'?'$'+fmtN(m.USD||0):fmtN(m.TJS||0)+'<span class="mm-cur">TJS</span>';
+    const body=(i===0&&id&&c==='TJS')?`<span id="${id}">${fmtN(m.TJS||0)}</span><span class="mm-cur">TJS</span>`:txt;
+    return `<div class="${i?'mm-v2nd':'mm-v'}" style="color:${color};">${body}</div>`;
+  }).join('');
 }
 /* «1 200 TJS» / «$300». Ноль показываем только если нет вообще ничего. */
 function fmtMoney(m,opts){
   const o=opts||{};
-  const parts=[];
-  if(m.TJS||o.always) parts.push(`${o.sign&&m.TJS>0?'+':''}${fmtN(m.TJS||0)} TJS`);
-  if(m.USD||o.always) parts.push(`${o.sign&&m.USD>0?'+':''}$${fmtN(m.USD||0)}`);
+  const one=c=>c==='USD'
+    ? `${o.sign&&m.USD>0?'+':''}$${fmtN(m.USD||0)}`
+    : `${o.sign&&m.TJS>0?'+':''}${fmtN(m.TJS||0)} TJS`;
+  // Порядок тот же, что и в плитках: бо́льшая сумма идёт первой.
+  const parts=o.always?['TJS','USD'].map(one):moneyOrder(m).filter(c=>m[c]).map(one);
   return parts.length?parts.join(o.sep||' · '):'0';
 }
 
@@ -3823,13 +3833,6 @@ home:async()=>{
 <!-- MONEY MAP -->
   <div class="sh"><div class="sh-t">${t('where')}</div></div>
   <div class="money-map mb20">
-    <div class="mm g" style="animation-delay:.04s;">
-      <div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="12" rx="2.5"/><path d="M2 9.5h16"/></svg></div>
-      <div class="mm-l">${t('in_cash')}</div>
-      ${mmAmount({TJS:balTJS,USD:balUSD},'var(--adk)','cnt-balTJS')}
-      <div class="mm-foot">${t('after_adv')}</div>
-    </div>
-
     <div class="mm y" style="animation-delay:.07s;">
       <div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div>
       <div class="mm-l">${t('at_snabs')}</div>
