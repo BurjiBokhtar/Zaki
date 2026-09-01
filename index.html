@@ -3566,8 +3566,10 @@ home:async()=>{
     // Fire all counters with 600ms duration
     animCounter('cnt-balTJS', balTJS, '', '', 900);
     animCounter('cnt-balUSD', balUSD, '$', '', 900);
-    animCounter('cnt-deb', deb, '', '', 600);
-    animCounter('cnt-cred', cred, '', '', 600);
+    // Эти два элемента показывают сомониевую часть — её и анимируем.
+    // Долларовая стоит отдельной строкой рядом и не пересчитывается.
+    animCounter('cnt-deb', debTJS, '', '', 600);
+    animCounter('cnt-cred', credTJS, '', '', 600);
 
     // Net debt label
     const netEl=document.getElementById('cnt-net');
