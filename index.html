@@ -1298,6 +1298,13 @@ const OPS_COLS='id,type,date,object_name,category_name,description,qty,unit,pric
    {TJS, USD}, а не одно число. Ниже — минимальный набор для работы с такой
    парой, чтобы нигде больше не возникало соблазна умножить на курс. */
 const CURS=['TJS','USD'];
+/* Курс НЕ участвует ни в одном расчёте — только записывается в служебные
+   поля amount_tjs / amount_usd / usd_rate как след того, какой курс был в
+   день ввода. Раньше в каждой такой функции заводилась своя переменная rate,
+   и стоило убрать её при чистке конвертации, как соседняя строка падала с
+   ReferenceError уже ПОСЛЕ записи в базу: аванс создавался, а операция нет.
+   Через функцию этой ошибки быть не может. */
+const curRate=()=>COMPANY.usd_rate||10.92;
 /* Одна сумма со своей валютой: «1 200 TJS» или «$300». */
 const fmtCurAmt=(v,c)=>c==='USD'?'$'+fmtN(v||0):fmtN(v||0)+' TJS';
 const zeroMoney=()=>({TJS:0,USD:0});
@@ -2961,9 +2968,9 @@ async function editOp(id){
         description:document.getElementById('e-desc').value,
         date:document.getElementById('e-date').value||op.date,
         amount:amt,currency:cur,
-        amount_tjs:cur==='USD'?amt*rate:amt,
-        amount_usd:cur==='TJS'?amt/rate:amt,
-        usd_rate:rate,
+        amount_tjs:cur==='USD'?amt*curRate():amt,
+        amount_usd:cur==='TJS'?amt/curRate():amt,
+        usd_rate:curRate(),
         category_name:document.getElementById('e-cat').value,
         note:document.getElementById('e-note').value,
         updated_at:new Date().toISOString()
@@ -3130,9 +3137,9 @@ async function fSubmit(isSupplier){
   const _r=await dbInsertQueued('operations',{
     type:OP_TYPE,date,object_name:SEL_OBJ,category_name:SEL_CAT||'Прочее',
     description:desc,amount:amt,currency:SEL_CUR,method,
-    amount_tjs:SEL_CUR==='USD'?amt*rate:amt,
-    amount_usd:SEL_CUR==='TJS'?amt/rate:amt,
-    usd_rate:rate,
+    amount_tjs:SEL_CUR==='USD'?amt*curRate():amt,
+    amount_usd:SEL_CUR==='TJS'?amt/curRate():amt,
+    usd_rate:curRate(),
     worker_name:(isSupplier||isSup())?USER.name:(USER?.name||'Бухгалтер'),
     qty:parseFloat(document.getElementById('f-qty')?.value)||null,
     unit:document.getElementById('f-unit')?.value||null,
@@ -3329,9 +3336,9 @@ function openAddOpModal(type){
         object_name:SEL_OBJ||'',
         category_name:SEL_CAT||'Прочее',
         description:desc,amount:amt,currency:SEL_CUR,method,
-        amount_tjs:SEL_CUR==='USD'?amt*rate:amt,
-        amount_usd:SEL_CUR==='TJS'?amt/rate:amt,
-        usd_rate:rate,
+        amount_tjs:SEL_CUR==='USD'?amt*curRate():amt,
+        amount_usd:SEL_CUR==='TJS'?amt/curRate():amt,
+        usd_rate:curRate(),
         worker_name:USER?.name||'',
         qty:parseFloat(document.getElementById('mo-qty')?.value)||null,
         unit:document.getElementById('mo-unit')?.value||null,
@@ -5076,7 +5083,7 @@ function openNewAdvanceFull(){
           description:'Аванс → '+worker+(task?' ('+task+')':''),
           amount:amt,currency:cur,
           amount_tjs:amtTJS,amount_usd:amtUSD,
-          usd_rate:r,method:'cash',
+          usd_rate:curRate(),method:'cash',
           worker_name:USER?.name||'Бухгалтер',
           target_worker:worker,
           note:document.getElementById('na-note').value,
@@ -5210,9 +5217,9 @@ async function openNewAdv(){
         type:'advance',date:today(),object_name:obj,
         category_name:'Аванс снабженцу',description:'Аванс → '+w,
         amount:amt,currency:cur,method:'cash',
-        amount_tjs:cur==='USD'?amt*rate:amt,
-        amount_usd:cur==='TJS'?amt/rate:amt,
-        usd_rate:rate,worker_name:USER?.name||'',created_by:USER?.id
+        amount_tjs:cur==='USD'?amt*curRate():amt,
+        amount_usd:cur==='TJS'?amt/curRate():amt,
+        usd_rate:curRate(),worker_name:USER?.name||'',created_by:USER?.id
       });
       if(oe){showToast(t('adv_op_warn')+': '+oe.message,true);}
       closeModal();showToast('✓ Аванс '+fmtN(amt)+' '+cur+' → '+w+' выдан');
@@ -5280,7 +5287,7 @@ async function advReturnGroup(idsStr){
       const{error}=await SB.from('operations').insert({
         type:'income',date:today(),category_name:'Возврат аванса',
         description:desc,amount:amt,currency:'TJS',method:'cash',
-        amount_tjs:amt,amount_usd:amt/r,usd_rate:r,
+        amount_tjs:amt,amount_usd:amt/curRate(),usd_rate:curRate(),
         worker_name:USER?.name||'',created_by:USER?.id
       });
       if(error){showToast(error.message,true);return;}
@@ -5310,7 +5317,7 @@ async function advReturn(id){
       const{error:ie}=await SB.from('operations').insert({
         type:'income',date:today(),category_name:'Возврат аванса',
         description:desc,amount:amt,currency:'TJS',method:'cash',
-        amount_tjs:amt,amount_usd:amt/rate,usd_rate:rate,
+        amount_tjs:amt,amount_usd:amt/curRate(),usd_rate:curRate(),
         worker_name:USER?.name||'',created_by:USER?.id
       });
       if(ie){showToast(ie.message,true);return;}
@@ -5397,9 +5404,9 @@ async function advAddExpense(workerName, objName){
         object_name:SEL_OBJ||'',category_name:SEL_CAT||'Прочее',
         description:document.getElementById('ae-desc')?.value||'',
         amount:amt,currency:SEL_CUR,method:'from_advance',
-        amount_tjs:SEL_CUR==='USD'?amt*rate:amt,
-        amount_usd:SEL_CUR==='TJS'?amt/rate:amt,
-        usd_rate:rate,worker_name:workerName,
+        amount_tjs:SEL_CUR==='USD'?amt*curRate():amt,
+        amount_usd:SEL_CUR==='TJS'?amt/curRate():amt,
+        usd_rate:curRate(),worker_name:workerName,
         qty:q2||null,unit:document.getElementById('ae-unit')?.value||null,
         price:p||null,created_by:USER?.id
       });
@@ -5478,8 +5485,8 @@ async function debtReturn(id,type){
         const{error:opErr}=await SB.from('operations').insert({
           type:opType,date:today(),
           category_name:catName,object_name:dbt?.name||'',description:descTxt,
-          amount:amt,amount_tjs:amt,amount_usd:+(amt/rate).toFixed(2),
-          currency:'TJS',usd_rate:rate,
+          amount:amt,amount_tjs:amt,amount_usd:+(amt/curRate()).toFixed(2),
+          currency:'TJS',usd_rate:curRate(),
           method:'cash',worker_name:USER?.name||'',
           created_by:USER?.id
         });
@@ -5532,8 +5539,8 @@ function openNewDebt(){
           category_name:catName,object_name:n,description:descTxt,
           amount:a,
           amount_tjs:amtTJS,
-          amount_usd:cur==='USD'?a:+(a/rate).toFixed(2),
-          currency:cur,usd_rate:rate,
+          amount_usd:cur==='USD'?a:+(a/curRate()).toFixed(2),
+          currency:cur,usd_rate:curRate(),
           method:'cash',worker_name:USER?.name||'',
           created_by:USER?.id
         });
