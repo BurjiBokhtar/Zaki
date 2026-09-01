@@ -1,5 +1,5 @@
 /* ── ZAKI ERP Service Worker ── */
-const CACHE_VER = 'zaki-v36';
+const CACHE_VER = 'zaki-v37';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 /* Библиотеки с CDN лежат отдельно от оболочки. Раньше они попадали в кэш
@@ -71,6 +71,11 @@ self.addEventListener('activate', e => {
       // Supabase — в прежней схеме он лежал в кэше оболочки и не вытеснялся.
       .then(() => trimDataCache())
       .then(() => self.clients.claim())
+      // Открытым вкладкам сообщаем, что версия сменилась: иначе установленное
+      // приложение может сутками работать на старой копии из кэша, а база
+      // за это время уже обновлена — и цифры молча разъезжаются.
+      .then(() => self.clients.matchAll({ type: 'window' }))
+      .then(cs => cs.forEach(c => c.postMessage({ type: 'SW_UPDATED', version: CACHE_VER })))
   );
 });
 
