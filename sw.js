@@ -1,5 +1,5 @@
 /* ── ZAKI ERP Service Worker ── */
-const CACHE_VER = 'zaki-v37';
+const CACHE_VER = 'zaki-v38';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 /* Библиотеки с CDN лежат отдельно от оболочки. Раньше они попадали в кэш
@@ -7,6 +7,23 @@ const SHELL = ['/', '/index.html', '/manifest.json'];
    supabase-js со всем остальным приходилось качать заново. Их содержимое
    привязано к версии в URL, поэтому устареть оно не может. */
 const STATIC_CACHE = 'zaki-static-v1';
+
+/* Chart.js кладём в кэш заранее, при установке.
+   Он грузится по требованию (в <head> его вес платился каждым открытием), но
+   «по требованию» означало поход в сеть в момент показа графика — и если он
+   не удавался, на экране просто оставалась пустота. Диаграммы это основной
+   экран, 196 КБ того стоят. SheetJS (861 КБ) остаётся ленивым: он нужен
+   только при выгрузке в Excel. */
+const CHARTJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+
+async function precacheChartJS() {
+  try {
+    const cache = await caches.open(STATIC_CACHE);
+    if (await cache.match(CHARTJS_URL)) return;      // уже лежит
+    const res = await fetch(CHARTJS_URL, { mode: 'cors' });
+    if (res && res.ok) await cache.put(CHARTJS_URL, res);
+  } catch (e) { /* не удалось — догрузится по требованию, как и раньше */ }
+}
 
 /* Данные Supabase держим отдельно от оболочки: у них своя политика вытеснения,
    и чистить их нужно, не трогая закэшированный index.html.
@@ -55,6 +72,9 @@ self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_VER)
       .then(c => c.addAll(SHELL))
+      // Отдельно и с перехватом ошибки: сбой загрузки с CDN не должен
+      // срывать установку воркера целиком.
+      .then(() => precacheChartJS())
       .then(() => self.skipWaiting())
   );
 });
