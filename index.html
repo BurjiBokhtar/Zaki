@@ -533,6 +533,49 @@ html{height:100dvh;}
 /* Пометка «кто внёс» — тише остального в строке, это служебная деталь */
 .tx-by{color:var(--t4);font-style:italic;}
 
+/* ── ПАНЕЛЬ ФИЛЬТРОВ ──
+   Было три ряда контролов, занятых всегда. Теперь строка поиска, а остальное
+   раскрывается по кнопке; что именно включено — видно чипами. */
+.fbar{background:var(--w);border:1px solid var(--bd);border-radius:16px;padding:10px;box-shadow:var(--sh);margin-bottom:14px;}
+.frow{display:flex;gap:8px;align-items:center;}
+.fsearch{position:relative;flex:1;min-width:0;}
+.fsearch>svg:first-child{position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;}
+.fsearch input{width:100%;height:40px;padding:0 62px 0 34px;border:1.5px solid var(--bd);border-radius:12px;
+  font-size:13px;font-family:var(--ff);color:var(--t);background:var(--bg);outline:none;transition:border-color .15s,background .15s;}
+.fsearch input:focus{border-color:var(--a);background:var(--w);}
+.fsearch input::placeholder{color:var(--t4);}
+.fclear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:22px;height:22px;border:none;
+  border-radius:50%;background:var(--bd);color:var(--t3);font-size:13px;line-height:1;cursor:pointer;display:none;
+  align-items:center;justify-content:center;font-family:var(--ff);}
+.fclear:hover{background:var(--bd2);color:var(--t);}
+.fclear.on{display:flex;}
+/* Точка «идёт запрос» — тише спиннера, но её видно */
+.fdot{position:absolute;right:34px;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;
+  background:var(--a);opacity:0;transition:opacity .15s;}
+.fdot.on{opacity:1;animation:fpulse 1s ease-in-out infinite;}
+@keyframes fpulse{0%,100%{opacity:.25}50%{opacity:1}}
+.fbtn{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border:1.5px solid var(--bd);
+  border-radius:12px;background:var(--bg);font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer;
+  font-family:var(--ff);white-space:nowrap;transition:all .15s;}
+.fbtn:hover{border-color:var(--bd2);background:var(--w);}
+.fbtn.on{border-color:var(--a);background:var(--al);color:var(--adk);}
+.fbadge{min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--a);color:#fff;
+  font-size:10px;font-weight:800;display:none;align-items:center;justify-content:center;}
+.fbadge.on{display:inline-flex;}
+.fpanel{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);}
+.fpanel.open{display:grid;}
+@media(max-width:640px){.fpanel{grid-template-columns:1fr;}}
+.fdates{grid-column:1/-1;display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--bd);
+  border-radius:12px;padding:8px 12px;}
+.fchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.fchips:empty{display:none;}
+.fchip{display:inline-flex;align-items:center;gap:5px;padding:4px 8px 4px 10px;border-radius:20px;
+  background:var(--al);border:1px solid rgba(57,185,128,.25);font-size:11px;font-weight:600;color:var(--adk);}
+.fchip button{border:none;background:none;color:var(--adk);opacity:.55;cursor:pointer;font-size:13px;
+  line-height:1;padding:0 1px;font-family:var(--ff);}
+.fchip button:hover{opacity:1;}
+.fchip-clear{background:var(--redl);border-color:var(--redb);color:var(--red);cursor:pointer;padding:4px 10px;}
+
 /* RATES */
 .rates-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:18px;}
 .rate-c{border-radius:var(--r2);padding:13px 15px;color:var(--w);animation:fadeUp .3s ease both;}
@@ -1076,7 +1119,7 @@ const T={
     reset_filter:'✕ Сброс фильтра',
     all_ops_title:'Все операции',search_ph:'Поиск по описанию, категории, объекту...',
     all_types:'Все типы',reset:'Сброс',no_ops:'Нет операций за выбранный период',all_cats:'Все категории',date_from:'С',date_to:'По',from_of:'из',
-    show_more:'Показать ещё',shown_of:'показано',entered_by:'внёс',
+    show_more:'Показать ещё',shown_of:'показано',entered_by:'внёс',filters:'Фильтры',
     role_acc_edit:'Бухгалтер: редактирование доступно всегда',
     role_sup_edit:'Снабженец: редактирование только сегодня',
     new_debt:'+ Новый долг',money:'Деньги',history:'История',
@@ -1173,7 +1216,7 @@ const T={
     reset_filter:'✕ Тоза кардан',
     all_ops_title:'Ҳама амалиётҳо',search_ph:'Ҷустуҷӯ аз рӯи тавсиф, категория, объект...',
     all_types:'Ҳама навъҳо',reset:'Тоза',no_ops:'Амалиёт барои давраи интихобшуда нест',all_cats:'Ҳама категорияҳо',date_from:'Аз',date_to:'То',from_of:'аз',
-    show_more:'Боз нишон додан',shown_of:'нишон дода шуд',entered_by:'ворид кард',
+    show_more:'Боз нишон додан',shown_of:'нишон дода шуд',entered_by:'ворид кард',filters:'Филтрҳо',
     role_acc_edit:'Ҳисобдор: таҳрир ҳамеша дастрас аст',
     role_sup_edit:'Таъминотчӣ: таҳрир танҳо имрӯз',
     new_debt:'+ Қарзи нав',money:'Пул',history:'Таърих',
@@ -1682,6 +1725,9 @@ const OPS_CHUNK=100;
 function mountOpsList(listId,source,canEdit,total){
   const ol=document.getElementById(listId);
   if(!ol)return Promise.resolve();
+  // Новое поколение списка. Ответ на запрос предыдущего поколения (например,
+  // медленный поиск, начатый раньше) не должен ничего дописывать или стирать.
+  ol._gen=(ol._gen||0)+1;
   ol._src=source;ol._shown=0;ol._canEdit=!!canEdit;ol._busy=false;
   ol._total=Array.isArray(source)?source.length:(total||0);
   ol.innerHTML='';
@@ -1690,6 +1736,7 @@ function mountOpsList(listId,source,canEdit,total){
 async function growOpsList(listId){
   const ol=document.getElementById(listId);
   if(!ol||ol._busy)return;
+  const gen=ol._gen||0;
   const from=ol._shown||0;
   let slice=[];
   if(Array.isArray(ol._src)){
@@ -1698,14 +1745,18 @@ async function growOpsList(listId){
     ol._busy=true;_setMoreBusy(listId,true);
     try{
       const r=await ol._src(from,OPS_CHUNK);
+      if(ol._gen!==gen) return;          // за время запроса список пересобрали
       slice=r.rows||[];
       if(r.total!=null) ol._total=r.total;
     }catch(e){
+      if(ol._gen!==gen) return;
       showToast(e.message||'Не удалось загрузить операции',true);
     }finally{
-      ol._busy=false;_setMoreBusy(listId,false);
+      // Флаг и кнопку трогаем, только если поколение всё ещё наше: иначе
+      // устаревший запрос снял бы «загрузку» с уже идущего нового.
     }
   }
+  if(ol._gen!==gen) return;
   if(slice.length) ol.insertAdjacentHTML('beforeend',slice.map(o=>txRow(o,ol._canEdit)).join(''));
   ol._shown=from+slice.length;
   if(!ol._shown) ol.innerHTML=`<div class="empty"><div class="empty-icon">🔍</div>${t('no_data')}</div>`;
@@ -3941,16 +3992,46 @@ ops:async()=>{
   // в любом месте истории, а не только среди заранее скачанных.
   const pageSource=(offset,limit)=>fetchOpsPage(window._opsFilter,offset,limit);
 
-  const updateResetBtn=()=>{
-    const f=window._opsFilter,rb=document.getElementById('ops-reset-btn');
-    if(!rb)return;
-    const active=f.q||f.type!=='all'||f.currency!=='all'||f.object!=='all'||f.category!=='all'||f.date_from||f.date_to;
-    rb.style.display=active?'inline-flex':'none';
+  /* Какие условия сейчас включены — в виде чипов. Отсюда же берётся счётчик
+     на кнопке «Фильтры»: раньше о включённом фильтре можно было догадаться
+     только по самим контролам, а они спрятаны. */
+  const activeChips=()=>{
+    const f=window._opsFilter,out=[];
+    const TYPES={income:t('inc_op'),expense:t('exp_op'),advance:t('adv_op')};
+    if(f.q)                out.push(['q','«'+f.q+'»']);
+    if(f.type!=='all')     out.push(['type',TYPES[f.type]||f.type]);
+    if(f.currency!=='all') out.push(['currency',f.currency]);
+    if(f.object!=='all')   out.push(['object',f.object]);
+    if(f.category!=='all') out.push(['category',f.category]);
+    if(f.date_from)        out.push(['date_from',t('date_from')+' '+fmtD(f.date_from)]);
+    if(f.date_to)          out.push(['date_to',t('date_to')+' '+fmtD(f.date_to)]);
+    return out;
+  };
+  const updateFilterUI=()=>{
+    const chips=activeChips();
+    const box=document.getElementById('ops-chips');
+    if(box) box.innerHTML=chips.length
+      ? chips.map(([k,label])=>`<span class="fchip">${esc(label)}<button title="${t('reset')}" onclick="clearOpsFilter('${k}')">×</button></span>`).join('')
+        +`<span class="fchip fchip-clear" onclick="window._resetOpsFilter&&window._resetOpsFilter()">✕ ${t('reset')}</span>`
+      : '';
+    const badge=document.getElementById('ops-fbadge');
+    if(badge){ badge.textContent=chips.length; badge.classList.toggle('on',chips.length>0); }
+    const clr=document.getElementById('ops-q-clear');
+    if(clr) clr.classList.toggle('on',!!window._opsFilter.q);
   };
 
+  /* Отсечение устаревших ответов живёт в growOpsList (поколение списка).
+     Здесь остаётся только точка «идёт запрос» и подсчёт номера, чтобы её
+     погасил именно последний поиск, а не обогнавший его предыдущий. */
+  let _searchSeq=0;
   const applyFilter=async()=>{
-    updateResetBtn();
+    const my=++_searchSeq;
+    updateFilterUI();
+    const dot=document.getElementById('ops-busy');
+    if(dot) dot.classList.add('on');
     await mountOpsList('ops-list',pageSource,true,0);
+    if(my!==_searchSeq) return;          // пока ждали, начался следующий поиск
+    if(dot) dot.classList.remove('on');
     const ol=document.getElementById('ops-list');
     const oc=document.getElementById('ops-count');
     if(oc&&ol) oc.textContent=(ol._total||0)+' '+t('from_of')+' '+periodCount;
@@ -3965,27 +4046,48 @@ ops:async()=>{
     ol._src=pageSource;ol._shown=allOps.length;ol._canEdit=true;
     ol._busy=false;ol._total=totalCount;
     _updateMoreBtn('ops-list');
-    updateResetBtn(); // на страницу могли вернуться с уже включённым фильтром
+    updateFilterUI(); // на страницу могли вернуться с уже включённым фильтром
     const oc=document.getElementById('ops-count');
     if(oc) oc.textContent=totalCount+' '+t('from_of')+' '+periodCount;
   };
 
+  /* Сброс МЕНЯЕТ ПОЛЯ, а не подменяет объект.
+     Раньше здесь создавался новый объект, а обработчики полей продолжали
+     писать в старый — после сброса поиск переставал реагировать вовсе.
+     Это и была та самая ошибка «первый раз находит, второй раз нет». */
   function resetOpsFilter(){
-    window._opsFilter={q:'',type:'all',currency:'all',object:'all',category:'all',date_from:'',date_to:''};
+    Object.assign(window._opsFilter,
+      {q:'',type:'all',currency:'all',object:'all',category:'all',date_from:'',date_to:''});
     ['ops-q','ops-from','ops-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     ['ops-type','ops-cur','ops-obj','ops-cat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='all';});
     applyFilter();
   }
   window._resetOpsFilter=resetOpsFilter;
+  /* Снять одно условие по крестику на чипе. */
+  window.clearOpsFilter=(key)=>{
+    const empty={q:'',type:'all',currency:'all',object:'all',category:'all',date_from:'',date_to:''};
+    window._opsFilter[key]=empty[key];
+    const el=document.getElementById({q:'ops-q',type:'ops-type',currency:'ops-cur',
+      object:'ops-obj',category:'ops-cat',date_from:'ops-from',date_to:'ops-to'}[key]);
+    if(el) el.value=empty[key];
+    applyFilter();
+  };
+  window.toggleOpsFilters=()=>{
+    const p=document.getElementById('ops-panel'),b=document.getElementById('ops-fbtn');
+    if(!p)return;
+    const open=p.classList.toggle('open');
+    if(b) b.classList.toggle('on',open);
+  };
 
   setTimeout(()=>{
-    const f=window._opsFilter;
-    const debouncedFilter=debounce(applyFilter,220);
+    const debouncedFilter=debounce(applyFilter,260);
     const bind=(id,key,evt='onchange',useDebounce=false)=>{
       const el=document.getElementById(id);
       if(!el)return;
-      el.value=f[key]||'';
-      el[evt]=e=>{f[key]=e.target.value;useDebounce?debouncedFilter():applyFilter();};
+      el.value=window._opsFilter[key]||'';
+      // window._opsFilter читается В МОМЕНТ СОБЫТИЯ, а не захватывается заранее:
+      // объект фильтров могут заменить, и тогда запись ушла бы в никуда.
+      el[evt]=e=>{window._opsFilter[key]=e.target.value;useDebounce?debouncedFilter():applyFilter();};
     };
     bind('ops-q','q','oninput',true);
     bind('ops-type','type');
@@ -4056,49 +4158,53 @@ ops:async()=>{
       </div>
     </div>
 
-    <!-- FILTER BAR — 3 rows -->
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;background:var(--bg);border-radius:14px;padding:12px;">
-
-      <!-- Row 1: Search + Type + Currency + Reset -->
-      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
-        <div style="position:relative;flex:1;min-width:150px;">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--t4)" stroke-width="1.4" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="5.5" cy="5.5" r="3.5"/><path d="M9 9l2 2" stroke-linecap="round"/></svg>
-          <input id="ops-q" class="fi" placeholder="${t('search_ph')}" style="padding-left:30px;width:100%;margin-bottom:0;">
+    <!-- ПАНЕЛЬ ФИЛЬТРОВ: строка поиска, остальное — по кнопке.
+         Три ряда контролов занимали место всегда, даже когда фильтры не нужны. -->
+    <div class="fbar">
+      <div class="frow">
+        <div class="fsearch">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--t4)" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><path d="M9.5 9.5l3 3" stroke-linecap="round"/></svg>
+          <input id="ops-q" placeholder="${t('search_ph')}" autocomplete="off">
+          <span id="ops-busy" class="fdot"></span>
+          <button id="ops-q-clear" class="fclear" title="${t('reset')}" onclick="clearOpsFilter('q')">×</button>
         </div>
-        <select id="ops-type" class="fi fi-sel" style="width:118px;flex-shrink:0;margin-bottom:0;">
+        <button id="ops-fbtn" class="fbtn" onclick="toggleOpsFilters()">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 3h12M3 7h8M5.5 11h3"/></svg>
+          ${t('filters')}
+          <span id="ops-fbadge" class="fbadge">0</span>
+        </button>
+      </div>
+
+      <div id="ops-chips" class="fchips"></div>
+
+      <div id="ops-panel" class="fpanel">
+        <select id="ops-type" class="fi fi-sel" style="margin-bottom:0;">
           <option value="all">${t('all_types')}</option>
           <option value="income">${t('inc_op')}</option>
           <option value="expense">${t('exp_op')}</option>
           <option value="advance">${t('adv_op')}</option>
         </select>
-        <select id="ops-cur" class="fi fi-sel" style="width:88px;flex-shrink:0;margin-bottom:0;">
-          <option value="all">TJS+USD</option>
+        <select id="ops-cur" class="fi fi-sel" style="margin-bottom:0;">
+          <option value="all">TJS + USD</option>
           <option value="TJS">TJS</option>
           <option value="USD">USD</option>
         </select>
-        <button id="ops-reset-btn" class="btn btn-s btn-sm" style="display:none;flex-shrink:0;white-space:nowrap;" onclick="window._resetOpsFilter&&window._resetOpsFilter()">✕ ${t('reset')}</button>
-      </div>
-
-      <!-- Row 2: Object + Category -->
-      <div style="display:flex;gap:7px;flex-wrap:wrap;">
-        <select id="ops-obj" class="fi fi-sel" style="flex:1;min-width:130px;margin-bottom:0;">
-          <option value="all">🏗 ${t('all_obj')}</option>
+        <select id="ops-obj" class="fi fi-sel" style="margin-bottom:0;">
+          <option value="all">${t('all_obj')}</option>
           ${opsObjs.map(o=>`<option value="${o.replace(/"/g,'&quot;')}">${o}</option>`).join('')}
         </select>
-        <select id="ops-cat" class="fi fi-sel" style="flex:1;min-width:130px;margin-bottom:0;">
-          <option value="all">📂 ${t('all_cats')}</option>
+        <select id="ops-cat" class="fi fi-sel" style="margin-bottom:0;">
+          <option value="all">${t('all_cats')}</option>
           ${opsCats.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">${c}</option>`).join('')}
         </select>
-      </div>
-
-      <!-- Row 3: Date range -->
-      <div style="display:flex;align-items:center;gap:8px;background:var(--w);border:1.5px solid var(--bd);border-radius:10px;padding:7px 12px;">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--t4)" stroke-width="1.4" stroke-linecap="round" style="flex-shrink:0;"><rect x="1" y="2" width="12" height="11" rx="1.5"/><path d="M1 5.5h12M4.5 1v2M9.5 1v2"/></svg>
-        <span style="font-size:11px;color:var(--t4);white-space:nowrap;">${t('date_from')}</span>
-        <input id="ops-from" type="date" style="flex:1;border:none;outline:none;font-size:12px;color:var(--t);font-family:var(--ff);background:transparent;min-width:0;">
-        <span style="font-size:12px;color:var(--t4);">—</span>
-        <span style="font-size:11px;color:var(--t4);white-space:nowrap;">${t('date_to')}</span>
-        <input id="ops-to" type="date" style="flex:1;border:none;outline:none;font-size:12px;color:var(--t);font-family:var(--ff);background:transparent;min-width:0;">
+        <div class="fdates">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--t4)" stroke-width="1.4" stroke-linecap="round" style="flex-shrink:0;"><rect x="1" y="2" width="12" height="11" rx="1.5"/><path d="M1 5.5h12M4.5 1v2M9.5 1v2"/></svg>
+          <span style="font-size:11px;color:var(--t4);white-space:nowrap;">${t('date_from')}</span>
+          <input id="ops-from" type="date" style="flex:1;border:none;outline:none;font-size:12px;color:var(--t);font-family:var(--ff);background:transparent;min-width:0;">
+          <span style="font-size:12px;color:var(--t4);">—</span>
+          <span style="font-size:11px;color:var(--t4);white-space:nowrap;">${t('date_to')}</span>
+          <input id="ops-to" type="date" style="flex:1;border:none;outline:none;font-size:12px;color:var(--t);font-family:var(--ff);background:transparent;min-width:0;">
+        </div>
       </div>
     </div>
 
