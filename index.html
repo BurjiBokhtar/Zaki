@@ -530,6 +530,8 @@ html{height:100dvh;}
 /* Подпись под суммой: количество долгов, доля, пояснение */
 .mm-foot{font-size:9.5px;color:var(--t4);margin-top:4px;font-weight:600;line-height:1.35;}
 .mm-late{color:var(--red);margin-left:5px;white-space:nowrap;}
+/* Пометка «кто внёс» — тише остального в строке, это служебная деталь */
+.tx-by{color:var(--t4);font-style:italic;}
 
 /* RATES */
 .rates-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:18px;}
@@ -1074,7 +1076,7 @@ const T={
     reset_filter:'✕ Сброс фильтра',
     all_ops_title:'Все операции',search_ph:'Поиск по описанию, категории, объекту...',
     all_types:'Все типы',reset:'Сброс',no_ops:'Нет операций за выбранный период',all_cats:'Все категории',date_from:'С',date_to:'По',from_of:'из',
-    show_more:'Показать ещё',shown_of:'показано',
+    show_more:'Показать ещё',shown_of:'показано',entered_by:'внёс',
     role_acc_edit:'Бухгалтер: редактирование доступно всегда',
     role_sup_edit:'Снабженец: редактирование только сегодня',
     new_debt:'+ Новый долг',money:'Деньги',history:'История',
@@ -1171,7 +1173,7 @@ const T={
     reset_filter:'✕ Тоза кардан',
     all_ops_title:'Ҳама амалиётҳо',search_ph:'Ҷустуҷӯ аз рӯи тавсиф, категория, объект...',
     all_types:'Ҳама навъҳо',reset:'Тоза',no_ops:'Амалиёт барои давраи интихобшуда нест',all_cats:'Ҳама категорияҳо',date_from:'Аз',date_to:'То',from_of:'аз',
-    show_more:'Боз нишон додан',shown_of:'нишон дода шуд',
+    show_more:'Боз нишон додан',shown_of:'нишон дода шуд',entered_by:'ворид кард',
     role_acc_edit:'Ҳисобдор: таҳрир ҳамеша дастрас аст',
     role_sup_edit:'Таъминотчӣ: таҳрир танҳо имрӯз',
     new_debt:'+ Қарзи нав',money:'Пул',history:'Таърих',
@@ -1217,6 +1219,10 @@ const T={
 /* ── STATE ── */
 let LANG='ru', USER=null, SB=null, COMPANY={usd_rate:10.92}, CUR_PAGE='home', PERIOD='today';
 let OBJECTS=[], CATEGORIES=[], UNITS=[];
+/* id профиля → имя. Нужна, чтобы показать, кто внёс операцию: бухгалтер
+   может оформлять расход от имени снабженца, и без этого на экране виден
+   только тот, НА КОГО записано, а не тот, КТО записал. */
+let PROFILES=new Map();
 let SEL_OBJ='', SEL_CAT='', SEL_CUR='TJS', OP_TYPE='income';
 let RATES={USD:null,EUR:null,RUB:null,updated:null};
 let CHARTS={};
@@ -1301,7 +1307,7 @@ async function fetchAllTimeOps(){
 /* Всё, что реально читают txRow() и exportXL(). Вместо select('*'):
    usd_rate и created_by не использует никто, а на десятках тысяч строк
    лишние колонки — это лишние мегабайты по сети. */
-const OPS_COLS='id,type,date,object_name,category_name,description,qty,unit,price,amount,amount_tjs,currency,method,worker_name,note,created_at';
+const OPS_COLS='id,type,date,object_name,category_name,description,qty,unit,price,amount,amount_tjs,currency,method,worker_name,note,created_at,created_by';
 
 /* ── ДЕНЬГИ ПО ВАЛЮТАМ ──
    Компания ничего не конвертирует: расход вводится в той валюте, в какой он
@@ -1732,6 +1738,17 @@ function opsMoreBtn(listId,total){
   </div>`;
 }
 
+/* «внёс: Сайвали» — показываем только когда вносивший и тот, на кого записана
+   операция, разные люди. Бухгалтер вправе оформить расход с аванса снабженца,
+   и тогда в строке стоит снабженец, хотя вносил не он: без этой пометки со
+   стороны выглядит так, будто операцию завёл сам снабженец. */
+function enteredBy(o){
+  const name=o.created_by&&PROFILES.get(o.created_by);
+  if(!name) return '';
+  if(normName(name)===normName(o.worker_name||'')) return '';
+  return ` · <span class="tx-by">${t('entered_by')}: ${esc(name)}</span>`;
+}
+
 /* ── TX ROW ── */
 function txRow(o,canEdit){
   const rate=COMPANY.usd_rate||10.92;
@@ -1753,7 +1770,7 @@ function txRow(o,canEdit){
     <div class="tx-ico" style="background:${ic.bg};">${ic.ico}</div>
     <div class="tx-bd">
       <div class="tx-n">${esc(o.description||o.category_name||'—')}</div>
-      <div class="tx-m">${fmtD(o.date)}${o.object_name?' · '+esc(o.object_name):''}${o.category_name?' · '+esc(o.category_name):''}${o.worker_name&&o.worker_name!=='Бухгалтер'?' · '+esc(o.worker_name):''}</div>
+      <div class="tx-m">${fmtD(o.date)}${o.object_name?' · '+esc(o.object_name):''}${o.category_name?' · '+esc(o.category_name):''}${o.worker_name&&o.worker_name!=='Бухгалтер'?' · '+esc(o.worker_name):''}${enteredBy(o)}</div>
       ${qpLine}
     </div>
     <div class="tx-rt">
@@ -2562,15 +2579,19 @@ async function fetchNBTRates(){
 
 async function loadBaseData(){
   try{
-    const[{data:obs},{data:cats},{data:uns},{data:co}]=await Promise.all([
+    const[{data:obs},{data:cats},{data:uns},{data:co},{data:profs}]=await Promise.all([
       SB.from('objects').select('*').order('name'),
       SB.from('categories').select('*').order('name'),
       SB.from('units').select('*').order('name'),
-      SB.from('company').select('*').eq('id',1).single()
+      SB.from('company').select('*').eq('id',1).single(),
+      // Кто есть кто: нужно, чтобы в строке операции показать, КТО её внёс.
+      // В базе для этого лежит created_by — идентификатор, а не имя.
+      SB.from('profiles').select('id,name')
     ]);
     OBJECTS=obs||[];CATEGORIES=cats||[];UNITS=uns||[];
+    PROFILES=new Map((profs||[]).map(p=>[p.id,p.name]));
     if(co)COMPANY=co;
-    fetchNBTRates(); // non-blocking, updates RATES and COMPANY.usd_rate in background
+    fetchNBTRates(); // non-blocking, updates RATES only (курс ни на что не влияет)
   }catch(e){console.error('loadBaseData:',e);}
 }
 
