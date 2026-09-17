@@ -1733,10 +1733,16 @@ function mountOpsList(listId,source,canEdit,total){
   ol.innerHTML='';
   return growOpsList(listId);
 }
+/* Поколение списка. Списки, у которых первая порция уже стоит в разметке
+   (страница операций, «Мои расходы», модалка снабженца), заводятся без
+   mountOpsList — и _gen у них не задан. Сравнивать поколения нужно через
+   эту функцию: при строгом `ol._gen !== gen` выходило undefined !== 0, ответ
+   на «Показать ещё» отбрасывался, а кнопка навсегда застывала на «…». */
+const listGen=ol=>ol._gen||0;
 async function growOpsList(listId){
   const ol=document.getElementById(listId);
   if(!ol||ol._busy)return;
-  const gen=ol._gen||0;
+  const gen=listGen(ol);
   const from=ol._shown||0;
   let slice=[];
   if(Array.isArray(ol._src)){
@@ -1745,18 +1751,19 @@ async function growOpsList(listId){
     ol._busy=true;_setMoreBusy(listId,true);
     try{
       const r=await ol._src(from,OPS_CHUNK);
-      if(ol._gen!==gen) return;          // за время запроса список пересобрали
+      if(listGen(ol)!==gen) return;          // за время запроса список пересобрали
       slice=r.rows||[];
       if(r.total!=null) ol._total=r.total;
     }catch(e){
-      if(ol._gen!==gen) return;
+      if(listGen(ol)!==gen) return;
       showToast(e.message||'Не удалось загрузить операции',true);
     }finally{
       // Флаг и кнопку трогаем, только если поколение всё ещё наше: иначе
       // устаревший запрос снял бы «загрузку» с уже идущего нового.
+      if(listGen(ol)===gen){ ol._busy=false;_setMoreBusy(listId,false); }
     }
   }
-  if(ol._gen!==gen) return;
+  if(listGen(ol)!==gen) return;
   if(slice.length) ol.insertAdjacentHTML('beforeend',slice.map(o=>txRow(o,ol._canEdit)).join(''));
   ol._shown=from+slice.length;
   if(!ol._shown) ol.innerHTML=`<div class="empty"><div class="empty-icon">🔍</div>${t('no_data')}</div>`;
@@ -2546,6 +2553,26 @@ async function fetchWeatherLP(){
   }
 }
 
+/* Supabase отвечает по-английски и техническим текстом. Пользователю нужен
+   не «Invalid login credentials», а понятная причина — и разные причины
+   должны читаться по-разному, иначе «не входит» не с чем сопоставить. */
+function authErrText(e,tj){
+  const code=(e&&(e.code||e.error_code))||'';
+  const msg=String(e&&e.message||'');
+  const st=e&&e.status;
+  if(code==='invalid_credentials'||/invalid login credentials/i.test(msg))
+    return tj?'Почта ё рамз нодуруст':'Неверный email или пароль';
+  if(code==='email_not_confirmed'||/email not confirmed/i.test(msg))
+    return tj?'Почта тасдиқ нашудааст':'Email не подтверждён';
+  if(code==='user_banned'||/banned/i.test(msg))
+    return tj?'Ҳисоб маҳдуд карда шудааст':'Учётная запись заблокирована';
+  if(st===429||/rate limit/i.test(msg))
+    return tj?'Хеле зиёд кӯшиш. Каме сабр кунед':'Слишком много попыток. Подождите минуту';
+  if(/failed to fetch|networkerror|load failed/i.test(msg))
+    return tj?'Алоқа бо сервер нест':'Нет связи с сервером. Проверьте интернет';
+  return (tj?'Хатогии ворид: ':'Ошибка входа: ')+(msg||st||'неизвестная');
+}
+
 async function doLogin(){
   const email=document.getElementById('l-email').value.trim();
   const pass=document.getElementById('l-pass').value;
@@ -2559,32 +2586,42 @@ async function doLogin(){
   const btnTxt=document.getElementById('l-btn-txt');
   if(btnTxt) btnTxt.innerHTML='<div style="display:inline-flex;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;"></div>';
   btn.disabled=true;
+  const tj=LANG==='tj';
   try{
     const{data,error}=await SB.auth.signInWithPassword({email,password:pass});
-    if(error)throw error;
+    if(error) throw new Error(authErrText(error,tj));
     const{data:profile,error:pe}=await SB.from('profiles').select('*').eq('id',data.user.id).single();
     if(pe||!profile){
       /* Profile not found — show error, don't auto-create */
-      throw new Error(LANG==='tj'?'Профили шумо ёфт нашуд. Бо администратор тамос гиред.':'Профиль не найден. Обратитесь к администратору.');
+      throw new Error(tj?'Профили шумо ёфт нашуд. Бо администратор тамос гиред.':'Профиль не найден. Обратитесь к администратору.');
     }
     USER={id:data.user.id,email,name:profile.name,role:profile.role};
     // Log login event (silent fail if table doesn't exist)
     try{await SB.from('user_logs').insert({user_name:profile.name,user_role:profile.role,action:'login'});}catch(e){}
-    await loadBaseData();
-    document.getElementById('login-page').style.display='none';
-    document.getElementById('app').style.display='flex';
-    buildNav();updatePeriodBtns();
-    CUR_PAGE=USER.role==='supplier'?'my':'home';
-    go(CUR_PAGE);
-    initPin();
-    // Start pulse bar
-    updatePulse();
-    // Выход и повторный вход без перезагрузки страницы заводил ещё один
-    // таймер поверх старого — за смену их набиралось несколько.
-    clearInterval(window._pulseTimer);
-    window._pulseTimer=setInterval(updatePulse,60000); // refresh every minute
+    /* Дальше идёт открытие приложения. Сбой здесь — уже НЕ про пароль, и
+       выдавать его за неверный вход нельзя: раньше любая ошибка отрисовки
+       показывалась как «Неверный email или пароль», и найти причину было
+       невозможно ни пользователю, ни мне. */
+    try{
+      await loadBaseData();
+      document.getElementById('login-page').style.display='none';
+      document.getElementById('app').style.display='flex';
+      buildNav();updatePeriodBtns();
+      CUR_PAGE=USER.role==='supplier'?'my':'home';
+      go(CUR_PAGE);
+      initPin();
+      // Start pulse bar
+      updatePulse();
+      // Выход и повторный вход без перезагрузки страницы заводил ещё один
+      // таймер поверх старого — за смену их набиралось несколько.
+      clearInterval(window._pulseTimer);
+      window._pulseTimer=setInterval(updatePulse,60000); // refresh every minute
+    }catch(e){
+      console.error('после входа:',e);
+      throw new Error((tj?'Ворид шудед, аммо барнома кушода нашуд: ':'Вход выполнен, но приложение не открылось: ')+(e.message||e));
+    }
   }catch(e){
-    err.textContent=e.message||'Неверный email или пароль';
+    err.textContent=e.message||(tj?'Почта ё рамз нодуруст':'Неверный email или пароль');
     err.style.display='block';
     if(btnTxt) btnTxt.textContent=t('login_btn');
     btn.disabled=false;
