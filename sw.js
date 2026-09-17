@@ -1,5 +1,5 @@
 /* ── ZAKI ERP Service Worker ── */
-const CACHE_VER = 'zaki-v38';
+const CACHE_VER = 'zaki-v39';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 /* Библиотеки с CDN лежат отдельно от оболочки. Раньше они попадали в кэш
@@ -71,7 +71,9 @@ async function putDataCached(request, response) {
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_VER)
-      .then(c => c.addAll(SHELL))
+      // cache:'reload' — мимо HTTP-кэша браузера: иначе новый воркер мог
+      // положить к себе прежний index.html, и обновление не доходило.
+      .then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' }))))
       // Отдельно и с перехватом ошибки: сбой загрузки с CDN не должен
       // срывать установку воркера целиком.
       .then(() => precacheChartJS())

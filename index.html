@@ -217,7 +217,7 @@ html{height:100dvh;}
 .tb-btn:hover{background:var(--bg2);}
 .notif-pip{position:absolute;top:6px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--red);border:1.5px solid var(--w);}
 /* Activity panel */
-#notif-overlay{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.3);backdrop-filter:blur(2px);display:none;animation:fadeIn .18s ease;}
+#notif-overlay{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.38);display:none;animation:fadeIn .18s ease;}
 #notif-panel{position:absolute;top:0;right:0;bottom:0;width:340px;max-width:94vw;background:var(--w);box-shadow:-4px 0 32px rgba(0,0,0,.12);display:flex;flex-direction:column;animation:slideInRight .22s cubic-bezier(.25,.8,.25,1);}
 @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
 #notif-panel .np-hd{padding:16px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -421,12 +421,29 @@ html{height:100dvh;}
 .fi{background:var(--bg);border:1.5px solid var(--bd);border-radius:var(--r);padding:9px 12px;font-size:13px;color:var(--t);font-family:var(--ff);outline:none;transition:all .18s;width:100%;appearance:none;}
 .fi:focus{border-color:var(--a);background:var(--w);box-shadow:0 0 0 3px rgba(57,185,128,.1);}
 .fi::placeholder{color:var(--t4);}
+.dt{display:flex;align-items:center;gap:6px;position:relative;}
+.fi.dt{cursor:text;}
+.fi.dt:focus-within{border-color:var(--a);background:var(--w);box-shadow:0 0 0 3px rgba(57,185,128,.1);}
+.dt-txt{flex:1;min-width:0;width:100%;border:0;outline:0;background:transparent;padding:0;margin:0;font:inherit;color:inherit;letter-spacing:.2px;}
+.dt-txt::placeholder{color:var(--t4);}
+.dt-btn{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:24px;height:24px;margin:-5px -6px -5px 0;padding:0;border:0;border-radius:6px;background:transparent;color:var(--t4);cursor:pointer;}
+.dt-btn:hover{color:var(--a);background:var(--bg2);}
+.dt-nat{position:absolute;left:0;top:0;width:100%;height:100%;margin:0;padding:0;border:0;opacity:0;font-size:16px;pointer-events:none;}
+@media (hover:none),(pointer:coarse){
+  .dt-nat{pointer-events:auto;z-index:2;-webkit-appearance:none;appearance:none;}
+  .dt-btn{display:none;}
+}
 .fi-lg{font-size:16px;font-weight:700;padding:10px 13px;}
 .fi-sel{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7' fill='none'%3E%3Cpath d='M1 1l4.5 5L10 1' stroke='%236B7A99' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px;cursor:pointer;}
 /* SEARCH SELECT (bottom-sheet) */
-.ss-bg{position:fixed;inset:0;z-index:600;background:rgba(15,25,35,.55);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;backdrop-filter:blur(3px);animation:fadeIn .18s ease;}
-.ss-sheet{background:var(--w);width:100%;max-width:520px;max-height:84vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:ssUp .22s cubic-bezier(.25,.8,.25,1);}
-@keyframes ssUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+/* Выпадающий список — окно по центру экрана.
+   Раньше оно выезжало снизу, как шторка, а под ним лежало размытие на весь
+   экран: на телефоне это одна из самых дорогих операций отрисовки, и список
+   открывался с заметной задержкой. Теперь обычное затемнение и лёгкое
+   появление, которое браузер делает на видеокарте. */
+.ss-bg{position:fixed;inset:0;z-index:600;background:rgba(15,25,35,.58);display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn .15s ease;}
+.ss-sheet{background:var(--w);width:100%;max-width:440px;max-height:min(72vh,560px);max-height:min(72dvh,560px);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.25);animation:ssPop .16s ease-out;will-change:transform,opacity;}
+@keyframes ssPop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 @keyframes ringPulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.5);}65%{box-shadow:0 0 0 11px rgba(255,255,255,0);}100%{box-shadow:0 0 0 0 rgba(255,255,255,0);}}
 @keyframes btnGlow{0%,100%{opacity:.7}50%{opacity:1}}
 @keyframes heroSlide{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
@@ -434,14 +451,16 @@ html{height:100dvh;}
 @keyframes heroPill{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes heroOrb{0%,100%{transform:scale(1);opacity:.15}50%{transform:scale(1.15);opacity:.25}}
 @keyframes countUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.ss-handle{width:38px;height:4px;background:var(--bd2);border-radius:2px;margin:10px auto 0;}
+.ss-handle{display:none;}
 .ss-head{padding:12px 16px 10px;border-bottom:1px solid var(--bd);}
 .ss-title{font-size:14px;font-weight:700;color:var(--t);margin-bottom:8px;}
 .ss-inp{width:100%;box-sizing:border-box;padding:9px 12px 9px 34px;border:1.5px solid var(--bd);border-radius:var(--r);font-size:14px;background:var(--bg);color:var(--t);outline:none;font-family:var(--ff);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 15 15' fill='none'%3E%3Ccircle cx='6.5' cy='6.5' r='4' stroke='%236B7A99' stroke-width='1.5'/%3E%3Cpath d='M10 10l3 3' stroke='%236B7A99' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center;}
 .ss-inp:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(57,185,128,.1);}
 .ss-list{overflow-y:auto;flex:1;padding:4px 0 8px;-webkit-overflow-scrolling:touch;}
 .ss-item{padding:11px 16px;font-size:14px;color:var(--t);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .1s;}
+.ss-item:hover,.ss-item.ss-hl{background:var(--bg);}
 .ss-item:active{background:var(--bg2);}
+.ss-more{padding:10px 16px;font-size:12px;color:var(--t4);text-align:center;}
 .ss-item.ss-on{color:var(--a);font-weight:600;}
 .ss-item.ss-on::after{content:'✓';margin-left:auto;font-size:13px;color:var(--a);}
 .ss-empty{padding:24px 16px;font-size:13px;color:var(--t4);text-align:center;}
@@ -609,7 +628,7 @@ html{height:100dvh;}
 .si-btn{padding:4px 9px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid;font-family:var(--ff);transition:all .15s;}
 
 /* MODAL */
-.modal-bg{position:fixed;inset:0;background:rgba(26,35,50,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(4px);animation:fadeIn .2s ease;}
+.modal-bg{position:fixed;inset:0;background:rgba(26,35,50,.52);z-index:200;display:flex;align-items:center;justify-content:center;padding:18px;animation:fadeIn .2s ease;}
 .modal{background:var(--w);border-radius:var(--r3);padding:22px;width:100%;max-width:480px;box-shadow:var(--shl);animation:fadeUp .25s ease;max-height:88vh;overflow-y:auto;}
 .modal-ttl{font-size:15px;font-weight:700;color:var(--t);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
 .modal-cls{width:26px;height:26px;border-radius:7px;border:1px solid var(--bd);background:var(--w);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t4);font-size:15px;}
@@ -1492,6 +1511,11 @@ const loadXLSX=()=>loadLib('модуль выгрузки',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   ()=>typeof XLSX!=='undefined');
 
+/* Задержка появления для i-го элемента списка. Без предела задержка росла
+   вместе со списком, и длинная карточка (у снабженца — десятки дней авансов)
+   проявлялась по частям секундами, что выглядело как медленная загрузка. */
+function adl(i,step){return (Math.min(i||0,6)*step).toFixed(2);}
+
 /* ── DEBOUNCE ── */
 function debounce(fn,ms=260){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
 
@@ -1507,17 +1531,30 @@ function plDebts(n){
   return n+' долгов';
 }
 
-/* ── COLLAPSIBLE LIST ── render first N, hide the rest behind a toggle ── */
-function collapseList(htmlArr, firstN, id, label){
+/* ── COLLAPSIBLE LIST ── первые N строк, остальное — по кнопке «Показать все».
+   Скрытая часть рисуется только при первом нажатии: раньше она заранее
+   лежала в документе невидимой (у снабженца — сотни строк), и браузер всё
+   равно разбирал её при каждом открытии карточки. */
+const _LAZY={};
+function lazyList(items, render, firstN, id, label){
   label=label||'Показать все';
-  if(!htmlArr||htmlArr.length<=firstN) return (htmlArr||[]).join('');
-  const rest=htmlArr.slice(firstN).join('');
-  const n=htmlArr.length;
-  return htmlArr.slice(0,firstN).join('')
-    +`<div id="${id}" style="display:none;">${rest}</div>`
-    +`<button type="button" data-label="${label} (${n})" onclick="toggleCollapse(this,'${id}')" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;margin:4px 0 12px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:var(--ff);">`
+  if(!items||items.length<=firstN) return (items||[]).map(render).join('');
+  _LAZY[id]={rest:items.slice(firstN),render,offset:firstN};
+  const n=items.length;
+  return items.slice(0,firstN).map(render).join('')
+    +`<div id="${id}" style="display:none;"></div>`
+    +`<button type="button" data-label="${label} (${n})" onclick="toggleLazy(this,'${id}')" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;margin:4px 0 12px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:var(--ff);">`
     +`<span class="cl-t">${label} (${n})</span>`
     +`<svg class="cl-i" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="transition:transform .2s;"><path d="M3 4.5l3 3 3-3"/></svg></button>`;
+}
+function toggleLazy(btn,id){
+  const box=document.getElementById(id); if(!box) return;
+  const L=_LAZY[id];
+  if(!box.dataset.filled&&L){
+    box.innerHTML=L.rest.map((x,k)=>L.render(x,k+L.offset)).join('');
+    box.dataset.filled='1';
+  }
+  toggleCollapse(btn,id);
 }
 function toggleCollapse(btn,id){
   const m=document.getElementById(id); if(!m) return;
@@ -1597,8 +1634,105 @@ function showPrompt(title,label,defVal,onOk){
 /* ── HELPERS ── */
 function fmtN(n){return Number(n||0).toLocaleString('ru',{maximumFractionDigits:2});}
 /* Date YYYY-MM-DD → DD-MM-YYYY */
-function fmtD(d){if(!d)return '—';const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:d;}
-function today(){return new Date().toISOString().slice(0,10);}
+/* Даты. В базе дата лежит как ГГГГ-ММ-ДД, на экране — ДД.ММ.ГГГГ, как принято
+   в Таджикистане. «Сегодня» считаем по местным часам: toISOString() даёт время
+   UTC, и с 00:00 до 05:00 по Душанбе подставлялась вчерашняя дата. */
+function isoLocal(dt){const z=n=>String(n).padStart(2,'0');return `${dt.getFullYear()}-${z(dt.getMonth()+1)}-${z(dt.getDate())}`;}
+function today(){return isoLocal(new Date());}
+// Отметка времени из базы (created_at хранится в UTC) → местный день ГГГГ-ММ-ДД.
+function dayOf(v){if(!v)return '';const s=String(v);if(s.length<=10)return s;const dt=new Date(s);return isNaN(dt)?s.slice(0,10):isoLocal(dt);}
+// Отметка времени → местное время ЧЧ:ММ.
+function timeOf(v){if(!v||String(v).length<=10)return '';const dt=new Date(v);if(isNaN(dt))return '';const z=n=>String(n).padStart(2,'0');return `${z(dt.getHours())}:${z(dt.getMinutes())}`;}
+function fmtD(d){if(!d)return '—';const p=dayOf(d).split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:String(d);}
+// ДД.ММ.ГГГГ (а также Д.М.ГГ, ДД/ММ/ГГГГ, ДДММГГГГ) → ГГГГ-ММ-ДД; '' — если такой даты нет.
+function parseD(v){
+  const str=String(v||'').trim();
+  const m=str.match(/^(\d{1,2})[.\/\- ](\d{1,2})[.\/\- ](\d{4}|\d{2})$/)||str.match(/^(\d{2})(\d{2})(\d{4})$/);
+  if(!m)return '';
+  const d=+m[1],mo=+m[2],y=+(m[3].length===2?'20'+m[3]:m[3]);
+  const dt=new Date(y,mo-1,d);
+  if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==d)return '';
+  return isoLocal(dt);
+}
+
+/* Поле даты ДД.ММ.ГГГГ. Встроенный <input type="date"> пишет дату в формате
+   языка браузера (на многих телефонах и ПК — американский ММ/ДД/ГГГГ), и
+   страница на это повлиять не может. Поэтому каждое такое поле оборачиваем:
+   видно ДД.ММ.ГГГГ, а настоящий input с прежним id остаётся внутри
+   прозрачным, и остальной код читает и пишет .value как раньше.
+   На телефоне касание поля открывает системный календарь, на компьютере
+   дату можно набрать с клавиатуры или выбрать кнопкой-календарём. */
+const _NATIVE_VALUE=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+const _DT_ICON='<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="1" y="2" width="12" height="11" rx="1.5"/><path d="M1 5.5h12M4.5 1v2M9.5 1v2"/></svg>';
+function enhanceDate(nat){
+  if(nat.dataset.dt||!nat.parentNode)return;
+  nat.dataset.dt='1';
+  const box=document.createElement('div');
+  box.className=(nat.className+' dt').trim();
+  box.style.cssText=nat.style.cssText;
+  nat.className='dt-nat';
+  nat.removeAttribute('style');
+  nat.tabIndex=-1;
+  const txt=document.createElement('input');
+  txt.type='text';txt.className='dt-txt';txt.placeholder='ДД.ММ.ГГГГ';
+  txt.inputMode='numeric';txt.maxLength=10;txt.autocomplete='off';
+  const btn=document.createElement('button');
+  btn.type='button';btn.className='dt-btn';btn.tabIndex=-1;
+  btn.setAttribute('aria-label','Календарь');btn.innerHTML=_DT_ICON;
+  nat.parentNode.insertBefore(box,nat);
+  box.append(txt,btn,nat);
+
+  const cur=()=>_NATIVE_VALUE.get.call(nat);
+  const show=()=>{txt.value=cur()?fmtD(cur()):'';};
+  // Код приложения пишет el.value='' или el.value=дата — надпись должна успевать за ним.
+  Object.defineProperty(nat,'value',{configurable:true,
+    get(){return _NATIVE_VALUE.get.call(this);},
+    set(v){_NATIVE_VALUE.set.call(this,v);show();}});
+  nat.addEventListener('input',show);
+  nat.addEventListener('change',show);
+
+  const commit=(quiet)=>{
+    const raw=txt.value.trim();
+    const iso=raw?parseD(raw):'';
+    if(raw&&!iso){
+      if(quiet)return;
+      showToast('Дата вводится так: ДД.ММ.ГГГГ',true);
+      show();return;
+    }
+    if(iso!==cur()){
+      _NATIVE_VALUE.set.call(nat,iso);
+      nat.dispatchEvent(new Event('input',{bubbles:true}));
+      nat.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+    if(!quiet)show();
+  };
+  txt.addEventListener('input',e=>{
+    if(e.inputType&&e.inputType.startsWith('delete'))return;
+    let v=txt.value.replace(/[\/\-, ]/g,'.').replace(/[^\d.]/g,'').replace(/\.{2,}/g,'.');
+    if(/^\d{5,8}$/.test(v)) v=v.slice(0,2)+'.'+v.slice(2,4)+'.'+v.slice(4);
+    const parts=v.split('.');
+    if(parts.length<3&&/^\d{2}$/.test(parts[parts.length-1])) v+='.';
+    if(v!==txt.value) txt.value=v;
+    if(parts.length===3&&parts[2].length===4) commit(true);
+  });
+  txt.addEventListener('blur',()=>commit(false));
+  txt.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();commit(false);}});
+  btn.addEventListener('click',()=>{
+    try{nat.showPicker();}catch(_){nat.focus();nat.click();}
+  });
+  show();
+}
+function initDateFields(){
+  document.querySelectorAll('input[type=date]').forEach(enhanceDate);
+  new MutationObserver(muts=>{
+    for(const m of muts) for(const n of m.addedNodes){
+      if(n.nodeType!==1)continue;
+      if(n.tagName==='INPUT'){ if(n.type==='date')enhanceDate(n); }
+      else if(n.firstElementChild) n.querySelectorAll('input[type=date]:not([data-dt])').forEach(enhanceDate);
+    }
+  }).observe(document.body,{childList:true,subtree:true});
+}
+if(document.body)initDateFields();else document.addEventListener('DOMContentLoaded',initDateFields);
 function isEditable(dateStr){
   if(isDir()) return false;      // директор — никогда
   if(isSup()) return dateStr===today(); // снабженец — только сегодня
@@ -1857,7 +1991,7 @@ async function exportXL(ops,filename){
   catch(e){ showToast(e.message,true); return; }
   const rate=COMPANY.usd_rate||10.92;
   const rows=ops.map(o=>({
-    'Дата': o.date||'',
+    'Дата': o.date?fmtD(o.date):'',
     'Тип': o.type==='income'?'Приход':o.type==='advance'?'Аванс':'Расход',
     'Объект': o.object_name||'—',
     'Категория': o.category_name||'—',
@@ -1870,7 +2004,7 @@ async function exportXL(ops,filename){
     'Способ оплаты': o.method||'',
     'Сотрудник': o.worker_name||'',
     'Примечание': o.note||'',
-    'Дата создания': o.created_at?o.created_at.slice(0,16):'',
+    'Дата создания': o.created_at?fmtD(o.created_at)+' '+timeOf(o.created_at):'',
   }));
 
   const ws=XLSX.utils.json_to_sheet(rows);
@@ -1949,7 +2083,7 @@ function exportPDF(title,ops,opts){
     if(m.USD) p.push('$'+nf(m.USD));
     return p.length?p.join(' · '):'0';
   };
-  const fmtDate=d=>{if(!d)return '—';const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:d;};
+  const fmtDate=fmtD;
   // Chronological order (oldest → newest), e.g. 1 → 30 for a month
   const sorted=[...ops].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||((a.id||0)-(b.id||0)));
   // Материальные колонки (кол-во/ед./цена) и итог-баланс — только когда есть расходы/авансы
@@ -2180,7 +2314,7 @@ function renderPage(id){
 
 /* ── SKELETON SCREENS ── */
 function _skelRow(n=5){return Array(n).fill(0).map((_,i)=>`
-  <div style="display:flex;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--bd);animation:fadeIn .3s ease ${i*.04}s both;">
+  <div style="display:flex;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--bd);animation:fadeIn .3s ease ${adl(i,.04)}s both;">
     <span class="skel" style="width:36px;height:36px;border-radius:10px;flex-shrink:0;"></span>
     <div style="flex:1;"><span class="skel skel-l" style="width:58%;display:block;margin-bottom:5px;"></span><span class="skel skel-l" style="width:38%;"></span></div>
     <span class="skel skel-h" style="width:76px;"></span>
@@ -2197,7 +2331,7 @@ const SKELETONS={
       </div>
     </div>
     <div class="g2 mb12">
-      ${[0,1,2,3].map(i=>`<div class="sc" style="animation-delay:${i*.05}s"><span class="skel skel-l" style="width:80px;margin-bottom:10px;"></span><span class="skel skel-xl" style="width:110px;"></span></div>`).join('')}
+      ${[0,1,2,3].map(i=>`<div class="sc" style="animation-delay:${adl(i,.05)}s"><span class="skel skel-l" style="width:80px;margin-bottom:10px;"></span><span class="skel skel-xl" style="width:110px;"></span></div>`).join('')}
     </div>
     <div class="card">${_skelRow(5)}</div>
   </div>`,
@@ -2207,7 +2341,7 @@ const SKELETONS={
       <span class="skel" style="height:88px;border-radius:20px;"></span>
     </div>
     <div class="g4 mob-2col" style="gap:10px;margin-bottom:18px;">
-      ${[0,1,2,3].map(i=>`<div class="sc" style="animation-delay:${i*.04}s"><span class="skel skel-l" style="width:50px;margin-bottom:8px;"></span><span class="skel skel-xl" style="width:85px;"></span></div>`).join('')}
+      ${[0,1,2,3].map(i=>`<div class="sc" style="animation-delay:${adl(i,.04)}s"><span class="skel skel-l" style="width:50px;margin-bottom:8px;"></span><span class="skel skel-xl" style="width:85px;"></span></div>`).join('')}
     </div>
     <div class="card">
       <span class="skel" style="height:96px;border-radius:14px;width:100%;margin-bottom:14px;"></span>
@@ -2216,14 +2350,14 @@ const SKELETONS={
   </div>`,
   stats:`<div style="animation:fadeIn .18s ease">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px;">
-      ${[0,1,2,3].map(i=>`<div class="sc" style="animation-delay:${i*.04}s"><span class="skel skel-l" style="width:60px;margin-bottom:8px;"></span><span class="skel skel-xl" style="width:80px;"></span></div>`).join('')}
+      ${[0,1,2,3].map(i=>`<div class="sc" style="animation-delay:${adl(i,.04)}s"><span class="skel skel-l" style="width:60px;margin-bottom:8px;"></span><span class="skel skel-xl" style="width:80px;"></span></div>`).join('')}
     </div>
     <div class="card" style="margin-bottom:14px;"><span class="skel" style="height:220px;width:100%;border-radius:8px;"></span></div>
     <div class="card"><span class="skel" style="height:180px;width:100%;border-radius:8px;"></span></div>
   </div>`,
   debts:`<div style="animation:fadeIn .18s ease">
     <div class="g2 mb12">
-      ${[0,1].map(i=>`<div class="sc" style="animation-delay:${i*.06}s"><span class="skel skel-l" style="width:90px;margin-bottom:10px;"></span><span class="skel skel-xl" style="width:120px;"></span></div>`).join('')}
+      ${[0,1].map(i=>`<div class="sc" style="animation-delay:${adl(i,.06)}s"><span class="skel skel-l" style="width:90px;margin-bottom:10px;"></span><span class="skel skel-xl" style="width:120px;"></span></div>`).join('')}
     </div>
     <div class="card">${_skelRow(6)}</div>
   </div>`,
@@ -2443,9 +2577,25 @@ function applyWeatherTheme(wc){
   }
 }
 
+/* Погода на экране входа — это цикл отрисовки до 150 капель в каждом кадре.
+   Экран входа после входа только прятался, а цикл продолжал крутиться весь
+   сеанс, и в дождь или снег приложение подтормаживало целиком. Останавливаем
+   его вместе с экраном входа. */
+function stopLoginAmbience(){
+  const c=document.getElementById('lp-rain');
+  if(!c)return;
+  c._rain=false;
+  c._gen=(c._gen||0)+1;                      // гасит и отложенный запуск
+  if(c._onResize){window.removeEventListener('resize',c._onResize);c._onResize=null;}
+  const ctx=c.getContext&&c.getContext('2d');
+  if(ctx) ctx.clearRect(0,0,c.width,c.height);
+}
 function startParticleCanvas(mode){
   const c=document.getElementById('lp-rain');
   if(!c)return;
+  // Экран входа уже скрыт — не запускаем (погода могла прийти после входа).
+  const lp=document.getElementById('login-page');
+  if(lp&&lp.style.display==='none')return;
   // Stop previous loop
   c._rain=false;
   c._mode=mode;
@@ -2605,6 +2755,7 @@ async function doLogin(){
     try{
       await loadBaseData();
       document.getElementById('login-page').style.display='none';
+      stopLoginAmbience();
       document.getElementById('app').style.display='flex';
       buildNav();updatePeriodBtns();
       CUR_PAGE=USER.role==='supplier'?'my':'home';
@@ -2910,7 +3061,7 @@ async function fetchHomeAggregates(obj){
   const[from,to]=periodBounds();
   const monthsFrom=monthStartBack(5);
   // Дневной разрез нужен за 60 дней: 7 дней на спарклайны и 30+30 на тренд.
-  const dayFrom=new Date(Date.now()-60*864e5).toISOString().slice(0,10);
+  const dayFrom=isoLocal(new Date(Date.now()-60*864e5));
   try{
     const[bal,advSpent,byObjR,byMonthR,byCatR,byDayR]=await Promise.all([
       SB.rpc('cash_balance_by_currency'),
@@ -3683,7 +3834,7 @@ home:async()=>{
 
   // Monthly chart data — сводка приходит сразу помесячной, за нужные полгода
   const months=[];
-  for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);months.push(d.toISOString().slice(0,7));}
+  for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);months.push(isoLocal(d).slice(0,7));}
   const mInc=months.map(m=>agg.byMonth[m]?.inc||0);
   const mExp=months.map(m=>agg.byMonth[m]?.exp||0);
 
@@ -3727,7 +3878,7 @@ home:async()=>{
     /* ── SPARKLINES ── */
     // Get last 7 days
     const days7=[];
-    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days7.push(d.toISOString().slice(0,10));}
+    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days7.push(isoLocal(d));}
     const dayOps=agg.byDay||{}; // дневной разрез: дата → {inc, exp} в сомони
 
     function drawSparkline(canvasId, data, color, fillColor){
@@ -3838,9 +3989,9 @@ home:async()=>{
 
   // Hero: trend — income last 30 days vs previous 30 days (period-independent, fair)
   const _now=new Date();
-  const _d30=new Date(_now-30*864e5).toISOString().slice(0,10);
-  const _d60=new Date(_now-60*864e5).toISOString().slice(0,10);
-  const _today=_now.toISOString().slice(0,10);
+  const _d30=isoLocal(new Date(_now-30*864e5));
+  const _d60=isoLocal(new Date(_now-60*864e5));
+  const _today=isoLocal(_now);
   const sumDays=(after,upto)=>Object.entries(agg.byDay||{})
     .filter(([d])=>d>after&&d<=upto)
     .reduce((a,[,v])=>a+(v.inc||0),0);
@@ -4264,7 +4415,8 @@ snabs:async()=>{
   // Раньше здесь выкачивалась вся история расходов ради суммы по каждому
   // работнику; теперь сервер отдаёт по строке на человека.
   const[advs,spentByWorker]=await Promise.all([
-    sbFetchAll('advances','*',q=>q.order('created_at',{ascending:false})),
+    // Странице нужны только эти поля, а авансы грузятся по всем снабженцам сразу.
+    sbFetchAll('advances','id,worker_name,amount,currency,status,created_at',q=>q.order('created_at',{ascending:false})),
     fetchWorkerSpend(null)
   ]);
   const clrs=['var(--a)','var(--blue)','var(--pur)','var(--ora)'];
@@ -4304,7 +4456,7 @@ snabs:async()=>{
     const remColor=w.pct>70?'var(--yel)':'var(--adk)';
     const safeN=w.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     return `
-    <div class="card mb12" style="animation:fadeUp .3s ease ${i*.06}s both;cursor:pointer;" onclick="openWorkerDetail('${safeN}')">
+    <div class="card mb12" style="animation:fadeUp .3s ease ${adl(i,.06)}s both;cursor:pointer;" onclick="openWorkerDetail('${safeN}')">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
         <div style="width:46px;height:46px;border-radius:14px;background:${bg};color:${clr};font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ini}</div>
         <div style="flex:1;min-width:0;">
@@ -4386,9 +4538,10 @@ snab_detail:async()=>{
   const name=window._viewWorker;
   if(!name){go('snabs');return '';}
   const rate=COMPANY.usd_rate||10.92;
-  const d10=new Date(Date.now()-10*24*60*60*1000).toISOString().slice(0,10);
+  const d10=isoLocal(new Date(Date.now()-10*864e5));
   const[advs,ops,spent]=await Promise.all([
-    sbFetchAll('advances','*',q=>q.eq('worker_name',name).order('created_at',{ascending:false})),
+    // Только то, что рисует карточка. Колонки date в advances нет — её не просить.
+    sbFetchAll('advances','id,worker_name,amount,currency,status,created_at,object_name,task',q=>q.eq('worker_name',name).order('created_at',{ascending:false})),
     sbFetchAll('operations',OPS_COLS,q=>q.eq('type','expense').eq('worker_name',name).gte('date',d10).order('date',{ascending:false})),
     // Баланс считается по всей истории, но нужна из неё одна сумма — её и берём.
     fetchOneWorkerSpend(name)
@@ -4409,7 +4562,7 @@ snab_detail:async()=>{
   // Group active advances by date → one card per day
   const dayMap=new Map();
   active.forEach(a=>{
-    const d=a.date||a.created_at?.slice(0,10)||'—';
+    const d=a.date||dayOf(a.created_at)||'—';
     if(!dayMap.has(d))dayMap.set(d,[]);
     dayMap.get(d).push(a);
   });
@@ -4451,7 +4604,7 @@ snab_detail:async()=>{
 
     // Fully spent (by FIFO) → compact collapsed row
     if(cov.full){
-      return `<div style="display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:6px;opacity:.7;animation:fadeUp .3s ease ${gi*.04}s both;">
+      return `<div style="display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:6px;opacity:.7;animation:fadeUp .3s ease ${adl(gi,.04)}s both;">
         <div style="width:3px;height:24px;background:var(--t4);border-radius:2px;flex-shrink:0;"></div>
         <div style="flex:1;min-width:0;">
           <span style="font-size:12px;font-weight:600;color:var(--t3);">${niceDt}</span>
@@ -4464,7 +4617,7 @@ snab_detail:async()=>{
     // Active (partially/not spent) → compact card with progress + inline actions
     const rest=subMoney(dayTotal,cov.consumed);
     const anyConsumed=!isMoneyEmpty(cov.consumed);
-    return `<div style="animation:fadeUp .3s ease ${gi*.06}s both;background:var(--w);border:1px solid ${bd};border-left:3px solid ${clr};border-radius:var(--r2);margin-bottom:8px;padding:10px 13px;box-shadow:var(--sh);">
+    return `<div style="animation:fadeUp .3s ease ${adl(gi,.06)}s both;background:var(--w);border:1px solid ${bd};border-left:3px solid ${clr};border-radius:var(--r2);margin-bottom:8px;padding:10px 13px;box-shadow:var(--sh);">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="min-width:0;">
           <div style="font-size:13px;font-weight:800;color:var(--t);">${niceDt}</div>
@@ -4486,7 +4639,7 @@ snab_detail:async()=>{
   // Closed advances — grouped by day, compact
   const closedMap=new Map();
   closedAdvs.forEach(a=>{
-    const d=a.date||a.created_at?.slice(0,10)||'—';
+    const d=a.date||dayOf(a.created_at)||'—';
     if(!closedMap.has(d))closedMap.set(d,[]);
     closedMap.get(d).push(a);
   });
@@ -4549,19 +4702,19 @@ snab_detail:async()=>{
 
   ${dayGroups.length?`
   <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">${t('active_adv')} (${dayGroups.length} дн.)</div>
-  ${collapseList(dayGroups.map(([d,g],i)=>dayCard(d,g,i)), 4, 'adv-active-more')}
+  ${lazyList(dayGroups,([d,g],i)=>dayCard(d,g,i), 4, 'adv-active-more')}
   `:`<div class="empty" style="padding:28px 0;"><div class="empty-icon">💳</div>${t('no_active_adv')}</div>`}
 
   <div class="card mb10" style="animation:fadeUp .3s ease .2s both;">
     <div class="sh mb10">
       <div class="sh-t" style="font-size:12px;font-weight:700;">📋 ${t('recent_exp')} <span style="color:var(--t4);font-weight:400;">(10 ${t('days_sfx')})</span></div>
     </div>
-    ${(ops||[]).map(o=>txRow(o,true)).join('')||`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}
+    ${ops&&ops.length?lazyList(ops,o=>txRow(o,true),30,'snab-ops-more'):`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}
   </div>
 
   ${closedGroups.length?`
   <div style="font-size:11px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;margin-top:14px;">${t('closed_adv')} (${closedGroups.length} дн.)</div>
-  ${collapseList(closedGroups.map(([d,g],i)=>closedDayRow(d,g,i)), 4, 'adv-closed-more')}`:''}`;
+  ${lazyList(closedGroups,([d,g],i)=>closedDayRow(d,g,i), 4, 'adv-closed-more')}`:''}`;
 },
 
 
@@ -4598,7 +4751,7 @@ debts:async()=>{
         <div class="di-d">
           <div class="di-t">${esc(d.description||'—')}</div>
           <div class="di-m">
-            <span>${d.due_date||'—'}</span>
+            <span>${fmtD(d.due_date)}</span>
             ${late?`<span class="dot-late"></span><span style="color:var(--red);font-weight:600;">${t('overdue')}</span>`
                  :d.paid_amount>0?`<span>· ${Math.round(pct)}% ${t('d_paid').toLowerCase()}</span>`:''}
           </div>
@@ -4618,7 +4771,7 @@ debts:async()=>{
         ${rets.length?`<div class="di-hist">
           <div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:4px;">${t('history')}</div>
           ${rets.map(r=>`<div class="di-hr">
-            <span style="color:var(--t3);">${r.date} · ${r.type==='money'?t('money'):t('barter')+(r.description?' ('+esc(r.description)+')':'')}</span>
+            <span style="color:var(--t3);">${fmtD(r.date)} · ${r.type==='money'?t('money'):t('barter')+(r.description?' ('+esc(r.description)+')':'')}</span>
             <span style="font-weight:700;color:${r.type==='money'?'var(--ad)':'var(--pur)'};">+${fmtN(r.amount)}</span>
           </div>`).join('')}</div>`:''}
         ${USER?.role!=='director'?`<div class="a-btns">
@@ -4659,7 +4812,7 @@ debts:async()=>{
     // Один долг — разворачиваем сразу, скрывать нечего. Несколько — сворачиваем:
     // ради этого группировка и делалась.
     const open=g.items.length===1;
-    return `<div class="dg ${open?'open':''}" style="animation-delay:${i*.05}s;">
+    return `<div class="dg ${open?'open':''}" style="animation-delay:${adl(i,.05)}s;">
       <div class="dg-hd" onclick="toggleDebtGroup(this)">
         <div class="ava" style="width:38px;height:38px;background:${isCred?'var(--redl)':'var(--al)'};color:${isCred?'var(--red)':'var(--adk)'};">${esc(ini)}</div>
         <div style="flex:1;min-width:0;">
@@ -4731,7 +4884,7 @@ stats:async()=>{
   const{incTJS,expTJS,incUSD,expUSD}=totals;
   const cnt={incTJS:totals.cntIncTJS,incUSD:totals.cntIncUSD,
              expTJS:totals.cntExpTJS,expUSD:totals.cntExpUSD};
-  const months=[];for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);months.push(d.toISOString().slice(0,7));}
+  const months=[];for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);months.push(isoLocal(d).slice(0,7));}
   const mInc=months.map(m=>agg.byMonth[m]?.inc||0);
   const mExp=months.map(m=>agg.byMonth[m]?.exp||0);
   const mNet=mInc.map((v,i)=>v-mExp[i]);
@@ -4793,7 +4946,7 @@ stats:async()=>{
       {lbl:'↓ USD '+t('income'), val:'+$'+fmtN(incUSD), sub:cnt.incUSD+' '+t('ops_count'), c1:'#2C5282',c2:'rgba(49,130,206,.1)',b:'rgba(49,130,206,.25)'},
       {lbl:'↑ USD '+t('expense'),val:'-$'+fmtN(expUSD), sub:cnt.expUSD+' '+t('ops_count'), c1:'#C05621',c2:'rgba(221,107,32,.1)',b:'rgba(221,107,32,.25)'},
     ].map((k,i)=>`
-    <div class="kpi-tile" style="background:${k.c2};border:1px solid ${k.b};animation-delay:${i*.06}s;">
+    <div class="kpi-tile" style="background:${k.c2};border:1px solid ${k.b};animation-delay:${adl(i,.06)}s;">
       <div style="font-size:9px;font-weight:700;color:${k.c1};text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;opacity:.75;">${k.lbl}</div>
       <div style="font-size:20px;font-weight:900;color:${k.c1};letter-spacing:-.3px;line-height:1;">${k.val}</div>
       <div style="font-size:10px;color:${k.c1};opacity:.5;margin-top:4px;">${k.sub}</div>
@@ -4926,8 +5079,8 @@ settings:async()=>{
 
 /* ── SUPPLIER PAGES ── */
 my:async()=>{
-  const d10=new Date(Date.now()-10*24*60*60*1000).toISOString().slice(0,10);
-  const d30=new Date(Date.now()-30*24*60*60*1000).toISOString().slice(0,10);
+  const d10=isoLocal(new Date(Date.now()-10*864e5));
+  const d30=isoLocal(new Date(Date.now()-30*864e5));
   const[advs,ops,spent]=await Promise.all([
     sbFetchAll('advances','*',q=>q.eq('worker_name',USER?.name).order('created_at',{ascending:false})),
     sbFetchAll('operations',OPS_COLS,q=>q.eq('type','expense').eq('worker_name',USER?.name).gte('date',d10).order('date',{ascending:false})),
@@ -4939,7 +5092,7 @@ my:async()=>{
   // Active advances only → used for real balance calculation
   const activeAdvs=allAdvs.filter(a=>a.status!=='done'&&a.status!=='closed');
   // Last 30 days → shown in history
-  const recentAdvs=allAdvs.filter(a=>(a.date||a.created_at?.slice(0,10)||'')>=d30);
+  const recentAdvs=allAdvs.filter(a=>(a.date||dayOf(a.created_at))>=d30);
   // Balance = ALL advances ever issued − ALL expenses ever spent → 0 when fully settled
   const totalGiven=allAdvs.reduce((m,a)=>addMoney(m,a.currency,a.amount),zeroMoney());
   const rem={TJS:Math.max(0,totalGiven.TJS-spent.TJS),USD:Math.max(0,totalGiven.USD-spent.USD)};
@@ -4997,19 +5150,19 @@ my:async()=>{
     <div class="sh" style="margin-bottom:12px;">
       <div class="sh-t" style="font-size:13px;font-weight:700;">📥 История выдач <span style="font-weight:400;color:var(--t4);font-size:11px;">(30 ${t('days_sfx')})</span></div>
     </div>
-    ${recentAdvs.length?collapseList(recentAdvs.map((a,i)=>{
+    ${recentAdvs.length?lazyList(recentAdvs,(a,i)=>{
       const isDone=a.status==='done'||a.status==='closed';
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i<recentAdvs.length-1?'border-bottom:1px solid var(--bd);':''}">
         <div style="width:38px;height:38px;border-radius:11px;background:${isDone?'var(--bg)':'var(--ap)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;opacity:${isDone?.6:1};">📥</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:${isDone?'var(--t3)':'var(--t)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.object_name||a.task||'—'}</div>
-          <div style="font-size:11px;color:var(--t4);margin-top:2px;">${a.date||a.created_at?.slice(0,10)||'—'}${isDone?' · ✓ закрыт':''}</div>
+          <div style="font-size:13px;font-weight:600;color:${isDone?'var(--t3)':'var(--t)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.object_name||a.task||'—')}</div>
+          <div style="font-size:11px;color:var(--t4);margin-top:2px;">${fmtD(a.date||a.created_at)}${isDone?' · ✓ закрыт':''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:14px;font-weight:700;color:${isDone?'var(--t3)':'var(--ad)'};">+${fmtN(a.amount)} ${a.currency||'TJS'}</div>
           </div>
       </div>`;
-    }),4,'my-adv-more'):`<div class="empty"><div class="empty-icon">📥</div>Нет выдач за последние 30 дней</div>`}
+    },4,'my-adv-more'):`<div class="empty"><div class="empty-icon">📥</div>Нет выдач за последние 30 дней</div>`}
   </div>
 
   <!-- RECENT EXPENSES (last 10 days) -->
@@ -5018,7 +5171,7 @@ my:async()=>{
       <div class="sh-t" style="font-size:13px;font-weight:700;">📋 ${t('recent_exp')} <span style="font-weight:400;color:var(--t4);font-size:11px;">(10 ${t('days_sfx')})</span></div>
       <div class="sh-a" onclick="go('myexp')">${t('all_ops')}</div>
     </div>
-    <div>${(ops||[]).length?collapseList((ops||[]).map(o=>txRow(o,true)),4,'my-exp-more'):`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
+    <div>${(ops||[]).length?lazyList(ops,o=>txRow(o,true),4,'my-exp-more'):`<div class="empty"><div class="empty-icon">📋</div>${t('no_data')}</div>`}</div>
   </div>`;
 },
 addexp:async()=>{
@@ -5062,7 +5215,7 @@ tasks:async()=>{
     const rem=(a.amount||0)-spentCur;
     const pct=a.amount>0?Math.min(spentCur/a.amount*100,100):0;
     const names=Array.isArray(a.stage_names)?a.stage_names:['Старт','Закупка','Доставка','Сдача'];
-    return `<div class="pc" style="animation-delay:${i*.06}s;">
+    return `<div class="pc" style="animation-delay:${adl(i,.06)}s;">
       <div class="pc-top"><div class="pc-lft"><div class="ava" style="width:38px;height:38px;background:var(--al);color:var(--adk);">${esc((a.object_name||'?').slice(-2))}</div><div><div class="pc-name">${esc(a.task||'—')}</div><div class="pc-sub">${esc(a.object_name)} · ${fmtCurAmt(a.amount,cur)}</div></div></div>
       <span class="badge ${(a.stage||0)>=(a.stages||4)?'bg':'by'}">${(a.stage||0)>=(a.stages||4)?t('done_ok'):t('stage_lbl')+' '+(a.stage||0)+'/'+(a.stages||4)}</span></div>
       ${stageTrack(a.stage||0,a.stages||4,names)}
@@ -5088,7 +5241,7 @@ _masters_unused:async()=>{
     const pct=m.advance_amount>0?Math.min(worked/m.advance_amount*100,100):0;
     const stMap={'active':'by','partial':'bo','done':'bg'};
     const stLab={'active':t('s_act'),'partial':t('s_par'),'done':t('s_done'),'late':t('s_late')};
-    return `<div class="mc" style="animation-delay:${i*.06}s;">
+    return `<div class="mc" style="animation-delay:${adl(i,.06)}s;">
       <div class="mc-hd">
         <div class="mc-ava" style="background:var(--al);color:var(--adk);">${esc((m.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2))}</div>
         <div style="flex:1;min-width:0;">
@@ -5104,7 +5257,7 @@ _masters_unused:async()=>{
         <div class="ms"><div class="ms-l">${t('left')}</div><div class="ms-v" style="color:${rem<0?'var(--red)':'var(--adk)'};">${fmtN(rem)}</div></div>
       </div>
       <div class="bar-tr mb8"><div class="bar-fi" style="width:${pct.toFixed(1)}%;background:${pct>=100?'var(--a)':pct>80?'var(--yel)':'var(--blue)'};"></div></div>
-      <div style="font-size:11px;color:var(--t4);margin-bottom:${canWrite()?'9px':'0'};">${t('deadline')}: ${m.due_date||'—'} · $${fmtN(m.advance_amount/rate)}</div>
+      <div style="font-size:11px;color:var(--t4);margin-bottom:${canWrite()?'9px':'0'};">${t('deadline')}: ${fmtD(m.due_date)} · $${fmtN(m.advance_amount/rate)}</div>
       ${canWrite()?`<div class="a-btns">
         <button class="a-btn" style="background:var(--al);border-color:rgba(57,185,128,.2);color:var(--adk);" onclick="addMasterWork(${m.id})">+ ${t('add_w')}</button>
         <button class="a-btn" style="background:var(--bluel);border-color:var(--blueb);color:var(--blue);" onclick="masterCard(${m.id})">${t('m_card')}</button>
@@ -6200,26 +6353,54 @@ function openSS(title, items, currentVal, onSelect, allowCustom=false){
   document.body.appendChild(bg);
   const listEl=bg.querySelector('#ss-list');
   const searchEl=bg.querySelector('#ss-search');
+  // Поиск без учёта регистра — строку в нижнем регистре готовим один раз.
+  norm.forEach(i=>{i.value=String(i.value??'');i.label=String(i.label??i.value);i._lc=i.label.toLowerCase();});
 
+  /* Отрисовка. Раньше на каждый пункт при каждом нажатии клавиши вешался свой
+     обработчик клика, а названия вставлялись в разметку как есть — название
+     с «<» или «&» ломало список. Теперь один обработчик на весь список,
+     текст экранируется, и за раз показывается не больше MAX пунктов. */
+  const MAX=200;
+  let shown=[];
   function render(q){
-    const f=q?norm.filter(i=>i.label.toLowerCase().includes(q.toLowerCase())):norm;
+    const lq=(q||'').trim().toLowerCase();
+    const f=lq?norm.filter(i=>i._lc.includes(lq)):norm;
+    shown=f.slice(0,MAX);
     if(!f.length){listEl.innerHTML=`<div class="ss-empty">Ничего не найдено</div>`;return;}
-    listEl.innerHTML=f.map(i=>`
-      <div class="ss-item${i.value===currentVal?' ss-on':''}" data-val="${i.value.replace(/"/g,'&quot;')}" data-lbl="${i.label.replace(/"/g,'&quot;')}">
-        ${i.label}
-      </div>`).join('');
-    listEl.querySelectorAll('.ss-item').forEach(el=>{
-      el.addEventListener('click',()=>{
-        currentVal=el.dataset.val;
-        onSelect(el.dataset.val, el.dataset.lbl);
-        close();
-      });
-    });
+    listEl.innerHTML=shown.map((i,k)=>
+      `<div class="ss-item${i.value===currentVal?' ss-on':''}${k===0&&lq?' ss-hl':''}" data-k="${k}">${esc(i.label)}</div>`
+    ).join('')+(f.length>MAX?`<div class="ss-more">Показаны первые ${MAX} из ${f.length} — уточните поиск</div>`:'');
   }
-  function close(){bg.style.animation='none';bg.style.opacity='0';bg.style.transition='opacity .18s';setTimeout(()=>bg.remove(),180);}
+  function pick(i){ if(!i)return; currentVal=i.value; onSelect(i.value,i.label); close(); }
+  listEl.addEventListener('click',e=>{
+    const el=e.target.closest('.ss-item');
+    if(el) pick(shown[+el.dataset.k]);
+  });
+  let closed=false;
+  function close(){
+    if(closed)return; closed=true;
+    document.removeEventListener('keydown',onKey,true);
+    // Пока фон гаснет, он не должен перехватывать касания по форме под ним.
+    bg.style.pointerEvents='none';
+    bg.style.animation='none';bg.style.transition='opacity .14s';bg.style.opacity='0';
+    setTimeout(()=>bg.remove(),140);
+  }
+  // Esc закрывает, Enter выбирает первое найденное.
+  function onKey(e){
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close();}
+    else if(e.key==='Enter'&&document.activeElement===searchEl&&shown.length){
+      e.preventDefault();
+      const q=searchEl.value.trim();
+      if(q) pick(shown[0]);
+    }
+  }
+  document.addEventListener('keydown',onKey,true);
   render('');
-  searchEl.addEventListener('input',()=>render(searchEl.value));
-  setTimeout(()=>searchEl.focus(),220);
+  let _t;
+  searchEl.addEventListener('input',()=>{clearTimeout(_t);_t=setTimeout(()=>render(searchEl.value),norm.length>150?90:0);});
+  // На телефоне фокус сразу открывает клавиатуру и сдвигает окно, поэтому
+  // автофокус только там, где есть физическая клавиатура.
+  if(window.matchMedia&&matchMedia('(hover:hover) and (pointer:fine)').matches) setTimeout(()=>searchEl.focus(),60);
   bg.addEventListener('click',e=>{if(e.target===bg)close();});
   // custom entry
   const customBtn=bg.querySelector('#ss-custom-btn');
@@ -6481,11 +6662,11 @@ async function loadActivityLog(){
 
     // Group by date
     const groups={};
-    const today=new Date().toISOString().slice(0,10);
-    const yday=new Date(Date.now()-864e5).toISOString().slice(0,10);
+    const today=isoLocal(new Date());
+    const yday=isoLocal(new Date(Date.now()-864e5));
     events.forEach(e=>{
-      const d=(e.created_at||'').slice(0,10);
-      const label=d===today?'Сегодня':d===yday?'Вчера':d||'—';
+      const d=dayOf(e.created_at);
+      const label=d===today?'Сегодня':d===yday?'Вчера':fmtD(d);
       if(!groups[label])groups[label]=[];
       groups[label].push(e);
     });
@@ -6495,7 +6676,7 @@ async function loadActivityLog(){
       html+=`<div class="np-group">${label}</div>`;
       items.forEach(e=>{
         const rate=COMPANY.usd_rate||10.92;
-        const time=(e.created_at||'').slice(11,16);
+        const time=timeOf(e.created_at);
         if(e._kind==='op'){
           const isInc=e.type==='income', isAdv=e.type==='advance';
           const clr=isInc?'var(--al)':isAdv?'var(--bluel)':'var(--redl)';
@@ -6564,7 +6745,7 @@ async function loadActivityLog(){
 async function updateNotifBadge(){
   if(isDir()||isSup())return;
   try{
-    const{count}=await SB.from('operations').select('id',{count:'exact',head:true}).gte('created_at',new Date().toISOString().slice(0,10)+'T00:00:00');
+    const{count}=await SB.from('operations').select('id',{count:'exact',head:true}).gte('created_at',new Date(new Date().setHours(0,0,0,0)).toISOString());
     const badge=document.getElementById('notif-badge');
     if(!badge)return;
     if(count>0){badge.style.display='flex';badge.textContent=count>9?'9+':String(count);}
