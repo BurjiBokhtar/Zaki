@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Демо: Унифицированная карточка клиента</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --cc-primary: #39B980;
+      --cc-primary-dark: #2A9066;
+      --cc-danger: #E53E3E;
+      --cc-success: #22863A;
+      --cc-warning: #DD6B20;
+      --cc-accent: #3182CE;
+      --cc-bg: #F5F7FA;
+      --cc-bg-light: #F0FAF6;
+      --cc-border: #E4E9F0;
+      --cc-text: #1A2332;
+      --cc-text-secondary: #4A5568;
+      --cc-text-muted: #6B7A99;
+      --cc-white: #fff;
+      --cc-radius: 10px;
+      --cc-radius-lg: 12px;
+      --cc-shadow: 0 1px 3px rgba(26, 35, 50, 0.08), 0 1px 2px rgba(26, 35, 50, 0.05);
+      --cc-shadow-md: 0 4px 12px rgba(26, 35, 50, 0.1), 0 2px 4px rgba(26, 35, 50, 0.06);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8f4f2 100%);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      color: var(--cc-text);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--cc-primary-dark);
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      color: var(--cc-text-secondary);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .card-wrapper {
+      background: var(--cc-white);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--cc-shadow-md);
+    }
+
+    .card-label {
+      padding: 1rem;
+      border-bottom: 1px solid var(--cc-border);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--cc-text-secondary);
+      letter-spacing: 0.5px;
+      background: var(--cc-bg);
+    }
+
+    .card-content {
+      padding: 1rem;
+      min-height: 300px;
+    }
+
+    /* Client Card Styles */
+    .client-card {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      transition: all 0.3s ease;
+    }
+
+    .client-card--compact {
+      padding: 1rem 0;
+    }
+
+    .client-card__header {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 1rem;
+      align-items: flex-start;
+    }
+
+    .client-card__avatar {
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--cc-primary), var(--cc-primary-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 500;
+      font-size: 16px;
+      color: var(--cc-white);
+    }
+
+    .client-card__avatar--lg {
+      width: 56px;
+      height: 56px;
+      font-size: 20px;
+    }
+
+    .client-card__info {
+      flex: 1;
+    }
+
+    .client-card__name {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--cc-text);
+      line-height: 1.3;
+    }
+
+    .client-card__address,
+    .client-card__meta {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--cc-text-secondary);
+    }
+
+    .client-card__metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 0.5px solid var(--cc-border);
+    }
+
+    .client-card__metric {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .client-card__metric-label {
+      font-size: 11px;
+      color: var(--cc-text-secondary);
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .client-card__metric-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--cc-primary);
+    }
+
+    .client-card__metric-value--danger {
+      color: var(--cc-danger);
+    }
+
+    .client-card__metric-value--success {
+      color: var(--cc-success);
+    }
+
+    .client-card__actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .client-card__btn {
+      padding: 10px 12px;
+      border: 0.5px solid var(--cc-border);
+      background: transparent;
+      border-radius: var(--cc-radius);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--cc-text);
+      transition: all 0.2s ease;
+    }
+
+    .client-card__btn:hover {
+      background: var(--cc-bg);
+      border-color: var(--cc-primary);
+      color: var(--cc-primary);
+    }
+
+    .client-card__payments {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .client-card__payment-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      background: var(--cc-bg);
+      border-radius: var(--cc-radius);
+      font-size: 13px;
+    }
+
+    .client-card__payment-date {
+      color: var(--cc-text-secondary);
+    }
+
+    .client-card__payment-amount {
+      font-weight: 500;
+      color: var(--cc-success);
+    }
+
+    /* Expanded variant */
+    .client-card--expanded {
+      padding: 0;
+    }
+
+    .client-card__header-expanded {
+      background: linear-gradient(135deg, var(--cc-primary), var(--cc-primary-dark));
+      padding: 1.5rem;
+      border-bottom: 0.5px solid var(--cc-border);
+      color: var(--cc-white);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .client-card__metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border-bottom: 0.5px solid var(--cc-border);
+    }
+
+    .client-card__metric-card {
+      padding: 1rem;
+      border-right: 0.5px solid var(--cc-border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .client-card__metric-card:last-child {
+      border-right: none;
+    }
+
+    .client-card__progress-bar {
+      width: 100%;
+      height: 4px;
+      background: var(--cc-bg);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .client-card__progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cc-primary), var(--cc-success));
+      transition: width 0.6s ease;
+    }
+
+    .client-card__content {
+      padding: 1rem;
+    }
+
+    .client-card__section {
+      margin-bottom: 1.5rem;
+    }
+
+    .client-card__section:last-child {
+      margin-bottom: 0;
+    }
+
+    .client-card__section-title {
+      margin: 0 0 8px;
+      font-size: 12px;
+      color: var(--cc-text-secondary);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .client-card__table {
+      width: 100%;
+      font-size: 13px;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+    }
+
+    .client-card__table-row {
+      border-bottom: 0.5px solid var(--cc-border);
+    }
+
+    .client-card__table-row:last-child {
+      border-bottom: none;
+    }
+
+    .client-card__table-cell {
+      padding: 8px 0;
+      color: var(--cc-text-secondary);
+    }
+
+    .client-card__table-cell--amount {
+      text-align: right;
+      font-weight: 500;
+    }
+
+    /* Modern variant */
+    .client-card--modern .client-card__header-modern {
+      background: linear-gradient(135deg, #39B980, #2A9066);
+      padding: 1.5rem;
+      color: var(--cc-white);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .client-card__animated-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      opacity: 0.1;
+    }
+
+    .client-card__animated-bg::before {
+      content: '';
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      top: -50px;
+      right: -50px;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(20px); }
+    }
+
+    .client-card__header-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .client-card__modern-content {
+      padding: 1rem;
+    }
+
+    .client-card__action-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    .client-card__modern-btn {
+      padding: 12px 8px;
+      border: none;
+      border-radius: var(--cc-radius);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      background: #f0fdf4;
+      color: #22863a;
+    }
+
+    .client-card__modern-btn:hover {
+      background: #22863a;
+      color: var(--cc-white);
+      transform: translateY(-2px);
+    }
+
+    .client-card__progress-bar-modern {
+      width: 100%;
+      height: 24px;
+      background: var(--cc-bg);
+      border-radius: var(--cc-radius);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .client-card__progress-fill-modern {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cc-primary), var(--cc-success));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cc-white);
+      font-size: 11px;
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .client-card__stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .client-card__stat-item {
+      padding: 10px;
+      background: var(--cc-bg);
+      border-radius: var(--cc-radius);
+    }
+
+    .client-card__stat-label {
+      margin: 0;
+      font-size: 11px;
+      color: var(--cc-text-secondary);
+    }
+
+    .client-card__stat-value {
+      margin: 4px 0 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--cc-text);
+    }
+
+    .client-card__timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .client-card__timeline-item {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      background: var(--cc-bg);
+      border-radius: var(--cc-radius);
+      animation: slideIn 0.4s ease-out forwards;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .client-card__timeline-icon {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      border-radius: 50%;
+      background: var(--cc-bg-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--cc-primary);
+    }
+
+    .client-card__timeline-content {
+      flex: 1;
+    }
+
+    .client-card__timeline-title {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--cc-text);
+    }
+
+    .client-card__timeline-date {
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: var(--cc-text-secondary);
+    }
+
+    .info-section {
+      background: var(--cc-white);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: var(--cc-shadow-md);
+      margin: 3rem 0;
+    }
+
+    .info-section h2 {
+      color: var(--cc-primary-dark);
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .feature-item {
+      padding: 1rem;
+      background: var(--cc-bg);
+      border-radius: 8px;
+      border-left: 4px solid var(--cc-primary);
+    }
+
+    .feature-item strong {
+      color: var(--cc-primary);
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-item p {
+      font-size: 13px;
+      color: var(--cc-text-secondary);
+      margin: 0;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header h1 {
+        font-size: 1.8rem;
+      }
+
+      .client-card__actions {
+        grid-template-columns: 1fr;
+      }
+
+      .client-card__action-bar {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .client-card__metrics-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .client-card__metric-card {
+        border-right: none;
+        border-bottom: 0.5px solid var(--cc-border);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎴 Унифицированная карточка клиента</h1>
+      <p>Три адаптивных варианта в одном компоненте</p>
+    </div>
+
+    <div class="grid">
+      <!-- Compact -->
+      <div class="card-wrapper">
+        <div class="card-label">📱 Вариант 1: Компактный</div>
+        <div class="card-content">
+          <div id="card-compact"></div>
+        </div>
+      </div>
+
+      <!-- Expanded -->
+      <div class="card-wrapper">
+        <div class="card-label">💻 Вариант 2: Развёрнутый</div>
+        <div class="card-content">
+          <div id="card-expanded"></div>
+        </div>
+      </div>
+
+      <!-- Modern -->
+      <div class="card-wrapper">
+        <div class="card-label">✨ Вариант 3: Современный</div>
+        <div class="card-content">
+          <div id="card-modern"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h2>ℹ️ Особенности компонента</h2>
+      <div class="features">
+        <div class="feature-item">
+          <strong>✨ Три варианта</strong>
+          <p>Компактный для мобильных, Развёрнутый для десктопа, Современный для красивых дашбордов</p>
+        </div>
+        <div class="feature-item">
+          <strong>📱 Адаптивный</strong>
+          <p>Автоматическое переключение при изменении размера окна</p>
+        </div>
+        <div class="feature-item">
+          <strong>⚡ Синхронизация</strong>
+          <p>updateData() для обновления без перезагрузки страницы</p>
+        </div>
+        <div class="feature-item">
+          <strong>🎨 Кастомизируемый</strong>
+          <p>CSS переменные для легкого изменения цветов и стилей</p>
+        </div>
+        <div class="feature-item">
+          <strong>📊 Анимации</strong>
+          <p>Плавные переходы, slide-in эффекты и hover-состояния</p>
+        </div>
+        <div class="feature-item">
+          <strong>🔧 Без зависимостей</strong>
+          <p>Ванильный JavaScript, работает везде</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h2>📝 Основные преимущества</h2>
+      <p>
+        ✅ <strong>Унификация:</strong> Две разные реализации карточки заменены на один компонент<br>
+        ✅ <strong>Удаление дублирования:</strong> Общая логика, стили и структура данных<br>
+        ✅ <strong>Компактность:</strong> Меньше кода для поддержки и обновления<br>
+        ✅ <strong>Информативность:</strong> Все необходимые данные в удобном виде<br>
+        ✅ <strong>Современный дизайн:</strong> Градиенты, анимации, интерактивные элементы<br>
+        ✅ <strong>Надёжная синхронизация:</strong> Данные обновляются без потерь
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // ClientCard Component (встроенный)
+    class ClientCard {
+      constructor(containerId, options = {}) {
+        this.container = document.getElementById(containerId);
+        this.variant = options.variant || 'auto';
+        this.data = options.data || {};
+        this.callbacks = options.callbacks || {};
+
+        if (!this.container) {
+          console.error(`Container "${containerId}" not found`);
+          return;
+        }
+
+        this.render();
+        this.attachEventListeners();
+      }
+
+      updateData(newData) {
+        this.data = { ...this.data, ...newData };
+        this.render();
+        this.attachEventListeners();
+      }
+
+      getVariant() {
+        if (this.variant !== 'auto') return this.variant;
+        return window.innerWidth < 768 ? 'compact' : 'expanded';
+      }
+
+      render() {
+        const variant = this.getVariant();
+        this.container.innerHTML = variant === 'compact'
+          ? this.renderCompact()
+          : variant === 'modern'
+          ? this.renderModern()
+          : this.renderExpanded();
+      }
+
+      renderCompact() {
+        const { name, initials, address, debt, received, lastPayments = [] } = this.data;
+        return `
+          <div class="client-card client-card--compact">
+            <div class="client-card__header">
+              <div class="client-card__avatar">${initials || '—'}</div>
+              <div class="client-card__info">
+                <h3 class="client-card__name">${name || 'Клиент'}</h3>
+                <p class="client-card__address">${address || '—'}</p>
+              </div>
+            </div>
+
+            <div class="client-card__metrics">
+              <div class="client-card__metric">
+                <span class="client-card__metric-label">Остаток долга</span>
+                <span class="client-card__metric-value client-card__metric-value--danger">${this.formatCurrency(debt)} USD</span>
+              </div>
+              <div class="client-card__metric">
+                <span class="client-card__metric-label">Поступления</span>
+                <span class="client-card__metric-value client-card__metric-value--success">${this.formatCurrency(received)} USD</span>
+              </div>
+            </div>
+
+            <div class="client-card__actions">
+              <button class="client-card__btn" data-action="payment">💰 Оплата</button>
+              <button class="client-card__btn" data-action="history">📋 История</button>
+            </div>
+
+            <div class="client-card__section">
+              <p class="client-card__section-title">Последние платежи</p>
+              <div class="client-card__payments">
+                ${lastPayments.slice(0, 2).map(p => `
+                  <div class="client-card__payment-item">
+                    <span class="client-card__payment-date">${p.date}</span>
+                    <span class="client-card__payment-amount">${this.formatCurrency(p.amount)} USD</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      renderExpanded() {
+        const { name, initials, passport, address, debt, issued, received, progress = 0, allPayments = [], lastPayments = [] } = this.data;
+        const payments = allPayments || lastPayments;
+        return `
+          <div class="client-card client-card--expanded">
+            <div class="client-card__header-expanded">
+              <div class="client-card__avatar client-card__avatar--lg">${initials || '—'}</div>
+              <div class="client-card__info">
+                <h3 class="client-card__name">${name || 'Клиент'}</h3>
+                <p class="client-card__meta">Паспорт: ${passport || '—'}</p>
+                <p class="client-card__meta">📍 ${address || '—'}</p>
+              </div>
+            </div>
+
+            <div class="client-card__metrics-grid">
+              <div class="client-card__metric-card">
+                <span class="client-card__metric-label">Выданно</span>
+                <span class="client-card__metric-value">${this.formatCurrency(issued)}</span>
+                <span style="font-size: 11px; color: var(--cc-text-secondary);">USD</span>
+              </div>
+              <div class="client-card__metric-card">
+                <span class="client-card__metric-label">Долг</span>
+                <span class="client-card__metric-value" style="color: var(--cc-danger);">${this.formatCurrency(debt)}</span>
+                <span style="font-size: 11px; color: var(--cc-text-secondary);">USD</span>
+              </div>
+              <div class="client-card__metric-card">
+                <span class="client-card__metric-label">Прогресс</span>
+                <div class="client-card__progress-bar">
+                  <div class="client-card__progress-fill" style="width: ${progress}%"></div>
+                </div>
+                <span style="font-size: 11px; color: var(--cc-text-secondary);">${Math.round(progress)}%</span>
+              </div>
+            </div>
+
+            <div class="client-card__content">
+              <div class="client-card__section">
+                <p class="client-card__section-title">История платежей</p>
+                <table class="client-card__table">
+                  <tbody>
+                    ${payments.slice(0, 5).map(p => `
+                      <tr class="client-card__table-row">
+                        <td class="client-card__table-cell">${p.date}</td>
+                        <td class="client-card__table-cell client-card__table-cell--amount">${this.formatCurrency(p.amount)} USD</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      renderModern() {
+        const { name, initials, debt, received, progress = 0, activity = [] } = this.data;
+        return `
+          <div class="client-card client-card--modern">
+            <div class="client-card__header-modern">
+              <div class="client-card__animated-bg"></div>
+              <div class="client-card__header-content">
+                <div class="client-card__header">
+                  <div class="client-card__avatar client-card__avatar--lg">${initials || '—'}</div>
+                  <div class="client-card__info">
+                    <h3 class="client-card__name" style="color: white;">${name || 'Клиент'}</h3>
+                    <p class="client-card__meta" style="color: rgba(255, 255, 255, 0.8);">👤 Активный клиент</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="client-card__modern-content">
+              <div class="client-card__action-bar">
+                <button class="client-card__modern-btn" data-action="payment">💳 Оплата</button>
+                <button class="client-card__modern-btn" data-action="call" style="background: #eff6ff; color: #3182ce;">📞 Звонок</button>
+                <button class="client-card__modern-btn" data-action="email" style="background: #fffaf0; color: #dd6b20;">📧 Письмо</button>
+              </div>
+
+              <div class="client-card__section">
+                <p class="client-card__section-title">Платежная активность</p>
+                <div class="client-card__progress-bar-modern" style="margin-bottom: 12px;">
+                  <div class="client-card__progress-fill-modern" style="width: ${progress}%">
+                    ${Math.round(progress)}% выполнено
+                  </div>
+                </div>
+                <div class="client-card__stats">
+                  <div class="client-card__stat-item">
+                    <p class="client-card__stat-label">Получено</p>
+                    <p class="client-card__stat-value">${this.formatCurrency(received)} USD</p>
+                  </div>
+                  <div class="client-card__stat-item">
+                    <p class="client-card__stat-label">Осталось</p>
+                    <p class="client-card__stat-value">${this.formatCurrency(debt)} USD</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="client-card__section">
+                <p class="client-card__section-title">Последняя активность</p>
+                <div class="client-card__timeline">
+                  ${activity.slice(0, 3).map((item, i) => `
+                    <div class="client-card__timeline-item" style="animation-delay: ${i * 0.1}s">
+                      <div class="client-card__timeline-icon">${item.icon || '✓'}</div>
+                      <div class="client-card__timeline-content">
+                        <p class="client-card__timeline-title">${item.title}</p>
+                        <p class="client-card__timeline-date">${item.date}</p>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      formatCurrency(amount) {
+        if (!amount) return '0';
+        return new Intl.NumberFormat('ru-RU').format(amount);
+      }
+
+      attachEventListeners() {
+        this.container.querySelectorAll('[data-action]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const action = e.target.dataset.action;
+            if (this.callbacks[action]) {
+              this.callbacks[action](this.data);
+            }
+          });
+        });
+      }
+
+      onResize() {
+        setTimeout(() => {
+          const variant = this.getVariant();
+          this.render();
+          this.attachEventListeners();
+        }, 100);
+      }
+    }
+
+    // Sample Data
+    const sampleData = {
+      name: 'Давлатхочаева Тамано Аломидиновна',
+      initials: 'ДА',
+      passport: 'AD1228834',
+      address: 'Блок А / Дарсметохон 2, №10-3',
+      debt: 13698,
+      issued: 21300,
+      received: 21300,
+      progress: 64,
+      lastPayments: [
+        { date: '30/06/2026', amount: 2400 },
+        { date: '20/05/2026', amount: 1000 }
+      ],
+      allPayments: [
+        { date: '30/06/2026', amount: 2400 },
+        { date: '20/05/2026', amount: 1000 },
+        { date: '29/04/2026', amount: 1000 },
+        { date: '15/04/2026', amount: 800 },
+        { date: '01/04/2026', amount: 1200 }
+      ],
+      activity: [
+        { icon: '✓', title: 'Оплачено 2 400 USD', date: '30/06/2026' },
+        { icon: '→', title: 'Начислено за период', date: '01/06/2026' },
+        { icon: '📄', title: 'Договор подписан', date: '01/01/2026' }
+      ]
+    };
+
+    // Initialize
+    new ClientCard('card-compact', { variant: 'compact', data: sampleData });
+    new ClientCard('card-expanded', { variant: 'expanded', data: sampleData });
+    new ClientCard('card-modern', { variant: 'modern', data: sampleData });
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      document.querySelectorAll('[id^="card-"]').forEach(el => {
+        const card = window.clientCards?.[el.id];
+        if (card) card.onResize();
+      });
+    });
+  </script>
+</body>
+</html>

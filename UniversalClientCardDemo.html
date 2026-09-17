@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Универсальная карточка клиента</title>
+  <link rel="stylesheet" href="UniversalClientCard.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8f4f2 100%);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      color: #1a2332;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      color: #2a9066;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      color: #4a5568;
+      margin-bottom: 1rem;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .demo-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(26, 35, 50, 0.1);
+    }
+
+    .demo-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #6b7a99;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid #e4e9f0;
+    }
+
+    .info-section {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 3rem 0;
+      box-shadow: 0 2px 8px rgba(26, 35, 50, 0.1);
+    }
+
+    .info-section h2 {
+      color: #2a9066;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .feature {
+      padding: 1rem;
+      background: #f0faf6;
+      border-radius: 8px;
+      border-left: 4px solid #39B980;
+    }
+
+    .feature strong {
+      color: #2a9066;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature p {
+      font-size: 13px;
+      color: #4a5568;
+      margin: 0;
+    }
+
+    .code-block {
+      background: #f5f7fa;
+      border: 1px solid #e4e9f0;
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: 'Monaco', monospace;
+      font-size: 12px;
+      color: #1a2332;
+      margin: 1rem 0;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header h1 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎴 Универсальная карточка клиента</h1>
+      <p>Один компонент для всех разделов (Клиенты, Контракты, Шахматка)</p>
+    </div>
+
+    <div class="demo-grid">
+      <!-- Пример 1: Полная карточка с данными -->
+      <div class="demo-card">
+        <div class="demo-label">📍 Пример 1: Полная карточка</div>
+        <div id="card-1"></div>
+      </div>
+
+      <!-- Пример 2: Вариант с минимумом данных -->
+      <div class="demo-card">
+        <div class="demo-label">📋 Пример 2: Компактная карточка</div>
+        <div id="card-2"></div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h2>✨ Особенности</h2>
+      <div class="features">
+        <div class="feature">
+          <strong>📱 Адаптивный дизайн</strong>
+          <p>Работает идеально на мобильных, планшетах и десктопе</p>
+        </div>
+        <div class="feature">
+          <strong>💰 Финансовые показатели</strong>
+          <p>Красивые цветные полосы для быстрого анализа</p>
+        </div>
+        <div class="feature">
+          <strong>⚡ Быстрые действия</strong>
+          <p>Оплата, История, Договор, Печать - все в одной карточке</p>
+        </div>
+        <div class="feature">
+          <strong>📊 Таблица платежей</strong>
+          <p>Все платежи с датами, суммами и статусом</p>
+        </div>
+        <div class="feature">
+          <strong>🔄 Синхронизация</strong>
+          <p>updateData() для обновления без перезагрузки</p>
+        </div>
+        <div class="feature">
+          <strong>🌙 Темный режим</strong>
+          <p>Полная поддержка prefers-color-scheme</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h2>💻 Как использовать</h2>
+      <p>Подключите файлы и создайте карточку:</p>
+      <div class="code-block">// 1. Подключить в index.html
+&lt;link rel="stylesheet" href="/UniversalClientCard.css"&gt;
+&lt;script src="/UniversalClientCard.js"&gt;&lt;/script&gt;
+
+// 2. Создать карточку
+const card = new UniversalClientCard('container-id', {
+  data: {
+    // Информация о клиенте
+    clientName: 'Давлатхочаева Тамано Аломидиновна',
+    clientInitials: 'ДА',
+    passport: 'AD1228834',
+    birthDate: '1990-07-04',
+    address: 'Блок А / Дарсметохон 2, №10-3',
+    apartment: 'Кв. №10-3',
+
+    // Финансы
+    issued: 21300,      // Выданно
+    received: 21300,    // Получено
+    debt: 0,            // Остаток долга
+
+    // Платежи
+    payments: [
+      { date: '30/06/2026', amount: 2400, status: 'paid' },
+      { date: '20/05/2026', amount: 1000, status: 'paid' }
+    ],
+
+    // Дополнительно
+    status: '✓ Активный',
+    lastUpdate: 'Обновлено сегодня'
+  },
+  callbacks: {
+    payment: (data) => console.log('Оплата', data),
+    history: (data) => console.log('История', data),
+    contract: (data) => console.log('Договор', data),
+    print: (data) => window.print()
+  }
+});
+
+// 3. Обновить данные (без перезагрузки)
+card.updateData({
+  debt: 5000,
+  received: 16300
+});</div>
+    </div>
+
+    <div class="info-section">
+      <h2>🗂️ Структура данных</h2>
+      <div class="code-block">{
+  // ИНФОРМАЦИЯ О КЛИЕНТЕ
+  clientName: 'ФИО',           // обязательно
+  clientInitials: 'АБ',        // 1-2 символа для аватара
+  passport: 'AD1228834',       // номер паспорта (опционально)
+  birthDate: '1990-07-04',     // дата рождения (опционально)
+  address: 'Адрес',            // адрес (опционально)
+  apartment: 'Кв. №10-3',      // квартира (опционально)
+
+  // ФИНАНСОВЫЕ ПОКАЗАТЕЛИ
+  issued: 21300,               // Выданно всего (USD)
+  received: 21300,             // Получено платежей (USD)
+  debt: 0,                     // Остаток долга (USD)
+
+  // ПЛАТЕЖИ
+  payments: [                  // Массив платежей
+    {
+      date: '30/06/2026',      // дата платежа
+      amount: 2400,            // сумма
+      currency: 'USD',         // валюта (опционально)
+      status: 'paid'           // 'paid', 'pending'
+    }
+  ],
+
+  // ИСТОРИЯ (опционально)
+  paymentHistory: [
+    {
+      icon: '✓',               // эмодзи или иконка
+      title: 'Оплачено 2400',
+      date: '30/06/2026',
+      amount: 2400
+    }
+  ],
+
+  // ДОПОЛНИТЕЛЬНО
+  status: '✓ Активный',        // статус клиента
+  lastUpdate: 'Обновлено сегодня'  // последнее обновление
+}</div>
+    </div>
+
+    <div class="info-section">
+      <h2>🎯 Callbacks (обработчики событий)</h2>
+      <p>Все доступные обработчики:</p>
+      <div class="code-block">callbacks: {
+  payment: (data) => {
+    // Нажата кнопка "Быстрая опалата"
+    // data содержит всю информацию карточки
+  },
+
+  history: (data) => {
+    // Нажата кнопка "История"
+    // Показать полную историю платежей
+  },
+
+  contract: (data) => {
+    // Нажата кнопка "Договор"
+    // Показать/скачать договор
+  },
+
+  print: (data) => {
+    // Нажата кнопка "Печать"
+    // Вызовите window.print()
+  },
+
+  'show-all-payments': (data) => {
+    // Нажата кнопка "Показать все платежи"
+  },
+
+  'edit-payment': (data) => {
+    // Нажата иконка редактирования на строке платежа
+  },
+
+  'select-payment': (payment, index) => {
+    // Кликнул на строку платежа
+  }
+}</div>
+    </div>
+
+    <div class="info-section">
+      <h2>📂 Файлы компонента</h2>
+      <ul style="margin: 1rem 0 0; padding-left: 2rem; color: #4a5568; line-height: 2;">
+        <li><strong>UniversalClientCard.js</strong> — основной компонент (4 KB)</li>
+        <li><strong>UniversalClientCard.css</strong> — все стили (12 KB)</li>
+        <li><strong>UniversalClientCardDemo.html</strong> — этот файл с примерами</li>
+      </ul>
+      <p style="margin-top: 1rem; color: #6b7a99;">Компонент не имеет зависимостей, работает с ванильным JavaScript</p>
+    </div>
+  </div>
+
+  <script src="UniversalClientCard.js"></script>
+  <script>
+    // Пример 1: Полная карточка с данными
+    new UniversalClientCard('card-1', {
+      data: {
+        clientName: 'Давлатхочаева Тамано Аломидиновна',
+        clientInitials: 'ДА',
+        passport: 'AD1228834',
+        birthDate: '1990-07-04',
+        address: 'Блок А / Дарсметохон 2',
+        apartment: 'Кв. №10-3',
+        issued: 21300,
+        received: 21300,
+        debt: 0,
+        payments: [
+          { date: '30/06/2026', amount: 2400, status: 'paid' },
+          { date: '20/05/2026', amount: 1000, status: 'paid' },
+          { date: '29/04/2026', amount: 1000, status: 'paid' },
+          { date: '15/04/2026', amount: 800, status: 'paid' },
+          { date: '01/04/2026', amount: 1200, status: 'paid' },
+          { date: '15/03/2026', amount: 1500, status: 'paid' }
+        ],
+        paymentHistory: [
+          { icon: '✓', title: 'Оплачено 2 400 USD', date: '30/06/2026', amount: 2400 },
+          { icon: '→', title: 'Начислено за период', date: '01/06/2026', amount: 0 },
+          { icon: '📄', title: 'Договор подписан', date: '01/01/2026', amount: 0 }
+        ],
+        status: '✓ Активный',
+        lastUpdate: 'Обновлено: 31/07/2026'
+      },
+      callbacks: {
+        payment: () => alert('Быстрая опалата'),
+        history: () => alert('История платежей'),
+        contract: () => alert('Договор'),
+        print: () => alert('Печать')
+      }
+    });
+
+    // Пример 2: Компактная карточка
+    new UniversalClientCard('card-2', {
+      data: {
+        clientName: 'Хасанов Рамиль Расулович',
+        clientInitials: 'ХР',
+        passport: 'AD2841592',
+        address: 'Блок Б / Рудаки',
+        issued: 15000,
+        received: 9000,
+        debt: 6000,
+        payments: [
+          { date: '25/07/2026', amount: 3000, status: 'paid' },
+          { date: '10/07/2026', amount: 6000, status: 'pending' }
+        ],
+        status: '⏳ На рассмотрении',
+        lastUpdate: 'Обновлено: 30/07/2026'
+      },
+      callbacks: {
+        payment: () => alert('Оплата'),
+        history: () => alert('История')
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Универсальная карточка клиента</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --ucc-primary: #39B980;
+      --ucc-primary-dark: #2A9066;
+      --ucc-success: #22863A;
+      --ucc-danger: #E53E3E;
+      --ucc-warning: #DD6B20;
+      --ucc-info: #3182CE;
+      --ucc-bg: #F5F7FA;
+      --ucc-bg-light: #F0FAF6;
+      --ucc-bg-danger: #FFF5F5;
+      --ucc-bg-info: #EBF8FF;
+      --ucc-border: #E4E9F0;
+      --ucc-text: #1A2332;
+      --ucc-text-secondary: #4A5568;
+      --ucc-text-muted: #6B7A99;
+      --ucc-white: #fff;
+      --ucc-shadow: 0 1px 3px rgba(26, 35, 50, 0.08), 0 1px 2px rgba(26, 35, 50, 0.05);
+      --ucc-shadow-md: 0 4px 12px rgba(26, 35, 50, 0.1), 0 2px 4px rgba(26, 35, 50, 0.06);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8f4f2 100%);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      color: var(--ucc-text);
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      color: var(--ucc-primary-dark);
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      color: var(--ucc-text-secondary);
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .demo-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(26, 35, 50, 0.1);
+    }
+
+    .demo-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #6b7a99;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid #e4e9f0;
+    }
+
+    /* UNIVERSAL CARD STYLES */
+    .universal-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(26, 35, 50, 0.08), 0 1px 2px rgba(26, 35, 50, 0.05);
+      overflow: hidden;
+      border: 0.5px solid #E4E9F0;
+    }
+
+    /* Header */
+    .card-header {
+      padding: 1.25rem;
+      background: linear-gradient(135deg, #F5F7FA, #F0FAF6);
+      border-bottom: 1px solid #E4E9F0;
+    }
+
+    .header-top {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .client-avatar {
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #39B980, #2A9066);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 18px;
+      color: white;
+      box-shadow: 0 2px 8px rgba(57, 185, 128, 0.25);
+    }
+
+    .client-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .client-name {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ucc-text);
+      line-height: 1.3;
+    }
+
+    .client-meta {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--ucc-text-secondary);
+    }
+
+    .client-address {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--ucc-text-secondary);
+    }
+
+    .header-status {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #F0FAF6;
+      color: #39B980;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      border: 1px solid #39B980;
+    }
+
+    .last-update {
+      margin: 6px 0 0;
+      font-size: 11px;
+      color: var(--ucc-text-muted);
+    }
+
+    .header-divider {
+      margin-top: 1rem;
+      height: 1px;
+      background: #E4E9F0;
+      margin-left: -1.25rem;
+      margin-right: -1.25rem;
+    }
+
+    /* Payment Section */
+    .payment-section {
+      padding: 1.25rem;
+      border-bottom: 1px solid #E4E9F0;
+    }
+
+    .section-title {
+      margin: 0 0 1rem;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--ucc-text-secondary);
+      letter-spacing: 0.5px;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .metric-card {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #E4E9F0;
+      background: white;
+      transition: all 0.2s ease;
+    }
+
+    .metric-card:hover {
+      border-color: #39B980;
+      box-shadow: 0 2px 8px rgba(57, 185, 128, 0.1);
+    }
+
+    .metric-card--success {
+      background: #F0FAF6;
+      border-color: #22863A;
+    }
+
+    .metric-card--danger {
+      background: #FFF5F5;
+      border-color: #E53E3E;
+    }
+
+    .metric-card--info {
+      background: #EBF8FF;
+      border-color: #3182CE;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--ucc-text-secondary);
+      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .metric-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ucc-text);
+      margin-bottom: 2px;
+      line-height: 1.2;
+    }
+
+    .metric-card--success .metric-value {
+      color: #22863A;
+    }
+
+    .metric-card--danger .metric-value {
+      color: #E53E3E;
+    }
+
+    .metric-card--info .metric-value {
+      color: #3182CE;
+    }
+
+    .metric-unit {
+      font-size: 10px;
+      color: var(--ucc-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .metric-bar {
+      height: 3px;
+      background: #E4E9F0;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .metric-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #39B980, #2A9066);
+      transition: width 0.3s ease;
+    }
+
+    .metric-card--success .metric-bar-fill {
+      background: linear-gradient(90deg, #22863A, #1b6e3f);
+    }
+
+    .metric-card--danger .metric-bar-fill {
+      background: linear-gradient(90deg, #E53E3E, #c92a2a);
+    }
+
+    .metric-card--info .metric-bar-fill {
+      background: linear-gradient(90deg, #3182CE, #1e5a96);
+    }
+
+    /* Progress */
+    .progress-section {
+      background: #F5F7FA;
+      border-radius: 10px;
+      padding: 12px;
+      border: 1px solid #E4E9F0;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .progress-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ucc-text-secondary);
+      text-transform: uppercase;
+    }
+
+    .progress-percent {
+      font-size: 14px;
+      font-weight: 700;
+      color: #39B980;
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: #E4E9F0;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #39B980, #22863A);
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      border-radius: 3px;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--ucc-text-secondary);
+      gap: 8px;
+    }
+
+    /* Actions */
+    .actions-section {
+      padding: 1rem 1.25rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+      border-bottom: 1px solid #E4E9F0;
+      background: #F5F7FA;
+    }
+
+    .action-btn {
+      padding: 10px 12px;
+      border: 0.5px solid #E4E9F0;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ucc-text);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .btn-icon {
+      font-size: 14px;
+    }
+
+    .action-btn:hover {
+      background: white;
+      border-color: #39B980;
+      color: #39B980;
+      box-shadow: 0 2px 6px rgba(57, 185, 128, 0.15);
+    }
+
+    .action-btn--primary {
+      background: linear-gradient(135deg, #39B980, #2A9066);
+      border-color: #2A9066;
+      color: white;
+    }
+
+    .action-btn--primary:hover {
+      background: linear-gradient(135deg, #2A9066, #1f6d4a);
+      box-shadow: 0 4px 12px rgba(57, 185, 128, 0.25);
+    }
+
+    /* Payments Table */
+    .payments-section {
+      padding: 1.25rem;
+      border-bottom: 1px solid #E4E9F0;
+    }
+
+    .payments-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 1rem;
+    }
+
+    .payments-table thead {
+      background: #F5F7FA;
+      border-bottom: 1px solid #E4E9F0;
+    }
+
+    .payments-table th {
+      padding: 8px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--ucc-text-secondary);
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.3px;
+    }
+
+    .payments-table tbody tr {
+      border-bottom: 0.5px solid #E4E9F0;
+      transition: background 0.2s ease;
+    }
+
+    .payments-table tbody tr:hover {
+      background: #F5F7FA;
+    }
+
+    .payments-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .payments-table td {
+      padding: 10px 8px;
+      color: var(--ucc-text-secondary);
+    }
+
+    .payment-date {
+      color: var(--ucc-text-muted);
+      font-size: 11px;
+    }
+
+    .payment-amount {
+      font-weight: 600;
+      color: var(--ucc-text);
+    }
+
+    .payment-status {
+      text-align: center;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-pill--success {
+      background: #F0FAF6;
+      color: #22863A;
+    }
+
+    .status-pill--pending {
+      background: #fff3cd;
+      color: #DD6B20;
+    }
+
+    .payment-action {
+      text-align: center;
+    }
+
+    .payment-action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background 0.2s ease;
+      font-size: 12px;
+    }
+
+    .payment-action-btn:hover {
+      background: #F5F7FA;
+    }
+
+    .no-data-placeholder {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--ucc-text-muted);
+      font-size: 13px;
+    }
+
+    .show-all-btn {
+      width: 100%;
+      padding: 10px;
+      background: #F5F7FA;
+      border: 0.5px solid #E4E9F0;
+      border-radius: 8px;
+      cursor: pointer;
+      color: #39B980;
+      font-weight: 500;
+      font-size: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .show-all-btn:hover {
+      background: white;
+      border-color: #39B980;
+      box-shadow: 0 2px 6px rgba(57, 185, 128, 0.1);
+    }
+
+    /* History */
+    .history-section {
+      padding: 1.25rem;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 10px;
+      background: #F5F7FA;
+      border-radius: 8px;
+      border: 0.5px solid #E4E9F0;
+      transition: all 0.2s ease;
+    }
+
+    .history-item:hover {
+      background: white;
+      border-color: #39B980;
+    }
+
+    .history-icon {
+      font-size: 16px;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    .history-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .history-title {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ucc-text);
+    }
+
+    .history-date {
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: var(--ucc-text-muted);
+    }
+
+    .history-amount {
+      font-size: 12px;
+      font-weight: 600;
+      color: #22863A;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 768px) {
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header h1 {
+        font-size: 1.8rem;
+      }
+
+      .actions-section {
+        grid-template-columns: 1fr 1fr;
+        padding: 0.75rem 1rem;
+      }
+
+      .action-btn {
+        padding: 8px 10px;
+        font-size: 11px;
+      }
+
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎴 Универсальная карточка клиента</h1>
+      <p>Один компонент для всех разделов - с белым фоном</p>
+    </div>
+
+    <div class="demo-grid">
+      <!-- Пример 1 -->
+      <div class="demo-card">
+        <div class="demo-label">📍 Пример 1: Полная карточка</div>
+        <div id="card-1"></div>
+      </div>
+
+      <!-- Пример 2 -->
+      <div class="demo-card">
+        <div class="demo-label">📋 Пример 2: В процессе оплаты</div>
+        <div id="card-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class UniversalClientCard {
+      constructor(containerId, options = {}) {
+        this.container = document.getElementById(containerId);
+        this.data = options.data || {};
+        this.callbacks = options.callbacks || {};
+
+        if (!this.container) {
+          console.error(`Container "${containerId}" not found`);
+          return;
+        }
+
+        this.render();
+        this.attachEventListeners();
+      }
+
+      updateData(newData) {
+        this.data = { ...this.data, ...newData };
+        this.render();
+        this.attachEventListeners();
+      }
+
+      render() {
+        this.container.innerHTML = this.renderCard();
+      }
+
+      renderCard() {
+        const {
+          clientName = 'Клиент',
+          clientInitials = 'К',
+          passport = '',
+          birthDate = '',
+          address = '',
+          apartment = '',
+          issued = 0,
+          received = 0,
+          debt = 0,
+          payments = [],
+          paymentHistory = [],
+          status = 'Активный',
+          lastUpdate = ''
+        } = this.data;
+
+        const debtAmount = Math.max(0, issued - received);
+        const progressPercent = issued > 0 ? Math.round((received / issued) * 100) : 0;
+
+        return `
+          <div class="universal-card">
+            <!-- Заголовок -->
+            <div class="card-header">
+              <div class="header-top">
+                <div class="client-avatar">${clientInitials}</div>
+                <div class="client-info">
+                  <h2 class="client-name">${clientName}</h2>
+                  <p class="client-meta">
+                    ${passport ? `Паспорт: ${passport}` : ''}
+                    ${birthDate ? ` • ${birthDate}` : ''}
+                  </p>
+                  <p class="client-address">
+                    ${address ? `📍 ${address}` : ''}
+                    ${apartment ? ` • ${apartment}` : ''}
+                  </p>
+                </div>
+                <div class="header-status">
+                  <span class="status-badge">${status}</span>
+                  ${lastUpdate ? `<p class="last-update">${lastUpdate}</p>` : ''}
+                </div>
+              </div>
+              <div class="header-divider"></div>
+            </div>
+
+            <!-- Оплата и чеки -->
+            <div class="payment-section">
+              <h3 class="section-title">📋 Оплата и чеки</h3>
+              <div class="metrics-grid">
+                <div class="metric-card metric-card--success">
+                  <div class="metric-label">Получено платежей</div>
+                  <div class="metric-value">${this.formatCurrency(received)}</div>
+                  <div class="metric-unit">USD</div>
+                  <div class="metric-bar">
+                    <div class="metric-bar-fill" style="width: 100%"></div>
+                  </div>
+                </div>
+
+                <div class="metric-card metric-card--danger">
+                  <div class="metric-label">Остаток долга</div>
+                  <div class="metric-value">${this.formatCurrency(debtAmount)}</div>
+                  <div class="metric-unit">USD</div>
+                  <div class="metric-bar">
+                    <div class="metric-bar-fill" style="width: ${Math.min(100, (debtAmount / issued) * 100)}%"></div>
+                  </div>
+                </div>
+
+                <div class="metric-card metric-card--info">
+                  <div class="metric-label">Выданно всего</div>
+                  <div class="metric-value">${this.formatCurrency(issued)}</div>
+                  <div class="metric-unit">USD</div>
+                  <div class="metric-bar">
+                    <div class="metric-bar-fill" style="width: 100%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Прогресс -->
+              <div class="progress-section">
+                <div class="progress-header">
+                  <span class="progress-label">Прогресс оплаты</span>
+                  <span class="progress-percent">${progressPercent}%</span>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                </div>
+                <div class="progress-info">
+                  <span>Оплачено: ${this.formatCurrency(received)} USD</span>
+                  <span>•</span>
+                  <span>Остаток: ${this.formatCurrency(debtAmount)} USD</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Быстрые действия -->
+            <div class="actions-section">
+              <button class="action-btn action-btn--primary" data-action="payment">
+                <span class="btn-icon">💳</span> Быстрая опалата
+              </button>
+              <button class="action-btn" data-action="history">
+                <span class="btn-icon">📊</span> История
+              </button>
+              <button class="action-btn" data-action="contract">
+                <span class="btn-icon">📄</span> Договор
+              </button>
+              <button class="action-btn" data-action="print">
+                <span class="btn-icon">🖨️</span> Печать
+              </button>
+            </div>
+
+            <!-- Платежи -->
+            <div class="payments-section">
+              <h3 class="section-title">💰 Платежи</h3>
+              ${payments && payments.length > 0 ? `
+                <table class="payments-table">
+                  <thead>
+                    <tr>
+                      <th>Дата</th>
+                      <th>Сумма</th>
+                      <th>Статус</th>
+                      <th>Действие</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${payments.slice(0, 8).map((p, idx) => `
+                      <tr>
+                        <td class="payment-date">${p.date || '—'}</td>
+                        <td class="payment-amount">${this.formatCurrency(p.amount)} ${p.currency || 'USD'}</td>
+                        <td class="payment-status">
+                          <span class="status-pill ${p.status === 'paid' ? 'status-pill--success' : 'status-pill--pending'}">
+                            ${p.status === 'paid' ? '✓ Оплачено' : p.status === 'pending' ? '⏳ Ожидание' : '—'}
+                          </span>
+                        </td>
+                        <td class="payment-action">
+                          <button class="payment-action-btn">✏️</button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+                ${payments.length > 8 ? `
+                  <button class="show-all-btn" data-action="show-all-payments">
+                    ➕ Показать все платежи (${payments.length})
+                  </button>
+                ` : ''}
+              ` : `
+                <div class="no-data-placeholder">📭 Нет платежей</div>
+              `}
+            </div>
+
+            <!-- История -->
+            ${paymentHistory && paymentHistory.length > 0 ? `
+              <div class="history-section">
+                <h3 class="section-title">📅 История платежей</h3>
+                <div class="history-list">
+                  ${paymentHistory.slice(0, 5).map(h => `
+                    <div class="history-item">
+                      <div class="history-icon">${h.icon || '💵'}</div>
+                      <div class="history-content">
+                        <p class="history-title">${h.title || ''}</p>
+                        <p class="history-date">${h.date || ''}</p>
+                      </div>
+                      <div class="history-amount">${this.formatCurrency(h.amount || 0)} USD</div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      formatCurrency(amount) {
+        if (!amount && amount !== 0) return '—';
+        return new Intl.NumberFormat('ru-RU').format(Math.round(amount));
+      }
+
+      attachEventListeners() {
+        this.container.querySelectorAll('[data-action]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const action = e.currentTarget.dataset.action;
+            if (this.callbacks[action]) {
+              this.callbacks[action](this.data);
+            }
+          });
+        });
+      }
+    }
+
+    // Пример 1
+    new UniversalClientCard('card-1', {
+      data: {
+        clientName: 'Давлатхочаева Тамано Аломидиновна',
+        clientInitials: 'ДА',
+        passport: 'AD1228834',
+        birthDate: '1990-07-04',
+        address: 'Блок А / Дарсметохон 2',
+        apartment: 'Кв. №10-3',
+        issued: 21300,
+        received: 21300,
+        debt: 0,
+        payments: [
+          { date: '30/06/2026', amount: 2400, status: 'paid' },
+          { date: '20/05/2026', amount: 1000, status: 'paid' },
+          { date: '29/04/2026', amount: 1000, status: 'paid' },
+          { date: '15/04/2026', amount: 800, status: 'paid' }
+        ],
+        paymentHistory: [
+          { icon: '✓', title: 'Оплачено 2 400 USD', date: '30/06/2026', amount: 2400 },
+          { icon: '→', title: 'Начислено за период', date: '01/06/2026', amount: 0 },
+          { icon: '📄', title: 'Договор подписан', date: '01/01/2026', amount: 0 }
+        ],
+        status: '✓ Активный',
+        lastUpdate: 'Обновлено: 31/07/2026'
+      },
+      callbacks: {
+        payment: () => alert('Быстрая опалата'),
+        history: () => alert('История'),
+        contract: () => alert('Договор'),
+        print: () => alert('Печать')
+      }
+    });
+
+    // Пример 2
+    new UniversalClientCard('card-2', {
+      data: {
+        clientName: 'Хасанов Рамиль Расулович',
+        clientInitials: 'ХР',
+        passport: 'AD2841592',
+        address: 'Блок Б / Рудаки',
+        apartment: 'Кв. №5',
+        issued: 15000,
+        received: 9000,
+        debt: 6000,
+        payments: [
+          { date: '25/07/2026', amount: 3000, status: 'paid' },
+          { date: '10/07/2026', amount: 6000, status: 'pending' }
+        ],
+        status: '⏳ На рассмотрении',
+        lastUpdate: 'Обновлено: 30/07/2026'
+      }
+    });
+  </script>
+</body>
+</html>

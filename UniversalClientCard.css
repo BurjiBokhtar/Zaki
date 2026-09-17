@@ -1,0 +1,716 @@
+/**
+ * Стили для UniversalClientCard
+ * Дизайн основан на правой части скриншота
+ * Современный, компактный, информативный
+ */
+
+:root {
+  --ucc-primary: #39B980;
+  --ucc-primary-dark: #2A9066;
+  --ucc-success: #22863A;
+  --ucc-danger: #E53E3E;
+  --ucc-warning: #DD6B20;
+  --ucc-info: #3182CE;
+  --ucc-bg: #F5F7FA;
+  --ucc-bg-light: #F0FAF6;
+  --ucc-bg-danger: #FFF5F5;
+  --ucc-bg-info: #EBF8FF;
+  --ucc-border: #E4E9F0;
+  --ucc-border-dark: #D0D9E8;
+  --ucc-text: #1A2332;
+  --ucc-text-secondary: #4A5568;
+  --ucc-text-muted: #6B7A99;
+  --ucc-white: #fff;
+  --ucc-shadow: 0 1px 3px rgba(26, 35, 50, 0.08), 0 1px 2px rgba(26, 35, 50, 0.05);
+  --ucc-shadow-md: 0 4px 12px rgba(26, 35, 50, 0.1), 0 2px 4px rgba(26, 35, 50, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ucc-bg: #1a1a1a;
+    --ucc-bg-light: #0d3d28;
+    --ucc-bg-danger: #3d1d1d;
+    --ucc-bg-info: #1a2e4a;
+    --ucc-border: #3a4051;
+    --ucc-text: #e8eaed;
+    --ucc-text-secondary: #9aa5b8;
+    --ucc-white: #2c2c2c;
+  }
+}
+
+.universal-card {
+  background: var(--ucc-white);
+  border-radius: 12px;
+  box-shadow: var(--ucc-shadow);
+  overflow: hidden;
+  border: 0.5px solid var(--ucc-border);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ЗАГОЛОВОК С ИНФОРМАЦИЕЙ О КЛИЕНТЕ
+   ═══════════════════════════════════════════════════════ */
+
+.card-header {
+  padding: 1.25rem;
+  background: linear-gradient(135deg, var(--ucc-bg), var(--ucc-bg-light));
+  border-bottom: 1px solid var(--ucc-border);
+}
+
+.header-top {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.client-avatar {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ucc-primary), var(--ucc-primary-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--ucc-white);
+  box-shadow: 0 2px 8px rgba(57, 185, 128, 0.25);
+}
+
+.client-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.client-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ucc-text);
+  line-height: 1.3;
+  word-wrap: break-word;
+}
+
+.client-meta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--ucc-text-secondary);
+}
+
+.client-address {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--ucc-text-secondary);
+  word-break: break-word;
+}
+
+.header-status {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--ucc-bg-light);
+  color: var(--ucc-primary);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border: 1px solid var(--ucc-primary);
+}
+
+.last-update {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--ucc-text-muted);
+}
+
+.header-divider {
+  margin-top: 1rem;
+  height: 1px;
+  background: var(--ucc-border);
+  margin-left: -1.25rem;
+  margin-right: -1.25rem;
+}
+
+/* ═══════════════════════════════════════════════════════
+   СЕКЦИЯ "ОПЛАТА И ЧЕКИ" - ФИНАНСОВЫЕ ПОКАЗАТЕЛИ
+   ═══════════════════════════════════════════════════════ */
+
+.payment-section {
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--ucc-border);
+}
+
+.section-title {
+  margin: 0 0 1rem;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ucc-text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.metric-card {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--ucc-border);
+  background: var(--ucc-white);
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  border-color: var(--ucc-primary);
+  box-shadow: 0 2px 8px rgba(57, 185, 128, 0.1);
+}
+
+.metric-card--success {
+  background: var(--ucc-bg-light);
+  border-color: var(--ucc-success);
+}
+
+.metric-card--danger {
+  background: var(--ucc-bg-danger);
+  border-color: var(--ucc-danger);
+}
+
+.metric-card--info {
+  background: var(--ucc-bg-info);
+  border-color: var(--ucc-info);
+}
+
+.metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ucc-text-secondary);
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+
+.metric-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ucc-text);
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.metric-card--success .metric-value {
+  color: var(--ucc-success);
+}
+
+.metric-card--danger .metric-value {
+  color: var(--ucc-danger);
+}
+
+.metric-card--info .metric-value {
+  color: var(--ucc-info);
+}
+
+.metric-unit {
+  font-size: 10px;
+  color: var(--ucc-text-muted);
+  margin-bottom: 8px;
+}
+
+.metric-bar {
+  height: 3px;
+  background: var(--ucc-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.metric-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ucc-primary), var(--ucc-primary-dark));
+  transition: width 0.3s ease;
+}
+
+.metric-card--success .metric-bar-fill {
+  background: linear-gradient(90deg, var(--ucc-success), #1b6e3f);
+}
+
+.metric-card--danger .metric-bar-fill {
+  background: linear-gradient(90deg, var(--ucc-danger), #c92a2a);
+}
+
+.metric-card--info .metric-bar-fill {
+  background: linear-gradient(90deg, var(--ucc-info), #1e5a96);
+}
+
+/* Прогресс оплаты */
+.progress-section {
+  background: var(--ucc-bg);
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid var(--ucc-border);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.progress-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ucc-text-secondary);
+  text-transform: uppercase;
+}
+
+.progress-percent {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ucc-primary);
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--ucc-border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ucc-primary), var(--ucc-success));
+  transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 3px;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--ucc-text-secondary);
+  gap: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   БЫСТРЫЕ ДЕЙСТВИЯ
+   ═══════════════════════════════════════════════════════ */
+
+.actions-section {
+  padding: 1rem 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  border-bottom: 1px solid var(--ucc-border);
+  background: var(--ucc-bg);
+}
+
+.action-btn {
+  padding: 10px 12px;
+  border: 0.5px solid var(--ucc-border);
+  border-radius: 8px;
+  background: var(--ucc-white);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ucc-text);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-icon {
+  font-size: 14px;
+}
+
+.action-btn:hover {
+  background: var(--ucc-white);
+  border-color: var(--ucc-primary);
+  color: var(--ucc-primary);
+  box-shadow: 0 2px 6px rgba(57, 185, 128, 0.15);
+}
+
+.action-btn--primary {
+  background: linear-gradient(135deg, var(--ucc-primary), var(--ucc-primary-dark));
+  border-color: var(--ucc-primary-dark);
+  color: var(--ucc-white);
+}
+
+.action-btn--primary:hover {
+  background: linear-gradient(135deg, var(--ucc-primary-dark), #1f6d4a);
+  box-shadow: 0 4px 12px rgba(57, 185, 128, 0.25);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ТАБЛИЦА ПЛАТЕЖЕЙ
+   ═══════════════════════════════════════════════════════ */
+
+.payments-section {
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--ucc-border);
+}
+
+.payments-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 1rem;
+}
+
+.payments-table thead {
+  background: var(--ucc-bg);
+  border-bottom: 1px solid var(--ucc-border);
+}
+
+.payments-table th {
+  padding: 8px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--ucc-text-secondary);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+}
+
+.payments-table tbody tr {
+  border-bottom: 0.5px solid var(--ucc-border);
+  transition: background 0.2s ease;
+}
+
+.payments-table tbody tr:hover {
+  background: var(--ucc-bg);
+}
+
+.payments-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.payments-table td {
+  padding: 10px 8px;
+  color: var(--ucc-text-secondary);
+}
+
+.payment-date {
+  color: var(--ucc-text-muted);
+  font-size: 11px;
+}
+
+.payment-amount {
+  font-weight: 600;
+  color: var(--ucc-text);
+}
+
+.payment-status {
+  text-align: center;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pill--success {
+  background: var(--ucc-bg-light);
+  color: var(--ucc-success);
+}
+
+.status-pill--pending {
+  background: #fff3cd;
+  color: var(--ucc-warning);
+}
+
+.payment-action {
+  text-align: center;
+}
+
+.payment-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+  font-size: 12px;
+}
+
+.payment-action-btn:hover {
+  background: var(--ucc-bg);
+}
+
+.no-data-placeholder {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--ucc-text-muted);
+  font-size: 13px;
+}
+
+.show-all-btn {
+  width: 100%;
+  padding: 10px;
+  background: var(--ucc-bg);
+  border: 0.5px solid var(--ucc-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--ucc-primary);
+  font-weight: 500;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.show-all-btn:hover {
+  background: var(--ucc-white);
+  border-color: var(--ucc-primary);
+  box-shadow: 0 2px 6px rgba(57, 185, 128, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ИСТОРИЯ ПЛАТЕЖЕЙ
+   ═══════════════════════════════════════════════════════ */
+
+.history-section {
+  padding: 1.25rem;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  background: var(--ucc-bg);
+  border-radius: 8px;
+  border: 0.5px solid var(--ucc-border);
+  transition: all 0.2s ease;
+}
+
+.history-item:hover {
+  background: var(--ucc-white);
+  border-color: var(--ucc-primary);
+}
+
+.history-icon {
+  font-size: 16px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.history-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ucc-text);
+  word-break: break-word;
+}
+
+.history-date {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--ucc-text-muted);
+}
+
+.history-amount {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ucc-success);
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════
+   АДАПТИВНОСТЬ
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .universal-card {
+    border-radius: 8px;
+  }
+
+  .card-header {
+    padding: 1rem;
+  }
+
+  .header-top {
+    gap: 10px;
+  }
+
+  .client-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .client-name {
+    font-size: 14px;
+  }
+
+  .section-title {
+    font-size: 12px;
+  }
+
+  .metric-value {
+    font-size: 16px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions-section {
+    grid-template-columns: 1fr 1fr;
+    padding: 0.75rem 1rem;
+  }
+
+  .action-btn {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .payments-table {
+    font-size: 11px;
+  }
+
+  .payments-table th,
+  .payments-table td {
+    padding: 6px 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-header {
+    padding: 0.75rem;
+  }
+
+  .header-top {
+    flex-direction: column;
+  }
+
+  .header-status {
+    text-align: left;
+  }
+
+  .client-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .client-name {
+    font-size: 13px;
+  }
+
+  .client-meta,
+  .client-address {
+    font-size: 11px;
+  }
+
+  .payment-section,
+  .payments-section,
+  .history-section {
+    padding: 1rem;
+  }
+
+  .metrics-grid {
+    gap: 8px;
+  }
+
+  .metric-card {
+    padding: 10px;
+  }
+
+  .metric-value {
+    font-size: 14px;
+  }
+
+  .actions-section {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 0.5rem 1rem;
+  }
+
+  .action-btn {
+    padding: 8px;
+    font-size: 11px;
+  }
+
+  .payments-table {
+    font-size: 10px;
+  }
+
+  .status-pill {
+    padding: 2px 6px;
+    font-size: 9px;
+  }
+
+  .progress-info {
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 10px;
+  }
+
+  .progress-info span {
+    display: block;
+  }
+
+  .progress-info span:nth-child(2) {
+    display: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   ТЕМНЫЙ РЕЖИМ
+   ═══════════════════════════════════════════════════════ */
+
+@media (prefers-color-scheme: dark) {
+  .action-btn {
+    background: var(--ucc-white);
+    color: var(--ucc-text);
+  }
+
+  .action-btn:hover {
+    background: var(--ucc-bg);
+  }
+
+  .metric-card {
+    background: var(--ucc-bg);
+  }
+
+  .progress-section {
+    background: var(--ucc-bg);
+  }
+
+  .payments-table thead {
+    background: var(--ucc-bg);
+  }
+
+  .history-item {
+    background: var(--ucc-bg);
+  }
+
+  .history-item:hover {
+    background: var(--ucc-white);
+  }
+}

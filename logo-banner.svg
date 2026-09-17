@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="300" height="80">
+  <defs>
+    <linearGradient id="gg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A3A5C"/>
+      <stop offset="100%" stop-color="#0D1B2A"/>
+    </linearGradient>
+    <linearGradient id="gt2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#147A7A"/>
+      <stop offset="100%" stop-color="#1EAAAA"/>
+    </linearGradient>
+    <linearGradient id="ga2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1EAAAA"/>
+      <stop offset="100%" stop-color="#4DD4D4"/>
+    </linearGradient>
+    <filter id="fs2" x="-20%" y="-20%" width="145%" height="145%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-color="#0D1B2A" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Gear icon group, centered at 40,40 (fits 80x80 area) -->
+  <g transform="translate(40,40)" filter="url(#fs2)">
+
+    <!-- Gear teeth (8 teeth) -->
+    <rect x="-5" y="-34" width="10" height="9" rx="2" fill="url(#gg2)"/>
+    <rect x="-5" y="-34" width="10" height="9" rx="2" fill="url(#gg2)" transform="rotate(45)"/>
+    <rect x="-5" y="-34" width="10" height="9" rx="2" fill="url(#gg2)" transform="rotate(90)"/>
+    <rect x="-5" y="-34" width="10" height="9" rx="2" fill="url(#gg2)" transform="rotate(135)"/>
+    <rect x="-5" y="-34" width="10" height="9" rx="2" fill="url(#gg2)" transform="rotate(180)"/>
+    <rect x="-5" y="-34" width="10" height="9" rx="2" fill="url(#gg2)" transform="rotate(225)"/>
+    <rect x="-5" y="-34" width="10" height="9" rx="2" fill="url(#gg2)" transform="rotate(270)"/>
+    <rect x="-5" y="-34" width="10" height="9" rx="2" fill="url(#gg2)" transform="rotate(315)"/>
+
+    <!-- Gear body -->
+    <circle cx="0" cy="0" r="25" fill="url(#gg2)"/>
+
+    <!-- Inner white cutout -->
+    <circle cx="0" cy="0" r="15" fill="white"/>
+
+    <!-- Bar chart -->
+    <rect x="-11" y="3"  width="6" height="8"  rx="1.5" fill="url(#gt2)"/>
+    <rect x="-3"  y="-2" width="6" height="13" rx="1.5" fill="url(#gt2)"/>
+    <rect x="6"   y="-8" width="6" height="19" rx="1.5" fill="url(#gg2)"/>
+
+    <!-- Upward arrow -->
+    <line x1="13" y1="-13" x2="24" y2="-24" stroke="url(#ga2)" stroke-width="3.5" stroke-linecap="round"/>
+    <polygon points="24,-24 16,-26 22,-18" fill="url(#ga2)"/>
+    <circle cx="13" cy="-13" r="2.5" fill="#1EAAAA"/>
+
+  </g>
+
+  <!-- ZAKI text -->
+  <text x="90" y="47"
+        font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif"
+        font-size="34" font-weight="900"
+        fill="#0D1B2A"
+        letter-spacing="1">ZAKI</text>
+
+  <!-- ERP SOFTWARE text -->
+  <text x="92" y="62"
+        font-family="'Arial', 'Helvetica Neue', Arial, sans-serif"
+        font-size="10.5" font-weight="700"
+        fill="#1A8A8A"
+        letter-spacing="3.5">ERP SOFTWARE</text>
+
+</svg>

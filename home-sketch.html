@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZAKI — Эскиз главной</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#f0f2f7;color:#1a1d23;min-height:100vh;}
+
+/* ── HERO ── */
+.hero{
+  background:linear-gradient(135deg,#0f2027 0%,#1a3a4a 45%,#0d3d2e 100%);
+  padding:24px 20px 32px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-60px;right:-40px;
+  width:260px;height:260px;border-radius:50%;
+  background:radial-gradient(circle,rgba(57,185,128,.18) 0%,transparent 70%);
+}
+.hero::after{
+  content:'';position:absolute;bottom:-80px;left:-30px;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(49,130,206,.12) 0%,transparent 70%);
+}
+.hero-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:rgba(255,255,255,.7);}
+.hero-period{display:flex;gap:6px;}
+.hero-period span{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;color:rgba(255,255,255,.5);cursor:pointer;}
+.hero-period span.active{background:rgba(57,185,128,.25);color:#39B980;}
+.hero-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;}
+.hero-balance{font-size:42px;font-weight:900;color:#fff;letter-spacing:-.5px;line-height:1;}
+.hero-balance span{font-size:18px;font-weight:500;opacity:.5;margin-left:4px;}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.4);margin-top:6px;}
+.hero-trend{display:inline-flex;align-items:center;gap:4px;background:rgba(57,185,128,.2);border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;color:#39B980;margin-top:10px;}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;}
+.hero-mini{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 14px;}
+.hero-mini-lbl{font-size:10px;color:rgba(255,255,255,.4);font-weight:500;margin-bottom:4px;display:flex;align-items:center;gap:4px;}
+.hero-mini-val{font-size:18px;font-weight:800;}
+.hero-mini-sub{font-size:10px;margin-top:2px;opacity:.5;}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 14px 0;}
+.kpi{background:#fff;border-radius:18px;padding:16px;position:relative;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:18px 18px 0 0;}
+.kpi.g::before{background:linear-gradient(90deg,#39B980,#2A9066);}
+.kpi.r::before{background:linear-gradient(90deg,#E53E3E,#C53030);}
+.kpi.b::before{background:linear-gradient(90deg,#3182CE,#2C5282);}
+.kpi.o::before{background:linear-gradient(90deg,#DD6B20,#C05621);}
+.kpi-icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:18px;}
+.kpi.g .kpi-icon{background:rgba(57,185,128,.12);}
+.kpi.r .kpi-icon{background:rgba(229,62,62,.1);}
+.kpi.b .kpi-icon{background:rgba(49,130,206,.1);}
+.kpi.o .kpi-icon{background:rgba(221,107,32,.1);}
+.kpi-lbl{font-size:10px;font-weight:600;color:#8a94a6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;}
+.kpi-val{font-size:22px;font-weight:900;letter-spacing:-.3px;line-height:1.1;}
+.kpi.g .kpi-val{color:#1a6645;}
+.kpi.r .kpi-val{color:#C53030;}
+.kpi.b .kpi-val{color:#2C5282;}
+.kpi.o .kpi-val{color:#C05621;}
+.kpi-val2{font-size:12px;font-weight:600;color:#aab4c4;margin-top:3px;}
+.kpi-badge{position:absolute;top:14px;right:14px;font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;}
+.kpi.g .kpi-badge{background:rgba(57,185,128,.12);color:#39B980;}
+.kpi.r .kpi-badge{background:rgba(229,62,62,.1);color:#E53E3E;}
+.kpi-spark{position:absolute;bottom:0;right:0;opacity:.15;}
+
+/* ── FLOW SECTION ── */
+.section{padding:14px 14px 0;}
+.section-title{font-size:12px;font-weight:700;color:#8a94a6;text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px;}
+.flow-card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.flow-row{display:flex;align-items:center;gap:0;margin-bottom:8px;}
+.flow-row:last-child{margin-bottom:0;}
+.flow-dot{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+.flow-dot.g{background:rgba(57,185,128,.12);}
+.flow-dot.y{background:rgba(236,201,75,.15);}
+.flow-dot.r{background:rgba(229,62,62,.1);}
+.flow-dot.b{background:rgba(49,130,206,.1);}
+.flow-info{flex:1;padding:0 10px;}
+.flow-name{font-size:13px;font-weight:700;color:#1a1d23;}
+.flow-sub{font-size:10px;color:#aab4c4;margin-top:1px;}
+.flow-amt{text-align:right;}
+.flow-amt-val{font-size:15px;font-weight:800;}
+.flow-amt-val.g{color:#1a6645;}
+.flow-amt-val.r{color:#C53030;}
+.flow-amt-val.y{color:#b7791f;}
+.flow-sep{height:1px;background:#f0f2f7;margin:8px 0;}
+.flow-bar{height:4px;background:#f0f2f7;border-radius:2px;margin-top:10px;overflow:hidden;}
+.flow-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#E53E3E,#C53030);}
+
+/* ── CHARTS ── */
+.chart-card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.chart-title{font-size:13px;font-weight:700;color:#1a1d23;}
+.chart-tabs{display:flex;gap:4px;}
+.chart-tab{padding:4px 9px;border-radius:7px;font-size:10px;font-weight:600;color:#8a94a6;cursor:pointer;}
+.chart-tab.active{background:#f0f2f7;color:#1a1d23;}
+/* fake chart */
+.fake-chart{height:140px;display:flex;align-items:flex-end;gap:6px;padding-bottom:4px;}
+.bar-g{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,rgba(57,185,128,.8),rgba(57,185,128,.4));min-height:8px;}
+.bar-r{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,rgba(229,62,62,.7),rgba(229,62,62,.3));min-height:8px;}
+.bar-pair{flex:1;display:flex;gap:2px;align-items:flex-end;}
+.fake-line{height:120px;position:relative;overflow:hidden;}
+.fake-line svg{width:100%;height:100%;}
+
+/* ── RECENT OPS ── */
+.ops-card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.op-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f6f9;}
+.op-row:last-child{border-bottom:none;}
+.op-icon{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.op-info{flex:1;}
+.op-name{font-size:13px;font-weight:600;color:#1a1d23;}
+.op-meta{font-size:10px;color:#aab4c4;margin-top:1px;}
+.op-amt{font-size:14px;font-weight:800;}
+.op-amt.g{color:#1a6645;}
+.op-amt.r{color:#C53030;}
+
+/* ── NAV (для реализма) ── */
+.nav{display:flex;background:#fff;border-top:1px solid #eef0f5;padding:8px 0 20px;position:sticky;bottom:0;z-index:10;box-shadow:0 -4px 20px rgba(0,0,0,.06);}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;font-weight:600;color:#aab4c4;cursor:pointer;}
+.nav-item.active{color:#39B980;}
+.nav-dot{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.nav-item.active .nav-dot{background:rgba(57,185,128,.12);}
+
+/* ── LABEL ── */
+.sketch-label{text-align:center;padding:8px;font-size:10px;color:#8a94a6;font-weight:600;}
+
+/* phone wrapper */
+.phone{max-width:390px;margin:20px auto;background:#f0f2f7;border-radius:36px;overflow:hidden;box-shadow:0 20px 80px rgba(0,0,0,.18);border:8px solid #1a1d23;}
+.screen{max-height:780px;overflow-y:auto;background:#f0f2f7;}
+.screen::-webkit-scrollbar{display:none;}
+
+/* side labels */
+.outer{max-width:580px;margin:0 auto;padding:20px;}
+.title-badge{text-align:center;background:#1a1d23;color:#39B980;border-radius:12px;padding:10px 20px;font-size:13px;font-weight:700;margin-bottom:16px;letter-spacing:.05em;}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;}
+.leg-item{background:#fff;border-radius:12px;padding:10px 12px;border-left:3px solid;}
+.leg-item.g{border-color:#39B980;}
+.leg-item.r{border-color:#E53E3E;}
+.leg-item.b{border-color:#3182CE;}
+.leg-item.o{border-color:#DD6B20;}
+.leg-title{font-size:11px;font-weight:700;color:#1a1d23;margin-bottom:2px;}
+.leg-desc{font-size:10px;color:#8a94a6;}
+</style>
+</head>
+<body>
+
+<div class="outer">
+  <div class="title-badge">⚡ ZAKI ERP — Эскиз новой главной страницы</div>
+
+  <div class="phone">
+    <div class="screen">
+
+      <!-- ═══ HERO SECTION ═══ -->
+      <div class="hero">
+        <div class="hero-top">
+          <div class="hero-badge">📊 ZAKI ERP</div>
+          <div class="hero-period">
+            <span>Год</span>
+            <span class="active">Месяц</span>
+            <span>День</span>
+          </div>
+        </div>
+
+        <div class="hero-label">Баланс кассы</div>
+        <div class="hero-balance">10 300 <span>TJS</span></div>
+        <div class="hero-sub">После авансов снабженцев · $90 USD</div>
+        <div class="hero-trend">↑ +15% к прошлому месяцу</div>
+
+        <div class="hero-grid">
+          <div class="hero-mini">
+            <div class="hero-mini-lbl">↑ Даромадҳо</div>
+            <div class="hero-mini-val" style="color:#39B980;">11 500 <span style="font-size:11px;opacity:.5;">TJS</span></div>
+            <div class="hero-mini-sub">$100 USD · 4 амалиёт</div>
+          </div>
+          <div class="hero-mini">
+            <div class="hero-mini-lbl">↓ Харҷҳо</div>
+            <div class="hero-mini-val" style="color:#ff6b6b;">21 000 <span style="font-size:11px;opacity:.5;">TJS</span></div>
+            <div class="hero-mini-sub">$10 USD · 3 амалиёт</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ KPI CARDS ═══ -->
+      <div class="kpi-row">
+        <div class="kpi b">
+          <div class="kpi-badge">💳 Хазина</div>
+          <div style="height:30px;"></div>
+          <div class="kpi-lbl">Тавозуни хазина</div>
+          <div class="kpi-val">-10 300</div>
+          <div class="kpi-val2">$90 USD</div>
+          <!-- fake sparkline -->
+          <svg class="kpi-spark" width="80" height="50" viewBox="0 0 80 50">
+            <polyline points="0,40 15,30 30,35 45,15 60,20 75,10" fill="none" stroke="#3182CE" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="kpi o">
+          <div class="kpi-badge">⏱ Қарзҳо</div>
+          <div style="height:30px;"></div>
+          <div class="kpi-lbl">Мо қарздорем</div>
+          <div class="kpi-val">11 427</div>
+          <div class="kpi-val2">$100 · Холис: -10 427</div>
+          <svg class="kpi-spark" width="80" height="50" viewBox="0 0 80 50">
+            <polyline points="0,45 20,40 35,42 50,30 65,35 75,28" fill="none" stroke="#DD6B20" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- ═══ MONEY FLOW ═══ -->
+      <div class="section">
+        <div class="section-title">💸 Ҳаракати пул</div>
+        <div class="flow-card">
+          <div class="flow-row">
+            <div class="flow-dot g">💰</div>
+            <div class="flow-info">
+              <div class="flow-name">Даромадҳо</div>
+              <div class="flow-sub">Баланси кассаи TJS</div>
+            </div>
+            <div class="flow-amt"><div class="flow-amt-val g">+11 500</div><div style="font-size:10px;color:#aab4c4;">TJS</div></div>
+          </div>
+          <div class="flow-sep"></div>
+          <div class="flow-row">
+            <div class="flow-dot y">👷</div>
+            <div class="flow-info">
+              <div class="flow-name">У снабженцев</div>
+              <div class="flow-sub">Выдано: 2 499 TJS</div>
+            </div>
+            <div class="flow-amt"><div class="flow-amt-val y">999</div><div style="font-size:10px;color:#aab4c4;">остаток</div></div>
+          </div>
+          <div class="flow-sep"></div>
+          <div class="flow-row">
+            <div class="flow-dot r">📤</div>
+            <div class="flow-info">
+              <div class="flow-name">Харҷҳо</div>
+              <div class="flow-sub">3 амалиёт · прямые</div>
+            </div>
+            <div class="flow-amt"><div class="flow-amt-val r">-21 000</div><div style="font-size:10px;color:#aab4c4;">TJS</div></div>
+          </div>
+          <div class="flow-sep"></div>
+          <div class="flow-row">
+            <div class="flow-dot b">🏦</div>
+            <div class="flow-info">
+              <div class="flow-name">Аз мо қарздоранд</div>
+              <div class="flow-sub">Дебиторҳо</div>
+            </div>
+            <div class="flow-amt"><div class="flow-amt-val g">1 000</div><div style="font-size:10px;color:#aab4c4;">TJS</div></div>
+          </div>
+          <!-- Expense bar -->
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid #f0f2f7;">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#aab4c4;margin-bottom:5px;">
+              <span>Харҷ аз даромад</span><span style="color:#E53E3E;">183%</span>
+            </div>
+            <div class="flow-bar"><div class="flow-bar-fill" style="width:100%;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ CHART ═══ -->
+      <div class="section" style="margin-top:14px;">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">📈 Кэшфлоу (TJS)</div>
+            <div class="chart-tabs">
+              <div class="chart-tab">3м</div>
+              <div class="chart-tab active">6м</div>
+              <div class="chart-tab">Год</div>
+            </div>
+          </div>
+          <!-- Fake bar chart -->
+          <div class="fake-chart">
+            <div class="bar-pair"><div class="bar-g" style="height:60%;"></div><div class="bar-r" style="height:80%;"></div></div>
+            <div class="bar-pair"><div class="bar-g" style="height:45%;"></div><div class="bar-r" style="height:55%;"></div></div>
+            <div class="bar-pair"><div class="bar-g" style="height:75%;"></div><div class="bar-r" style="height:65%;"></div></div>
+            <div class="bar-pair"><div class="bar-g" style="height:50%;"></div><div class="bar-r" style="height:90%;"></div></div>
+            <div class="bar-pair"><div class="bar-g" style="height:85%;"></div><div class="bar-r" style="height:70%;"></div></div>
+            <div class="bar-pair"><div class="bar-g" style="height:70%;"></div><div class="bar-r" style="height:100%;"></div></div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:8px;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#8a94a6;"><div style="width:10px;height:10px;border-radius:3px;background:rgba(57,185,128,.8);"></div>Даромад</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#8a94a6;"><div style="width:10px;height:10px;border-radius:3px;background:rgba(229,62,62,.7);"></div>Харҷ</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ RECENT OPS ═══ -->
+      <div class="section" style="margin-top:14px;padding-bottom:14px;">
+        <div class="ops-card">
+          <div class="chart-header" style="margin-bottom:8px;">
+            <div class="chart-title">🕐 Охирин амалиётҳо</div>
+            <div style="font-size:11px;color:#39B980;font-weight:700;cursor:pointer;">Ҳама →</div>
+          </div>
+          <div class="op-row">
+            <div class="op-icon" style="background:rgba(57,185,128,.1);">💵</div>
+            <div class="op-info">
+              <div class="op-name">Оплата за материалы</div>
+              <div class="op-meta">Сегодня · Стройка · Иванов</div>
+            </div>
+            <div class="op-amt g">+5 000</div>
+          </div>
+          <div class="op-row">
+            <div class="op-icon" style="background:rgba(229,62,62,.08);">🧾</div>
+            <div class="op-info">
+              <div class="op-name">Закупка цемента</div>
+              <div class="op-meta">Вчера · Снабжение · Ахмадов</div>
+            </div>
+            <div class="op-amt r">-3 200</div>
+          </div>
+          <div class="op-row">
+            <div class="op-icon" style="background:rgba(57,185,128,.1);">💵</div>
+            <div class="op-info">
+              <div class="op-name">Аванс клиента</div>
+              <div class="op-meta">22 май · Офис</div>
+            </div>
+            <div class="op-amt g">+8 000</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NAV BAR -->
+      <div class="nav">
+        <div class="nav-item active">
+          <div class="nav-dot">🏠</div>
+          <span>Асосӣ</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-dot">💳</div>
+          <span>Амалиёт</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-dot">👷</div>
+          <span>Снаб</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-dot">🤝</div>
+          <span>Қарзҳо</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-dot">📊</div>
+          <span>Статистика</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div class="leg-item g">
+      <div class="leg-title">🟢 Hero (тёмный)</div>
+      <div class="leg-desc">Тёмный градиент вверху — главный баланс крупно + мини-карты доходов/расходов</div>
+    </div>
+    <div class="leg-item b">
+      <div class="leg-title">🔵 KPI карты</div>
+      <div class="leg-desc">Цветная полоска сверху, иконка, большое число, бейдж, фоновый спарклайн</div>
+    </div>
+    <div class="leg-item o">
+      <div class="leg-title">🟠 Money Flow</div>
+      <div class="leg-desc">Единая карточка — потоки денег строками: касса → снаб → расход → дебит</div>
+    </div>
+    <div class="leg-item r">
+      <div class="leg-title">🔴 Чарт + операции</div>
+      <div class="leg-desc">Бар-чарт по месяцам + список последних операций без перегрузки</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:16px;padding:12px;background:#fff;border-radius:14px;font-size:12px;color:#8a94a6;">
+    ⬆️ Это <b>эскиз</b>. Все данные — фейковые. Скажи "делай" — реализую на реальных данных без ошибок.
+  </div>
+</div>
+
+</body>
+</html>
