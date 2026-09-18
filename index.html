@@ -522,6 +522,15 @@ html{height:100dvh;}
 /* Осталась одна карточка («У снабженцев»): на телефоне во всю ширину,
    на большом экране не растягиваем — иначе цифра теряется посередине. */
 .money-map.one{grid-template-columns:minmax(0,1fr);}
+.sec-row{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:12px;cursor:pointer;}
+.tg{position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;}
+.tg input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:1;}
+.tg span{position:absolute;inset:0;background:var(--bd2);border-radius:12px;transition:background .18s;}
+.tg span::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s;}
+.tg input:checked+span{background:var(--a);}
+.tg input:checked+span::after{transform:translateX(18px);}
+.tg input:focus-visible+span{box-shadow:0 0 0 3px rgba(57,185,128,.25);}
+.tg input:disabled+span{opacity:.55;}
 .money-map.one .mm{max-width:420px;width:100%;}
 .mm{background:var(--w);border:1px solid var(--bd);border-radius:16px;padding:14px 11px;text-align:center;box-shadow:var(--sh);animation:fadeUp .3s ease both;position:relative;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease;}
 .mm:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(26,35,50,.12);}
@@ -1119,6 +1128,8 @@ const T={
     pl:'P&L — Прибыль и убытки',net_p:'Чистая прибыль',
     by_cat:'По категориям',by_obj:'По объектам',
     xl:'Excel',pdf:'PDF',full:'Полный отчёт',
+    sections:'Разделы',show_debts:'Раздел «Долги»',show_debts_sub:'Пункт в меню и карточки «Нам должны» / «Мы должны» на главной',
+    sec_on:'Раздел включён',sec_off:'Раздел скрыт',
     co_s:'Настройки компании',co_n:'Название',co_ph:'Телефон',
     co_em:'Email',co_ad:'Адрес',co_rate:'Курс USD → TJS',
     objects:'Объекты',inc_c:'Категории приходов',exp_c:'Категории расходов',
@@ -1216,6 +1227,8 @@ const T={
     pl:'P&L — Фоида ва зарар',net_p:'Фоидаи холис',
     by_cat:'Аз рӯи категория',by_obj:'Аз рӯи объект',
     xl:'Excel',pdf:'PDF',full:'Гузориши пурра',
+    sections:'Бахшҳо',show_debts:'Бахши «Қарзҳо»',show_debts_sub:'Банд дар меню ва кортҳои «Аз мо қарздоранд» / «Мо қарздорем» дар саҳифаи асосӣ',
+    sec_on:'Бахш фаъол аст',sec_off:'Бахш пинҳон аст',
     co_s:'Танзимоти ширкат',co_n:'Ном',co_ph:'Телефон',
     co_em:'Email',co_ad:'Манзил',co_rate:'Курси USD → TJS',
     objects:'Объектҳо',inc_c:'Категорияҳои даромад',exp_c:'Категорияҳои харҷ',
@@ -2214,11 +2227,14 @@ const NAV_ICO={
   tasks:`<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 7.5l4 4L13 3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 };
 const NAV_K={home:'home',ops:'ops',snabs:'snabs',snab_detail:'snabs',masters:'masters',debts:'debts',stats:'stats',settings:'settings',my:'my',addexp:'addexp',myexp:'myexp',tasks:'tasks'};
-/* Раздел «Долги» убран из меню по просьбе компании: им пользовались пару раз.
-   Страница и окна остались в коде, а таблицы debts и debt_returns — в базе,
-   поэтому вернуть раздел можно одной строкой здесь. */
-const BUH_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{s:'an'},{id:'stats'},{s:'oth'},{id:'settings'}];
-const DIR_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{s:'an'},{id:'stats'}];
+const BUH_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{id:'debts'},{s:'an'},{id:'stats'},{s:'oth'},{id:'settings'}];
+const DIR_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{id:'debts'},{s:'an'},{id:'stats'}];
+/* Раздел «Долги» включается в Настройках (company.show_debts) — одна
+   настройка на всю компанию. Пока колонки в базе нет или она выключена,
+   раздел скрыт: ни пункта меню, ни карточек на главной, ни запроса долгов.
+   Данные в таблицах debts и debt_returns при этом не трогаются. */
+function debtsOn(){return COMPANY?.show_debts===true;}
+const navVisible=n=>n.id!=='debts'||debtsOn();
 const SUP_NAV=[{id:'my'},{id:'addexp'},{id:'myexp'}];
 const SECS={fin:{ru:'Финансы',tj:'Молия'},an:{ru:'Аналитика',tj:'Таҳлил'},oth:{ru:'Прочее',tj:'Дигар'}};
 
@@ -2227,7 +2243,7 @@ function navActive(id){return id===CUR_PAGE||(PARENT_PAGE[CUR_PAGE]===id);}
 function buildNav(){
   const role=USER?.role;
   // supplier -> снабженец, director -> только просмотр, все остальные (accountant, admin, manager, owner и т.д.) -> полный доступ
-  const navDef=role==='supplier'?SUP_NAV:role==='director'?DIR_NAV:BUH_NAV;
+  const navDef=(role==='supplier'?SUP_NAV:role==='director'?DIR_NAV:BUH_NAV).filter(navVisible);
   const pages=navDef.filter(n=>n.id);
   // Sidebar nav
   document.getElementById('sb-nav').innerHTML=navDef.map(n=>{
@@ -2272,6 +2288,7 @@ function buildNav(){
 }
 
 function go(id){
+  if(id==='debts'&&!debtsOn()) id='home';   // раздел выключен в Настройках
   CUR_PAGE=id;
   document.getElementById('page-ttl').textContent=t(NAV_K[id]||id);
   buildNav();closeSidebar();destroyCharts();renderPage(id);
@@ -3765,9 +3782,12 @@ home:async()=>{
 
   // Строки операций нужны здесь ровно для одного — списка «последние 8».
   // Всё остальное на странице это суммы, и считает их сервер.
-  const[totals, agg, advR, recentR]=await Promise.all([
+  const showDebts=debtsOn();
+  const[totals, agg, debtsR, advR, recentR]=await Promise.all([
     fetchOpsTotals(homeObj),
     fetchHomeAggregates(homeObj),
+    // Раздел «Долги» выключен — таблицу не спрашиваем вовсе.
+    showDebts?qCached('home_debts',()=>SB.from('debts').select('type,currency,total_amount,paid_amount,due_date')):Promise.resolve([]),
     qCached('home_advances',()=>sbFetchAll('advances','amount,currency')),
     qCached('home_recent_'+PERIOD+'_'+(homeObj||''),()=>{
       let q=periodFilter(SB.from('operations').select(OPS_COLS));
@@ -3777,6 +3797,7 @@ home:async()=>{
     }),
   ]);
 
+  const debts = showDebts?(debtsR.data||debtsR||[]):[];
   const advs  = (advR.data||advR||[]);
   const ops   = (recentR.data||recentR||[]); // только для блока «последние операции»
 
@@ -3797,6 +3818,19 @@ home:async()=>{
   // All-time ratio for the hero progress bar (expense / income, all-time)
   const allRatioPct = allIncTJS>0 ? Math.min(Math.round((allExpTJS+allAdvTJS)/allIncTJS*100), 100) : 0;
   const allRatioColor = allRatioPct>90?'#fc8181':allRatioPct>65?'#f6c90e':'#39B980';
+
+  // Долги: остаток по каждой валюте отдельно, плюс сколько открыто и просрочено.
+  const debtRest=(type,cur)=>debts.filter(d=>d.type===type&&(cur==='USD'?d.currency==='USD':d.currency!=='USD'))
+    .reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
+  const credTJS=debtRest('creditor','TJS'), credUSD=debtRest('creditor','USD');
+  const debTJS=debtRest('debtor','TJS'),    debUSD=debtRest('debtor','USD');
+  const _t=today();
+  const openDebt=d=>(d.total_amount-d.paid_amount)>0;
+  const lateDebt=d=>openDebt(d)&&d.due_date&&d.due_date<_t;
+  const debCnt=debts.filter(d=>d.type==='debtor'&&openDebt(d)).length;
+  const credCnt=debts.filter(d=>d.type==='creditor'&&openDebt(d)).length;
+  const debLate=debts.filter(d=>d.type==='debtor'&&lateDebt(d)).length;
+  const credLate=debts.filter(d=>d.type==='creditor'&&lateDebt(d)).length;
 
   // Advances (supplier balance)
   const advTot_given = advs.reduce((m,x)=>addMoney(m,x.currency,x.amount),zeroMoney());
@@ -3857,6 +3891,10 @@ home:async()=>{
     // Счётчики «Карты денег». Анимируется сомониевая часть — у неё отдельный
     // span; долларовая стоит строкой ниже и не пересчитывается.
     animCounter('cnt-balTJS', balTJS, '', '', 900);
+    if(showDebts){
+      animCounter('cnt-deb', debTJS, '', '', 600);
+      animCounter('cnt-cred', credTJS, '', '', 600);
+    }
 
     /* ── SPARKLINES ── */
     // Get last 7 days
@@ -4073,7 +4111,7 @@ home:async()=>{
 
 <!-- MONEY MAP -->
   <div class="sh"><div class="sh-t">${t('where')}</div></div>
-  <div class="money-map one mb20">
+  <div class="money-map${showDebts?'':' one'} mb20">
     <div class="mm y" style="animation-delay:.07s;">
       <div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div>
       <div class="mm-l">${t('at_snabs')}</div>
@@ -4083,6 +4121,20 @@ home:async()=>{
       <div class="mm-foot">${Math.round(advPct)}% ${t('spent').toLowerCase()} · ${t('issued').toLowerCase()} ${fmtMoney(advTot_given)}</div>`
       :`<div class="mm-foot">${t('issued')}: ${fmtMoney(advTot_given,{always:true})}</div>`}
     </div>
+${showDebts?`
+    <div class="mm b" style="animation-delay:.1s;">
+      <div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="mm-l">${t('recv')}</div>
+      ${mmAmount({TJS:debTJS,USD:debUSD},'var(--ad)','cnt-deb')}
+      <div class="mm-foot">${debCnt?plDebts(debCnt):t('no_data')}${debLate?`<span class="mm-late">● ${debLate} ${t('overdue').toLowerCase()}</span>`:''}</div>
+    </div>
+
+    <div class="mm r" style="animation-delay:.13s;">
+      <div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="mm-l">${t('paybl')}</div>
+      ${mmAmount({TJS:credTJS,USD:credUSD},'var(--red)','cnt-cred')}
+      <div class="mm-foot">${credCnt?plDebts(credCnt):t('no_data')}${credLate?`<span class="mm-late">● ${credLate} ${t('overdue').toLowerCase()}</span>`:''}</div>
+    </div>`:''}
   </div>
 
   <!-- CHARTS -->
@@ -5015,6 +5067,17 @@ settings:async()=>{
     </div>
     ${canAdmin()?`<button class="btn btn-p btn-sm" style="margin-top:11px;" onclick="saveCo()">${t('save')}</button>`:''}
   </div>
+  ${canAdmin()?`
+  <div class="card mb16" style="animation:fadeUp .3s ease .03s both;">
+    <div class="sh"><div class="sh-t">${t('sections')}</div></div>
+    <label class="sec-row" for="tg-debts">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--t);">${t('show_debts')}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px;">${t('show_debts_sub')}</div>
+      </div>
+      <span class="tg"><input type="checkbox" id="tg-debts" ${debtsOn()?'checked':''} onchange="toggleDebtsSection(this)"><span></span></span>
+    </label>
+  </div>`:''}
   <div class="card mb16" style="animation:fadeUp .3s ease .06s both;">
     <div class="sh"><div class="sh-t">Язык / Забон</div></div>
     <div class="lang-row" style="max-width:240px;gap:8px;">
@@ -5876,6 +5939,24 @@ async function saveCo(){
   COMPANY.name=document.getElementById('co-n').value;
   COMPANY.address=document.getElementById('co-ad').value;
   buildNav();showToast(t('saved'));
+}
+/* Включить/скрыть раздел «Долги» для всей компании. */
+async function toggleDebtsSection(el){
+  const on=!!el.checked;
+  el.disabled=true;
+  const{error}=await SB.from('company').update({show_debts:on}).eq('id',1);
+  el.disabled=false;
+  if(error){
+    el.checked=!on;
+    // Колонки ещё нет в базе: PostgREST отвечает PGRST204 «Could not find the 'show_debts' column».
+    const noCol=error.code==='PGRST204'||/show_debts/.test(error.message||'');
+    showToast(noCol?'В базе нет настройки show_debts — выполните SQL из supabase_functions.sql (раздел «Долги»)':error.message,true);
+    return;
+  }
+  COMPANY.show_debts=on;
+  qCacheClear('home_');
+  buildNav();
+  showToast(on?t('sec_on'):t('sec_off'));
 }
 async function saveRate(){
   const v=parseFloat(document.getElementById('rate-inp').value);if(!v){showToast(t('invalid_val'),true);return;}

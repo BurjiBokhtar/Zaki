@@ -351,3 +351,12 @@ create index if not exists idx_advances_object on advances(object_name);
 -- delete from user_logs where created_at < now() - interval '90 days';
 -- create index if not exists idx_user_logs_created on user_logs(created_at desc);
 -- ────────────────────────────────────────────────────────────────
+
+-- ───────────────────────────────────────
+-- Раздел «Долги»: включается и выключается в Настройках приложения.
+-- Одна настройка на всю компанию. По умолчанию раздел скрыт.
+-- Данные в debts и debt_returns от этого не меняются.
+alter table company add column if not exists show_debts boolean not null default false;
+-- Чтобы API сразу увидел новую колонку:
+notify pgrst, 'reload schema';
+-- ───────────────────────────────────────
