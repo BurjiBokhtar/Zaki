@@ -1,5 +1,5 @@
 /* ── ZAKI ERP Service Worker ── */
-const CACHE_VER = 'zaki-v39';
+const CACHE_VER = 'zaki-v40';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 /* Библиотеки с CDN лежат отдельно от оболочки. Раньше они попадали в кэш

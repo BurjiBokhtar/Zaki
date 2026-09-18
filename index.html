@@ -519,6 +519,10 @@ html{height:100dvh;}
 /* MONEY MAP */
 /* Три плитки: касса живёт в шапке, дублировать её здесь незачем. */
 .money-map{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:18px;}
+/* Осталась одна карточка («У снабженцев»): на телефоне во всю ширину,
+   на большом экране не растягиваем — иначе цифра теряется посередине. */
+.money-map.one{grid-template-columns:minmax(0,1fr);}
+.money-map.one .mm{max-width:420px;width:100%;}
 .mm{background:var(--w);border:1px solid var(--bd);border-radius:16px;padding:14px 11px;text-align:center;box-shadow:var(--sh);animation:fadeUp .3s ease both;position:relative;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease;}
 .mm:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(26,35,50,.12);}
 .mm::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
@@ -2210,8 +2214,11 @@ const NAV_ICO={
   tasks:`<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 7.5l4 4L13 3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 };
 const NAV_K={home:'home',ops:'ops',snabs:'snabs',snab_detail:'snabs',masters:'masters',debts:'debts',stats:'stats',settings:'settings',my:'my',addexp:'addexp',myexp:'myexp',tasks:'tasks'};
-const BUH_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{id:'debts'},{s:'an'},{id:'stats'},{s:'oth'},{id:'settings'}];
-const DIR_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{id:'debts'},{s:'an'},{id:'stats'}];
+/* Раздел «Долги» убран из меню по просьбе компании: им пользовались пару раз.
+   Страница и окна остались в коде, а таблицы debts и debt_returns — в базе,
+   поэтому вернуть раздел можно одной строкой здесь. */
+const BUH_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{s:'an'},{id:'stats'},{s:'oth'},{id:'settings'}];
+const DIR_NAV=[{s:'fin'},{id:'home'},{id:'ops'},{id:'snabs'},{s:'an'},{id:'stats'}];
 const SUP_NAV=[{id:'my'},{id:'addexp'},{id:'myexp'}];
 const SECS={fin:{ru:'Финансы',tj:'Молия'},an:{ru:'Аналитика',tj:'Таҳлил'},oth:{ru:'Прочее',tj:'Дигар'}};
 
@@ -3758,11 +3765,9 @@ home:async()=>{
 
   // Строки операций нужны здесь ровно для одного — списка «последние 8».
   // Всё остальное на странице это суммы, и считает их сервер.
-  const[totals, agg, debtsR, advR, recentR]=await Promise.all([
+  const[totals, agg, advR, recentR]=await Promise.all([
     fetchOpsTotals(homeObj),
     fetchHomeAggregates(homeObj),
-    // due_date нужен «Карте денег», чтобы показать, сколько долгов просрочено.
-    qCached('home_debts',()=>SB.from('debts').select('type,currency,total_amount,paid_amount,due_date')),
     qCached('home_advances',()=>sbFetchAll('advances','amount,currency')),
     qCached('home_recent_'+PERIOD+'_'+(homeObj||''),()=>{
       let q=periodFilter(SB.from('operations').select(OPS_COLS));
@@ -3772,7 +3777,6 @@ home:async()=>{
     }),
   ]);
 
-  const debts = (debtsR.data||debtsR||[]);
   const advs  = (advR.data||advR||[]);
   const ops   = (recentR.data||recentR||[]); // только для блока «последние операции»
 
@@ -3793,25 +3797,6 @@ home:async()=>{
   // All-time ratio for the hero progress bar (expense / income, all-time)
   const allRatioPct = allIncTJS>0 ? Math.min(Math.round((allExpTJS+allAdvTJS)/allIncTJS*100), 100) : 0;
   const allRatioColor = allRatioPct>90?'#fc8181':allRatioPct>65?'#f6c90e':'#39B980';
-
-  // Debts
-  const credTJS=debts.filter(d=>d.type==='creditor'&&d.currency!=='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
-  const credUSD=debts.filter(d=>d.type==='creditor'&&d.currency==='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
-  const debTJS=debts.filter(d=>d.type==='debtor'&&d.currency!=='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
-  const debUSD=debts.filter(d=>d.type==='debtor'&&d.currency==='USD').reduce((a,d)=>a+(d.total_amount-d.paid_amount),0);
-  // «Нетто» одним числом тоже не считается: дебиторка и кредиторка живут
-  // в своих валютах и вычитаются только внутри одной.
-  const netTJS=debTJS-credTJS;
-  const netUSD=debUSD-credUSD;
-  // Сколько долгов и сколько из них просрочено — этого на главной не было
-  // нигде, а именно это и нужно видеть первым.
-  const _t=today();
-  const openDebt=d=>(d.total_amount-d.paid_amount)>0;
-  const lateDebt=d=>openDebt(d)&&d.due_date&&d.due_date<_t;
-  const debCnt=debts.filter(d=>d.type==='debtor'&&openDebt(d)).length;
-  const credCnt=debts.filter(d=>d.type==='creditor'&&openDebt(d)).length;
-  const debLate=debts.filter(d=>d.type==='debtor'&&lateDebt(d)).length;
-  const credLate=debts.filter(d=>d.type==='creditor'&&lateDebt(d)).length;
 
   // Advances (supplier balance)
   const advTot_given = advs.reduce((m,x)=>addMoney(m,x.currency,x.amount),zeroMoney());
@@ -3872,8 +3857,6 @@ home:async()=>{
     // Счётчики «Карты денег». Анимируется сомониевая часть — у неё отдельный
     // span; долларовая стоит строкой ниже и не пересчитывается.
     animCounter('cnt-balTJS', balTJS, '', '', 900);
-    animCounter('cnt-deb', debTJS, '', '', 600);
-    animCounter('cnt-cred', credTJS, '', '', 600);
 
     /* ── SPARKLINES ── */
     // Get last 7 days
@@ -3926,12 +3909,10 @@ home:async()=>{
     const incData7=days7.map(d=>dayOps[d]?.inc||0);
     const expData7=days7.map(d=>dayOps[d]?.exp||0);
     const balData7=incData7.map((v,i)=>v-expData7[i]);
-    const netData7=days7.map((_,i)=>Math.max(0,netTJS));
 
     drawSparkline('spark-inc', incData7, '#2A9066', 'rgba(57,185,128,.12)');
     drawSparkline('spark-exp', expData7, '#E53E3E', 'rgba(229,62,62,.10)');
     drawSparkline('spark-bal', balData7, '#3182CE', 'rgba(49,130,206,.10)');
-    drawSparkline('spark-debt', netData7, '#DD6B20', 'rgba(221,107,32,.10)');
 
     /* ── CHARTS ── */
     const lineAnim={duration:1200,easing:'easeOutQuart'};
@@ -4092,7 +4073,7 @@ home:async()=>{
 
 <!-- MONEY MAP -->
   <div class="sh"><div class="sh-t">${t('where')}</div></div>
-  <div class="money-map mb20">
+  <div class="money-map one mb20">
     <div class="mm y" style="animation-delay:.07s;">
       <div class="mm-ico" style="background:var(--yell);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--yel)" stroke-width="1.5"><circle cx="10" cy="7.5" r="3.5"/><path d="M4 18c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" stroke-linecap="round"/></svg></div>
       <div class="mm-l">${t('at_snabs')}</div>
@@ -4101,20 +4082,6 @@ home:async()=>{
       <div class="mm-bar"><div class="mm-bar-fi" style="width:${advPct.toFixed(0)}%;background:${advPct>90?'var(--red)':'var(--yel)'};"></div></div>
       <div class="mm-foot">${Math.round(advPct)}% ${t('spent').toLowerCase()} · ${t('issued').toLowerCase()} ${fmtMoney(advTot_given)}</div>`
       :`<div class="mm-foot">${t('issued')}: ${fmtMoney(advTot_given,{always:true})}</div>`}
-    </div>
-
-    <div class="mm b" style="animation-delay:.1s;">
-      <div class="mm-ico" style="background:var(--al);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--a)" stroke-width="1.8"><path d="M4.5 10l4.5 4.5L16.5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="mm-l">${t('recv')}</div>
-      ${mmAmount({TJS:debTJS,USD:debUSD},'var(--ad)','cnt-deb')}
-      <div class="mm-foot">${debCnt?plDebts(debCnt):t('no_data')}${debLate?`<span class="mm-late">● ${debLate} ${t('overdue').toLowerCase()}</span>`:''}</div>
-    </div>
-
-    <div class="mm r" style="animation-delay:.13s;">
-      <div class="mm-ico" style="background:var(--redl);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M16 10l-4.5-4.5M16 10l-4.5 4.5M16 10H4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="mm-l">${t('paybl')}</div>
-      ${mmAmount({TJS:credTJS,USD:credUSD},'var(--red)','cnt-cred')}
-      <div class="mm-foot">${credCnt?plDebts(credCnt):t('no_data')}${credLate?`<span class="mm-late">● ${credLate} ${t('overdue').toLowerCase()}</span>`:''}</div>
     </div>
   </div>
 
