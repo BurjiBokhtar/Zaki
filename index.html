@@ -4662,6 +4662,7 @@ snab_detail:async()=>{
           <span style="font-size:10px;color:var(--t4);margin-left:6px;">${multi?group.length+' авансов':group[0].task||'Аванс'} · израсходован</span>
         </div>
         <span style="font-size:12px;font-weight:700;color:var(--t4);text-decoration:line-through;">${fmtMoney(dayTotal,{always:isMoneyEmpty(dayTotal)})}</span>
+        ${isAcc()?`<button onclick="advDeleteGroup('${ids}','${safeN}')" title="Удалить" style="padding:5px 8px;border-radius:6px;background:transparent;border:1px solid var(--bd);color:var(--t4);font-size:11px;cursor:pointer;font-family:var(--ff);flex-shrink:0;">🗑</button>`:''}
       </div>`;
     }
 
@@ -4709,6 +4710,7 @@ snab_detail:async()=>{
         ${group.length>1?`<span style="font-size:10px;color:var(--t4);margin-left:5px;">${group.length} авансов</span>`:`<span style="font-size:10px;color:var(--t4);margin-left:5px;">${group[0].task||''}</span>`}
       </div>
         <span style="font-size:12px;font-weight:700;color:var(--t3);">${fmtMoney(total,{always:isMoneyEmpty(total)})}</span>
+        ${isAcc()?`<button onclick="advDeleteGroup('${ids}','${safeN}')" title="Удалить" style="padding:5px 8px;border-radius:6px;background:transparent;border:1px solid var(--bd);color:var(--t4);font-size:11px;cursor:pointer;font-family:var(--ff);flex-shrink:0;">🗑</button>`:''}
     </div>`;
   }
 
