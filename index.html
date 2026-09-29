@@ -3229,7 +3229,7 @@ async function fetchStatsAggregates(){
 }
 async function delOp(id){
   showConfirm(t('del_q'),async()=>{
-    const{data:op}=await SB.from('operations').select('date,worker_name,type,amount,currency,object_name').eq('id',id).single();
+    const{data:op}=await SB.from('operations').select('date,worker_name,target_worker,description,type,amount,currency,object_name').eq('id',id).single();
     if(op&&!isEditable(op.date)){showToast(USER?.role==='supplier'?t('ed_today'):t('ed_2d'),true);return;}
     // Аванс дублируется в таблицу advances (её читает снабженец: баланс, «Мой аванс»).
     // Прямой связи между строками нет — удаляем зеркальную строку по совпадению,
@@ -3241,11 +3241,14 @@ async function delOp(id){
   });
 }
 /* Удаляет одну зеркальную строку в advances, соответствующую операции-авансу.
-   Матч: worker_name + amount + currency; из совпадений берём с тем же объектом,
-   иначе — самую свежую. Так дубликат-аванс убирается и у снабженца тоже. */
+   worker_name операции — это бухгалтер, который её оформил, а не получатель:
+   получателя надо брать из target_worker (или, для старых записей без этого
+   поля, разобрать из description «Аванс → Имя»). Матч по получателю + amount +
+   currency; из совпадений берём с тем же объектом, иначе — самую свежую. */
 async function delMirroredAdvance(op){
+  const recipient=op.target_worker||(op.description||'').match(/^Аванс\s*→\s*([^(]+)/)?.[1]?.trim()||op.worker_name;
   const{data:rows}=await SB.from('advances').select('id,object_name')
-    .eq('worker_name',op.worker_name).eq('amount',op.amount).eq('currency',op.currency)
+    .eq('worker_name',recipient).eq('amount',op.amount).eq('currency',op.currency)
     .order('created_at',{ascending:false});
   if(!rows||!rows.length)return;
   const target=rows.find(r=>(r.object_name||'')===(op.object_name||''))||rows[0];
@@ -3418,7 +3421,7 @@ function fUpdTotal(val){
 async function fSubmit(isSupplier){
   const rate=COMPANY.usd_rate||10.92;
   // Supplier expenses are funded from advance (not direct cash outflow)
-  let amt=0,desc='',method=(isSupplier&&OP_TYPE==='expense')?'from_advance':'cash';
+  let amt=0,desc='',method=(isSupplier&&OP_TYPE==='expense')?'from_advance':'cash',advWorker=null;
   const date=document.getElementById('f-date')?.value||today();
   if(OP_TYPE==='expense'){
     const q=parseFloat(document.getElementById('f-qty')?.value)||0,p=parseFloat(document.getElementById('f-price')?.value)||0;
@@ -3447,6 +3450,7 @@ async function fSubmit(isSupplier){
     const w=document.getElementById('f-worker')?.value||'';
     desc='Аванс → '+w;
     if(!amt||!w){showToast(t('specify_worker'),true);return;}
+    advWorker=w;
     // Also save to advances table
     await dbInsertQueued('advances',{worker_name:w,object_name:SEL_OBJ,task:SEL_CAT,amount:amt,currency:SEL_CUR});
   }
@@ -3457,6 +3461,7 @@ async function fSubmit(isSupplier){
     amount_usd:SEL_CUR==='TJS'?amt/curRate():amt,
     usd_rate:curRate(),
     worker_name:(isSupplier||isSup())?USER.name:(USER?.name||'Бухгалтер'),
+    target_worker:advWorker,
     qty:parseFloat(document.getElementById('f-qty')?.value)||null,
     unit:document.getElementById('f-unit')?.value||null,
     price:parseFloat(document.getElementById('f-price')?.value)||null,
@@ -5594,7 +5599,7 @@ async function openNewAdv(){
         amount:amt,currency:cur,method:'cash',
         amount_tjs:cur==='USD'?amt*curRate():amt,
         amount_usd:cur==='TJS'?amt/curRate():amt,
-        usd_rate:curRate(),worker_name:USER?.name||'',created_by:USER?.id
+        usd_rate:curRate(),worker_name:USER?.name||'',target_worker:w,created_by:USER?.id
       });
       if(oe){showToast(t('adv_op_warn')+': '+oe.message,true);}
       closeModal();showToast('✓ Аванс '+fmtN(amt)+' '+cur+' → '+w+' выдан');
