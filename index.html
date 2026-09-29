@@ -3255,6 +3255,33 @@ async function delMirroredAdvance(op){
   const{error}=await SB.from('advances').delete().eq('id',target.id);
   if(error)showToast(error.message,true);
 }
+/* Прямое удаление аванса со страницы снабженца (для accountant/admin) —
+   на случай, если зеркальная запись в advances уже осиротела (например,
+   из старой операции без target_worker) и баланс снабженца завис. Ищет и
+   удаляет парную операцию тем же способом, что и delMirroredAdvance, только
+   в обратную сторону, чтобы общая касса тоже вернула деньги. */
+async function advDeleteOne(id){
+  const{data:adv}=await SB.from('advances').select('id,worker_name,amount,currency,object_name').eq('id',id).single();
+  if(!adv)return;
+  const{data:ops}=await SB.from('operations').select('id,worker_name,target_worker,description,object_name')
+    .eq('type','advance').eq('amount',adv.amount).eq('currency',adv.currency)
+    .order('created_at',{ascending:false});
+  const recipientOf=o=>o.target_worker||(o.description||'').match(/^Аванс\s*→\s*([^(]+)/)?.[1]?.trim()||o.worker_name;
+  const cands=(ops||[]).filter(o=>recipientOf(o)===adv.worker_name);
+  const match=cands.find(o=>(o.object_name||'')===(adv.object_name||''))||cands[0];
+  if(match) await SB.from('operations').delete().eq('id',match.id);
+  const{error}=await SB.from('advances').delete().eq('id',id);
+  if(error)showToast(error.message,true);
+}
+async function advDeleteGroup(idsStr,name){
+  if(!isAcc()){showToast(t('adv_close_deny'),true);return;}
+  const ids=String(idsStr).split(',').map(Number).filter(Boolean);
+  if(!ids.length)return;
+  showConfirm(ids.length>1?`Удалить ${ids.length} аванса за этот день? Деньги вернутся на общий баланс, из баланса ${name} они уйдут.`:`Удалить этот аванс? Деньги вернутся на общий баланс, из баланса ${name} он уйдёт.`,async()=>{
+    for(const id of ids) await advDeleteOne(id);
+    qCacheClear('home_');showToast('✓ Удалено');renderPage(CUR_PAGE);
+  },'Удалить');
+}
 async function editOp(id){
   const{data:op}=await SB.from('operations').select('*').eq('id',id).single();
   if(!op)return;
@@ -4656,6 +4683,7 @@ snab_detail:async()=>{
       ${canWrite()?`<div style="display:flex;gap:6px;margin-top:8px;">
         <button onclick="advAddExpense('${safeN}','${safeObj}')" style="flex:1;padding:7px 2px;border-radius:7px;background:var(--redl);border:1px solid var(--redb);color:var(--red);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">− ${t('expense')}</button>
         <button onclick="advStageGroup('${ids}')" style="flex:1;padding:7px 2px;border-radius:7px;background:var(--bg);border:1px solid var(--bd);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--ff);">${t('stage_lbl')} →</button>
+        ${isAcc()?`<button onclick="advDeleteGroup('${ids}','${safeN}')" title="Удалить" style="padding:7px 10px;border-radius:7px;background:var(--bg);border:1px solid var(--bd);color:var(--t4);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--ff);">🗑</button>`:''}
       </div>`:''}
     </div>`;
   }
